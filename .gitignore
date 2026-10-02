@@ -1,0 +1,25 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Personal Claude Code settings (project settings.json stays tracked)
+.claude/settings.local.json
+
+# Backend
+backend/target/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+
+# Verify output (final report is committed as docs/verify-report.md)
+build/
+
+# Local env files
+.env
+.env.*
