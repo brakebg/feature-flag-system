@@ -168,6 +168,7 @@ featureflags:
 Clients bind to a `List<ClientRegistration>` record via `@ConfigurationProperties`. More clients are added as list entries (or through `FF_AUTH_CLIENTS_0_CLIENT_ID`-style environment variables).
 
 - On startup the backend MUST fail fast if `jwt-secret` is shorter than 32 bytes, or if two clients share a `client-id`.
+- Any ISO-8601 duration of 1 second or more is accepted for `admin-token-ttl` and `client-token-ttl`. The JWT decoder uses a clock skew of 0 seconds: a token whose `exp` is at or before the current time is rejected with `401`. (The same service issues and validates tokens, so there is one clock.)
 - In the `prod` profile it MUST log a WARN if any default password or secret above is still in use.
 - Admin password and client secrets are compared in constant time (`MessageDigest.isEqual`). They are not stored hashed in v1 because they are config, but checks sit behind `AdminAuthenticator` and `ClientAuthenticator` interfaces so a real user or client store can replace them.
 - Tokens are signed HS256 and issued with Spring Security's `NimbusJwtEncoder`; they are validated by Spring Security OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`) with a `NimbusJwtDecoder` that checks signature, `exp`, `iss` and `aud`. No custom JWT filter.
@@ -178,6 +179,7 @@ Clients bind to a `List<ClientRegistration>` record via `@ConfigurationPropertie
 2. On success the backend returns `200 { "accessToken": "<jwt>", "expiresAt": "<ISO-8601>", "username": "admin" }`. JWT claims: `sub` = username, `scope` = `admin`, `aud` = `feature-flag-admin`, `iss` = `feature-flag-service`, `iat`, `exp`.
 3. On failure: `401` with a generic problem detail ("Invalid username or password"). Never reveal which field was wrong.
 4. UI keeps the token in `sessionStorage` and sends `Authorization: Bearer <jwt>` on every Admin API call.
+   The token is stored in `sessionStorage` under the key `ff.accessToken` as the raw JWT string (no JSON wrapper). Sign out and any `401` remove this key.
 5. Any `401` from the Admin API makes the UI clear the token and redirect to `/login?expired=1`.
 6. Logout is client-side only: the UI discards the token (no server-side revocation in v1).
 
@@ -268,6 +270,11 @@ type ToggleFlagRequest  = { enabled: boolean };
 
 type AuditEvent = { id: number; occurredAt: string; actor: string; action: string;
   targetKey: string; details?: Record<string, unknown> };
+
+// Spring Data stable page format ("VIA_DTO", @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO)).
+// Not the default PageImpl JSON. `page.number` is the 0-based page index.
+type Page<T> = { content: T[];
+  page: { size: number; number: number; totalElements: number; totalPages: number } };
 ```
 
 Timestamps are ISO-8601 UTC strings. IDs are UUID strings.
@@ -402,6 +409,17 @@ Right pane (selected group):
 - Empty group state: "No flags in this group" + "Add flag" button.
 - No group selected: placeholder "Select a group or create one".
 
+Dialog texts (the New flag dialog matches its design; the others follow the same style):
+
+| Dialog | Title (heading, names the dialog) | Fields (label) | Buttons |
+| --- | --- | --- | --- |
+| New group | `New group` | `Key`, `Name`, `Description (optional)` | `Cancel`, `Create group` |
+| Edit group | `Edit group` | `Key` (read-only, shows the key), `Name`, `Description (optional)` | `Cancel`, `Save changes` |
+| New flag | `New flag in <group name>` | `Key` (prefix `<groupKey>.` shown), `Description (optional)`, switch `Initial state` | `Cancel`, `Create flag` |
+| Edit flag | `Edit flag` | `Key` (read-only, shows the full key), `Description (optional)` | `Cancel`, `Save changes` |
+
+Every dialog has `role="dialog"` and `aria-modal="true"` and is named by its title. Each also has a close icon button named `Close`.
+
 ### 8.5 Interaction rules
 
 | Action | Behavior |
@@ -413,9 +431,11 @@ Right pane (selected group):
 | Concurrent edit (409 version conflict) | Toast "This item was changed by someone else" and refetch the group. |
 | Any success | Toast for 3 s (create, update, delete). Toggles do not toast. |
 
+Toasts are rendered with `role="status"` (success) or `role="alert"` (error). Toggle failure toast text: `Could not update flag <fullKey>` (full key without quotes).
+
 ### 8.6 Audit log page
 
-Table: Time (local, absolute + relative), Actor, Action (coloured label), Target, Details (e.g. "false → true"). Filter input on target key, "Load more" pagination (50 per page).
+Table: Time (local, absolute + relative), Actor, Action (coloured label), Target, Details (e.g. "false → true"). Filter input on target key, "Load more" pagination (50 per page; the button is shown while `page.number + 1 < page.totalPages`).
 
 ### 8.7 UI code structure
 
@@ -570,6 +590,8 @@ The backend keeps Spring Security's default security headers and adds `Cache-Con
 ### 10.3 docker-compose
 
 Services: `postgres` (16-alpine, volume `pgdata`, healthcheck), `backend` (depends on healthy postgres, port 8080), `frontend` (port 3000 → nginx 80, `BACKEND_URL=http://backend:8080`). `make up` builds and starts; UI at `http://localhost:3000`, login `admin` / `admin123`.
+
+`docker-compose.yml` passes every variable listed in 9.4 to the `backend` service as `${VAR:-<default from 9.4>}`. Host ports are `${FF_BACKEND_PORT:-8080}` for the backend and `${FF_UI_PORT:-3000}` for the UI, so several stacks (different `-p` project names) can run side by side, for example one with `FF_ADMIN_TOKEN_TTL=PT2S` or `FF_REQUIRE_HTTPS=true`.
 
 ### 10.4 Local development
 
