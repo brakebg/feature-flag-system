@@ -190,12 +190,15 @@ else
   if ! git worktree add --quiet --detach "$WT" "$REF"; then
     fail "could not check out $REF into a temporary worktree"; stacks_ok=0
   else
-    # default stack through `make up` (AC-OPS-1 names it); project name fixed for the ops tests
-    (cd "$WT" && COMPOSE_PROJECT_NAME="$PROJECT_DEFAULT" make up) || { fail "make up failed on $REF"; stacks_ok=0; }
+    # https and limits stacks first, so their image builds do not use the AC-OPS-1 90 s window
     (cd "$WT" && FF_REQUIRE_HTTPS=true FF_BACKEND_PORT=8280 FF_UI_PORT=3200 \
         docker compose -p "$PROJECT_HTTPS" up -d --build) || { fail "https stack failed to start"; stacks_ok=0; }
     (cd "$WT" && FF_BACKEND_PORT=8380 FF_UI_PORT=3300 \
         docker compose -p "$PROJECT_LIMITS" up -d --build) || { fail "limits stack failed to start"; stacks_ok=0; }
+    # default stack through `make up` (AC-OPS-1 names it); project name fixed for the ops tests
+    (cd "$WT" && COMPOSE_PROJECT_NAME="$PROJECT_DEFAULT" make up) || { fail "make up failed on $REF"; stacks_ok=0; }
+    # AC-OPS-1 (spec 10.3, Q-074): the 90 s window starts right after `make up` returns
+    STACK_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   fi
   if [ "$stacks_ok" = "1" ]; then
     wait_healthy default 8080 || stacks_ok=0
@@ -206,7 +209,7 @@ else
     if (cd "$ACCEPTANCE_DIR" && \
         UI_URL=http://localhost:3000 API_URL=http://localhost:8080 \
         HTTPS_API_URL=http://localhost:8280 LIMITS_API_URL=http://localhost:8380 \
-        FF_COMPOSE_DIR="$WT" FF_COMPOSE_PROJECT="$PROJECT_DEFAULT" \
+        FF_COMPOSE_DIR="$WT" FF_COMPOSE_PROJECT="$PROJECT_DEFAULT" FF_STACK_STARTED_AT="$STACK_STARTED_AT" \
         npm test); then
       pass "black-box acceptance suite passed (5 phases)"
     else
