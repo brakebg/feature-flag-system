@@ -239,7 +239,7 @@ benchmark: see `decisions/0001-validation-approach.md`.
 | # | Item | Status |
 | --- | --- | --- |
 | 1 | Black-box acceptance suite (separate private repo `feature-flag-acceptance`, see 2.1) | Location decided; not started |
-| 3 | `scripts/owner-review.sh` | Not started |
-| 4 | Edit-block hook in `.claude/settings.json` | Not started |
+| 3 | `scripts/owner-review.sh` | Created: locked files, locked values, weakened tests, black-box acceptance suite. Tested on a bad and a clean branch |
+| 4 | Edit-block hook in `.claude/settings.json` | Created: `.claude/hooks/block_locked_files.py`, list in `scripts/locked-paths.txt`. Owner sessions: `FF_OWNER_SESSION=1 claude` |
 | 2 | Stryker gate in spec | Phase 2 — after the benchmark, only if we continue |
 | 5 | Account spend limit | Owner to set |

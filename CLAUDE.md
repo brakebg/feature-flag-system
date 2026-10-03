@@ -50,6 +50,11 @@ done. Do not rewrite this file; propose changes through an escalation (spec 12.5
 Need to change a locked item? That is a Level 3 escalation (spec 12.5, trigger 2).
 Never work around it.
 
+Enforced: the list lives in `scripts/locked-paths.txt`; a hook
+(`.claude/hooks/block_locked_files.py`) refuses edits to those paths, and the owner
+checks every change to them from `main` (`scripts/owner-review.sh`). A blocked edit is
+a signal to stop, not a puzzle to solve.
+
 ## 4. Test integrity — the gates judge the code, never the other way round
 
 A red gate reported honestly is an acceptable outcome. A green gate reached by weakening
