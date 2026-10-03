@@ -24,7 +24,7 @@ acceptance criteria in 7 groups (11.2), 15 gates in `make verify` (11.3), 8 mile
 
 | | Summary | Detail |
 | --- | --- | --- |
-| **A** | **Autonomy + late detection** | Builder fully autonomous. A weakness in its own tests is found at the milestone end by the black-box acceptance suite or planted bugs. "Late" = at most one milestone; the builder's tests and 15 gates still catch most bugs at once. What arrives late is a weak test or a spec misread shared by code and tests |
+| **A** | **Autonomy + late detection** | Builder fully autonomous through M1 to M8. A weakness in its own tests is found at the end by the black-box acceptance suite or planted bugs. Its internal tests and the 15 gates run on every chunk and catch most bugs at once; what arrives late is a weak test or a spec misread shared by code and tests. Optional milestone runs make it earlier |
 | **B** | **Slow + early detection** | Human in the loop every cycle. Weak tests and misreads show up in the first loop that runs both sides. "Early" depends on how often the owner merges and runs; the tester cannot run anything alone |
 
 ## 3. Approach A — Single builder + black-box acceptance suite
@@ -42,12 +42,14 @@ never sees.
 | UI selectors | Role and label from spec texts ("Sign in", "+ New group", `role="switch"` with `aria-checked`). The spec has no `data-testid` |
 | Covers | 31 ACs fully, 2 partly (AC-CACHE-4, AC-CACHE-6), plus every `ERR-*` error case from spec 6.1 and 9.1 |
 | Not covered (white-box only) | AC-CACHE-1, 2, 3, 5, 7, 8 and AC-AUD-3: database query counts, rollback, reconciliation job, purge with injected `Clock`. Only the builder's tests and PIT check them |
-| Runs when | After M3, M4, M5, M7, M8 and at the final review (table below) |
-| Owner work | Review the suite once; ~15 min per milestone run; final review |
+| Runs when | At the end, after M8. Optional: also after M3, M4, M5, M7 (table below) |
+| Owner work | Review the suite once; run it at the end; fix rounds (max 3 per AC); final review |
 | Guards | Locked files on protected `main`; `locked-files-guard` required check; owner review script from `main`; edit-block hook; outside protection (`docs/VALIDATION.md` 2.2, 2.3) |
 | Fits current spec | Yes, as written |
 
-When each part of the suite should start to pass:
+Process: the 6 steps in `docs/VALIDATION.md` 4.1 (tester done first; builder done when the suite passes).
+
+Optional earlier runs — when each part of the suite should start to pass:
 
 | After | Builder finished | Suite tests that should now pass |
 | --- | --- | --- |
@@ -109,7 +111,7 @@ mistakes because the tester cannot run anything before the merge.
 | # | Topic | A | B | Verdict |
 | --- | --- | --- | --- | --- |
 | 1 | Who writes tests | Builder (own) + black-box acceptance suite | Tester only (see gate 9) | B more independent |
-| 2 | When independent tests run | 5 milestone ends + final | Every loop | B earlier |
+| 2 | When independent tests run | After M8 (optional milestone runs) | Every loop | B earlier |
 | 3 | Isolation | Separate private repo | Separate clones, deny rules | Both soft; guard from `main` is the hard part |
 | 4 | Hard gate | Owner review + guard from `main` as required check; branch protection | Path guard on push (hole) + branch protection | Fix B's guard |
 | 5 | Feedback to agents | Bug report by AC ID | Redaction rules, templates, triage table | Adopt B's into A |
