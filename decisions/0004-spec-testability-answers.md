@@ -48,4 +48,4 @@ Acceptance criteria wording changed (IDs and positions unchanged):
 
 ## 3. Follow-up
 
-- The owner updates the designs where the spec now decides differently: narrow layout keeps Edit/Delete visible (Q-036); action controls are buttons, not links (Q-034); tables have table semantics (Q-040); "Sessions last 8 hours." removed (Q-062).
+- Done 2026-10-03 (commit 5239b1e): designs updated where the spec now decides differently: narrow layout keeps Edit/Delete visible (Q-036); action controls are buttons (Q-034); tables have table roles (Q-040); "Sessions last 8 hours." removed (Q-062). See `docs/design/README.md`.
