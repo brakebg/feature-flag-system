@@ -111,6 +111,8 @@ Three tables: `flag_group`, `feature_flag` (many per group, deleted with the gro
 
 Unique constraint: `(group_id, key)`.
 
+`version` starts at 0 and increases by exactly 1 on every change that modifies the row (PATCH with a real change, toggle that changes the value). Changes to flags do not change the group's `version`. A request `version` that differs from the current value (lower or higher) returns 409 `version-conflict`. A missing or negative `version` returns 400 `validation` (`field` `version`).
+
 Ownership columns: `created_by` and `updated_by` are filled by the backend from the authenticated username (the JWT `sub`), never from the request body. Implement this once with Spring Data JPA auditing (`@EnableJpaAuditing`, an `AuditorAware<String>` reading the security context, and `@CreatedBy` / `@LastModifiedBy` on a shared `@MappedSuperclass` together with `@CreatedDate` / `@LastModifiedDate`). The `created_by` column is mapped `updatable = false`. Seed data in `V2` uses `system` as the creator.
 
 `audit_event`
@@ -126,6 +128,20 @@ Ownership columns: `created_by` and `updated_by` are filled by the backend from 
 
 Audit rows are NOT linked by FK, so history survives deletions. Deleting a group writes one GROUP\_DELETED event whose `details` lists the deleted flag keys.
 
+`details` per action:
+
+| Action | `details` |
+| --- | --- |
+| GROUP\_CREATED | `{"name":"<name>"}` |
+| GROUP\_UPDATED | one entry per changed field: `{"name":{"from":"a","to":"b"}}` and/or `{"description":{"from":"a","to":"b"}}` |
+| GROUP\_DELETED | `{"deletedFlags":["orders.new-checkout","orders.split-payments"]}` (full keys, sorted by key; empty array if none) |
+| FLAG\_CREATED | `{"enabled":false}` (the initial value) |
+| FLAG\_UPDATED | one entry per changed field, like GROUP\_UPDATED (`description`, `enabled`) |
+| FLAG\_TOGGLED | `{"enabled":{"from":false,"to":true}}` |
+| FLAG\_DELETED | `{"enabled":true}` (the value at deletion) |
+
+`FLAG_TOGGLED` is written only by `POST /flags/{flagId}/toggle`. `PATCH /flags/{flagId}` writes exactly one `FLAG_UPDATED` event, even if both `description` and `enabled` change. A no-op write (6.1) writes no audit event.
+
 Retention: audit events are kept for 1 year. A nightly `@Scheduled` job (cron `FF_AUDIT_PURGE_CRON`, default `0 30 3 * * *`) deletes rows whose `occurred_at` is older than `FF_AUDIT_RETENTION` (default `P365D`), in batches of 5,000 so the table is never locked for long, and logs how many rows it removed.
 
 ### 4.2 Validation rules
@@ -138,7 +154,16 @@ Backend (Bean Validation) and UI (Zod) MUST enforce the same rules.
 | Group name | Required, trimmed, 1–100 chars. |
 | Description | Optional, max 500 chars. |
 | Uniqueness | Group key unique globally; flag key unique within its group. Violation → HTTP 409. |
-| Immutability | `key` cannot be changed after creation (clients depend on it). Rename = delete + create. |
+| Immutability | `key` cannot be changed after creation (clients depend on it). Rename = delete + create. A `key` sent in a PATCH body is ignored; the stored key never changes. |
+
+Details:
+
+1. `name` is trimmed before validation and before storing. A name that is empty after trimming gives 400 `validation` (`field` = `name`).
+2. Lengths count Unicode code points.
+3. `description` `""` or `null` means no description: it is stored as null and omitted in responses.
+4. A missing required field, a `null` for a required field, or a regex or length violation gives 400 `validation`. Exception: the toggle body (6.1).
+5. Invalid JSON, a wrong JSON type for any field, or a `Content-Type` other than `application/json` gives 400 `malformed-request`.
+6. Unknown request fields are ignored.
 
 ### 4.3 Migrations
 
@@ -171,13 +196,15 @@ Clients bind to a `List<ClientRegistration>` record via `@ConfigurationPropertie
 - Any ISO-8601 duration of 1 second or more is accepted for `admin-token-ttl` and `client-token-ttl`. The JWT decoder uses a clock skew of 0 seconds: a token whose `exp` is at or before the current time is rejected with `401`. (The same service issues and validates tokens, so there is one clock.)
 - In the `prod` profile it MUST log a WARN if any default password or secret above is still in use.
 - Admin password and client secrets are compared in constant time (`MessageDigest.isEqual`). They are not stored hashed in v1 because they are config, but checks sit behind `AdminAuthenticator` and `ClientAuthenticator` interfaces so a real user or client store can replace them.
-- Tokens are signed HS256 and issued with Spring Security's `NimbusJwtEncoder`; they are validated by Spring Security OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`) with a `NimbusJwtDecoder` that checks signature, `exp`, `iss` and `aud`. No custom JWT filter.
+- Tokens are signed HS256 and issued with Spring Security's `NimbusJwtEncoder`; they are validated by Spring Security OAuth2 Resource Server (`spring-boot-starter-oauth2-resource-server`) with a `NimbusJwtDecoder`. The decoder checks signature, `exp`, `iss`, and that `aud` contains `feature-flag-admin` or `feature-flag-service`. A token that passes but whose scope or audience does not match the API gets `403` (5.4); any other failure gets `401`. No custom JWT filter.
 
 ### 5.2 Login flow
 
 1. UI posts `{ "username", "password" }` to `POST /api/v1/auth/login`.
 2. On success the backend returns `200 { "accessToken": "<jwt>", "expiresAt": "<ISO-8601>", "username": "admin" }`. JWT claims: `sub` = username, `scope` = `admin`, `aud` = `feature-flag-admin`, `iss` = `feature-flag-service`, `iat`, `exp`.
-3. On failure: `401` with a generic problem detail ("Invalid username or password"). Never reveal which field was wrong.
+   Claim types: `aud` is an array with one string, `scope` is a space-separated string, `iat` and `exp` are integer seconds since the epoch, `exp - iat` equals the token TTL in seconds, and `expiresAt` is the instant of `exp`. The same rules apply to consumer tokens (5.5), where `expires_in` is the TTL in seconds.
+3. On failure: `401` with a generic problem detail. The problem `detail` is exactly `Invalid username or password`, the same for an unknown username and a wrong password. Never reveal which field was wrong.
+   A missing or blank `username` or `password` returns 400 with problem type `validation`; the `errors` entry has `field` = `username` or `password`. A body that is not valid JSON or has wrong types returns 400 `malformed-request`. Credentials that are present but wrong return 401 `unauthorized` (step 3).
 4. UI keeps the token in `sessionStorage` and sends `Authorization: Bearer <jwt>` on every Admin API call.
    The token is stored in `sessionStorage` under the key `ff.accessToken` as the raw JWT string (no JSON wrapper). Sign out and any `401` remove this key.
 5. Any `401` from the Admin API makes the UI clear the token and redirect to `/login?expired=1`.
@@ -195,13 +222,16 @@ Not in the service (decision `decisions/0002-rate-limiting-at-edge.md`). Rate li
 | `POST /api/v1/auth/token` | Public (client authenticates with id and secret) |
 | `/api/v1/admin/**` | JWT with scope `admin` and audience `feature-flag-admin` |
 | `/api/v1/evaluate/**` | JWT with scope `flags:read` and audience `feature-flag-service` |
-| `/actuator/health`, `/actuator/info` | Public |
+| `/actuator/health`, `/actuator/health/**`, `/actuator/info` | Public |
+| `/actuator/prometheus` | JWT with scope `admin` and audience `feature-flag-admin` |
 | `/swagger-ui/**`, `/v3/api-docs/**` | Public in `dev`, disabled in `prod` |
 | Everything else | Denied |
 
+A request to a path in the last row is answered 401 `unauthorized` without a valid token and 403 `forbidden` with a valid token. In the `prod` profile `/swagger-ui/**` and `/v3/api-docs/**` answer 404 `not-found` for everyone.
+
 A token with the wrong scope or audience gets `403`; a missing, expired or badly signed token gets `401` with a `WWW-Authenticate: Bearer` header. Authorities come from the `scope` claim via `JwtGrantedAuthoritiesConverter` (`SCOPE_admin`, `SCOPE_flags:read`).
 
-CSRF is disabled (stateless, token in header). CORS allows the origin in `FF_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`).
+CSRF is disabled (stateless, token in header). CORS allows the origin in `FF_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`). Preflight requests from an allowed origin get `Access-Control-Allow-Origin` with that origin, allowed methods `GET, POST, PATCH, DELETE` and allowed headers `Authorization, Content-Type, If-None-Match`. A request from another origin gets no `Access-Control-Allow-Origin` header.
 
 ### 5.5 Consumer tokens (client credentials flow)
 
@@ -217,9 +247,9 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials&scope=flags:read
 ```
 
-2. On success: `200 { "access_token": "<jwt>", "token_type": "Bearer", "expires_in": 900, "scope": "flags:read" }`. JWT claims: `sub` = client id, `scope` = `flags:read`, `aud` = `feature-flag-service`, `iss`, `iat`, `exp`.
-3. Errors use the OAuth 2.0 error format, not problem details: `400 { "error": "unsupported_grant_type" }`, `400 { "error": "invalid_scope" }` when asking for a scope the client does not have, `401 { "error": "invalid_client" }` for a wrong id or secret.
-4. `scope` in the request is optional; omitted means all scopes registered for the client.
+2. On success: `200 { "access_token": "<jwt>", "token_type": "Bearer", "expires_in": 900, "scope": "flags:read" }`. JWT claims: `sub` = client id, `scope` = `flags:read`, `aud` = `feature-flag-service`, `iss`, `iat`, `exp`. The response has `Content-Type: application/json`, `Cache-Control: no-store` and `Pragma: no-cache`.
+3. Errors use the OAuth 2.0 error format, not problem details: `400 { "error": "unsupported_grant_type" }`; `400 { "error": "invalid_scope" }` when any requested scope (space-separated) is not registered for the client; `400 { "error": "invalid_request" }` for a missing `grant_type` or a content type other than `application/x-www-form-urlencoded`; `401 { "error": "invalid_client" }` for a wrong or missing id or secret, a malformed `Authorization` header, or credentials sent only in the body. A 401 has `WWW-Authenticate: Basic`.
+4. `scope` in the request is optional; omitted or empty (`scope=`) means all scopes registered for the client.
 5. Consumer sends `Authorization: Bearer <jwt>` on every Evaluation API call and requests a new token when less than 60 s remain, or after any `401`.
 6. No refresh tokens are issued; the client simply repeats step 1.
 
@@ -233,18 +263,27 @@ All endpoints are JSON, prefixed `/api/v1/admin`, require a JWT, and return erro
 
 | Method | Path | Purpose | Success | Errors |
 | --- | --- | --- | --- | --- |
-| GET | `/groups` | List groups with flag counts. Query: `q` (search key/name), `sort` (`key`, `name`, `updatedAt`; default `key`) | 200 `GroupSummary[]` | 401 |
-| POST | `/groups` | Create group | 201 `Group` + `Location` | 400, 409 |
-| GET | `/groups/{groupId}` | Group with all its flags | 200 `GroupDetail` | 404 |
-| PATCH | `/groups/{groupId}` | Update `name`, `description` (needs `version`) | 200 `Group` | 400, 404, 409 |
-| DELETE | `/groups/{groupId}` | Delete group AND all flags in one transaction | 204 | 404 |
-| POST | `/groups/{groupId}/flags` | Create flag in group | 201 `Flag` | 400, 404, 409 |
-| PATCH | `/flags/{flagId}` | Update `description` and/or `enabled` (needs `version`) | 200 `Flag` | 400, 404, 409 |
-| POST | `/flags/{flagId}/toggle` | Flip `enabled`; body `{ "enabled": true }` sets an explicit value (idempotent) | 200 `Flag` | 404 |
-| DELETE | `/flags/{flagId}` | Delete one flag | 204 | 404 |
-| GET | `/audit` | Audit events, newest first. Query: `page` (0-based), `size` (default 50, max 200), `targetKey` (prefix match) | 200 `Page<AuditEvent>` | 400 |
+| GET | `/groups` | List groups with flag counts. Query: `q` (search key/name), `sort` (`key`, `name`, `updatedAt`; default `key`) | 200 `GroupSummary[]` | 400, 401, 403 |
+| POST | `/groups` | Create group | 201 `Group` + `Location` | 400, 401, 403, 409, 413 |
+| GET | `/groups/{groupId}` | Group with all its flags | 200 `GroupDetail` | 400, 401, 403, 404 |
+| PATCH | `/groups/{groupId}` | Update `name`, `description` (needs `version`) | 200 `Group` | 400, 401, 403, 404, 409, 413 |
+| DELETE | `/groups/{groupId}` | Delete group AND all flags in one transaction | 204 | 400, 401, 403, 404 |
+| POST | `/groups/{groupId}/flags` | Create flag in group | 201 `Flag` + `Location` | 400, 401, 403, 404, 409, 413 |
+| PATCH | `/flags/{flagId}` | Update `description` and/or `enabled` (needs `version`) | 200 `Flag` | 400, 401, 403, 404, 409, 413 |
+| POST | `/flags/{flagId}/toggle` | Set `enabled` to the value in the required body `{ "enabled": true\|false }` (idempotent). A missing body, `{}` or a non-boolean `enabled` returns 400 `malformed-request` | 200 `Flag` | 400, 401, 403, 404, 413 |
+| DELETE | `/flags/{flagId}` | Delete one flag | 204 | 400, 401, 403, 404 |
+| GET | `/audit` | Audit events, newest first: sorted by `occurredAt` descending, then `id` descending. Query: `page` (0-based), `size` (default 50, max 200), `targetKey` (prefix match) | 200 `Page<AuditEvent>` | 400, 401, 403 |
 
-Design notes: the toggle endpoint takes the target value instead of blindly flipping, so double-clicks and retries are safe. Group deletion needs no request body; the UI is responsible for confirmation.
+409 on POST means `duplicate-key` or `limit-reached`; 409 on PATCH means `version-conflict`. 413 means `payload-too-large` (9.1). A path id that is not a UUID returns 400 `malformed-request`. An id that is a UUID but unknown returns 404 `not-found`.
+
+Design notes:
+
+- The toggle endpoint takes the target value instead of blindly flipping, so double-clicks and retries are safe. Group deletion needs no request body; the UI is responsible for confirmation.
+- `GET /groups`: `q` matches case-insensitively as a substring of key or name; empty `q` means no filter. `sort=key` and `sort=name` are ascending (`name` case-insensitive), `sort=updatedAt` is newest first; ties are ordered by key ascending. An unknown `sort` value returns 400 `validation` with `field` `sort`.
+- PATCH is a partial update: an omitted field stays unchanged. `description` set to `null` or `""` clears the description. `name` set to `null` or to a blank value returns 400 `validation`. `version` is always required; a missing `version` returns 400 `validation` (`field` `version`).
+- A toggle to the current value, or a PATCH that changes no field, is a no-op: the response is 200 with the unchanged resource, and `version`, `updatedAt`, `updatedBy`, the audit log and the evaluation `revision` do not change.
+- `GET /audit`: `size` must be between 1 and 200 and `page` must be 0 or more; otherwise 400 `validation` (`field` `size` or `page`). A non-numeric value returns 400 `malformed-request`. A page past the end returns 200 with an empty `content`. `targetKey` is a case-sensitive prefix match; characters have no special meaning; an empty value means no filter.
+- `Location` is an absolute path: `/api/v1/admin/groups/<id>` for a created group and `/api/v1/admin/flags/<id>` for a created flag.
 
 ### 6.2 Payloads (TypeScript notation)
 
@@ -255,18 +294,19 @@ type GroupSummary = { id: string; key: string; name: string; description?: strin
 
 type Group = Omit<GroupSummary, "flagCount" | "enabledCount"> & { createdAt: string };
 
-type GroupDetail = Group & { flags: Flag[] };        // flags sorted by key
+type GroupDetail = Group & { flags: Flag[] };        // flags sorted by key (code-point order)
 
 type Flag = { id: string; groupId: string; key: string; fullKey: string;
   description?: string; enabled: boolean;
   createdAt: string; createdBy: string; updatedAt: string; updatedBy: string; version: number };
 
 // Request bodies never carry createdBy / updatedBy; the server sets them from the JWT.
-type CreateGroupRequest = { key: string; name: string; description?: string };
-type UpdateGroupRequest = { name?: string; description?: string; version: number };
-type CreateFlagRequest  = { key: string; description?: string; enabled?: boolean }; // enabled default false
-type UpdateFlagRequest  = { description?: string; enabled?: boolean; version: number };
-type ToggleFlagRequest  = { enabled: boolean };
+// A request `description` of "" or null means no description (4.2).
+type CreateGroupRequest = { key: string; name: string; description?: string | null };
+type UpdateGroupRequest = { name?: string; description?: string | null; version: number };
+type CreateFlagRequest  = { key: string; description?: string | null; enabled?: boolean }; // enabled default false
+type UpdateFlagRequest  = { description?: string | null; enabled?: boolean; version: number };
+type ToggleFlagRequest  = { enabled: boolean };                // required, see 6.1
 
 type AuditEvent = { id: number; occurredAt: string; actor: string; action: string;
   targetKey: string; details?: Record<string, unknown> };
@@ -277,7 +317,11 @@ type Page<T> = { content: T[];
   page: { size: number; number: number; totalElements: number; totalPages: number } };
 ```
 
-Timestamps are ISO-8601 UTC strings. IDs are UUID strings.
+Timestamps are ISO-8601 UTC instants ending in `Z` (for example `2026-10-01T14:32:05.123Z`); the number of fraction digits is not fixed. IDs are UUID strings.
+
+Optional fields (`?`) that have no value are omitted from the JSON; they are never `null`.
+
+Keys are sorted ascending in code-point order (bytes of the lower-case ASCII key), for `GroupDetail.flags` and for `GET /groups` with `sort=key`.
 
 ### 6.3 Example
 
@@ -308,6 +352,8 @@ All require `Authorization: Bearer <jwt>` with scope `flags:read` and audience `
 | GET | `/api/v1/evaluate/flags` | All flags: `{ "flags": { "orders.new-checkout": true, ... }, "revision": 42 }` |
 | GET | `/api/v1/evaluate/groups/{groupKey}` | One group: `{ "group": "orders", "flags": { "new-checkout": true, "split-payments": false }, "revision": 42 }`; unknown group → 404 |
 | GET | `/api/v1/evaluate/flags/{groupKey}/{flagKey}` | One flag: `{ "key": "orders.new-checkout", "enabled": true }`; unknown → 404 |
+
+A group or flag key that does not match the key regex (4.2) is unknown and returns 404.
 
 Unknown flags return 404, never a silent `false`. Clients decide their own default; the spec's README MUST tell them to default to `false` on 404 or network error.
 
@@ -341,11 +387,12 @@ Every admin write publishes a `FlagsChangedEvent` describing what changed (keys 
 | Flag deleted | `put` a negative flag entry; remove it from its group and from all-flags |
 | Group created | `put` an empty group entry |
 | Group deleted | `put` negative entries for the group and each of its flags; remove those flags from all-flags |
-| Group name or description edited | Nothing (the Evaluation API uses keys only) |
+| Group name or description edited | No cache entry changes (the Evaluation API uses keys only); `revision` still increments |
 
 - Applying only after commit means a rolled-back write never reaches the cache.
 - If applying an update fails, the listener invalidates the affected entries plus all-flags instead (logged at WARN), so the next read reloads them from the database.
-- Each applied change increments `revision` (a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
+- Each applied change, including a group name or description edit, increments `revision` by 1 (a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
+- All three Evaluation endpoints return the current `revision` as `ETag: "<revision>"` and `Cache-Control: no-cache` on 200 and 304. A 304 has no body and repeats the ETag. Rejected or failed writes and no-op writes (6.1) do not change `revision`.
 
 **Freshness safety net**
 
@@ -378,18 +425,23 @@ The UI is a three-route SPA: a login page, a two-pane flags workspace (groups on
 | `/audit` | Audit log | Required |
 | `*` | 404 page with a link back | — |
 
-A `RequireAuth` wrapper checks for a non-expired token (decode `exp` client-side) and otherwise redirects to `/login`.
+A `RequireAuth` wrapper checks the token (decode `exp` client-side). It redirects to `/login` when there is no token, and to `/login?expired=1` (clearing the token) when the token is present but its `exp` is in the past.
+
+The 404 page has the heading `Page not found` and a link `Back to flags` that goes to `/groups`.
 
 ### 8.2 Login page
 
 - Centered card: app title "Feature Flags", Username, Password, "Sign in" button.
 - Button disabled and shows a spinner while the request runs; Enter submits.
 - Errors: 401 → "Invalid username or password"; 429 (returned by the edge, section 5.3; N from its `Retry-After` header) → "Too many attempts, try again in N seconds"; network → "Cannot reach server".
-- `?expired=1` shows an info banner "Your session expired, please sign in again".
+- `?expired=1` shows an info banner "Your session expired. Please sign in again." (`role="status"`).
+- The error message is shown in an element with `role="alert"` between the fields and the Sign in button. The text `Sessions last 8 hours.` in the design is replaced by no text (the lifetime is configurable).
 
 ### 8.3 App shell
 
 Top bar: app name, nav links (Flags, Audit log), signed-in username, "Sign out" button. Content area below.
+
+`Sign out` removes the token and goes to `/login` (no banner). Going Back afterwards shows the login page again; no Admin API request is sent without a token.
 
 ### 8.4 Flags workspace
 
@@ -397,17 +449,22 @@ Left pane (groups, \~280 px):
 
 - Search box filtering groups by key or name (client-side).
 - List items show group name, key in monospace, and a badge `enabled/total` (e.g. `1/2`).
-- "+ New group" button opens a modal: Key, Name, Description. Key field auto-suggests a slug from Name until the user edits Key manually.
-- Empty state: "No groups yet" + "Create your first group" button.
+- `New group` button opens a modal: Key, Name, Description. Key field auto-suggests a slug from Name until the user edits Key manually. Slug rule: lower-case the name, replace every run of characters outside `a-z` and `0-9` with one `-`, remove leading and trailing `-`, cut to 50 characters. Example: `My New Group` gives `my-new-group`. The rule applies to the New group dialog only.
+- After a group is created it is selected and the URL becomes `/groups/<id>`. A `/groups/<id>` URL with an unknown id shows the placeholder `Select a group or create one`.
+- Empty state: "No groups yet" + `Create your first group` button.
+- A group search with no result shows `No groups match your search`.
 
 Right pane (selected group):
 
-- Header: group name, key (with copy button), description, a meta line "Created by admin · Updated by admin, 2 hours ago" (from createdBy, updatedBy, updatedAt), "Edit" (modal for name/description) and "Delete group" (danger) buttons.
-- Flags table, columns: Key (full key shown as tooltip, copy button), Description, Status toggle switch, Created by (username), Updated (relative time with the editor's username underneath), Actions (Edit, Delete). Created by and Updated hide below 860 px wide.
+- Header: group name, key (with copy button), description, a meta line "Created by admin · Updated by admin, 2 hours ago" (from createdBy, updatedBy, updatedAt), `Edit group` (modal for name/description) and `Delete group` (danger) buttons. The group header description line ends with `<n> of <m> flags on`.
+- Flags table, columns: Key (key in monospace, the full key `<groupKey>.<flagKey>` as visible text under it), Description, Status toggle switch, Created by (username), Updated (relative time with the editor's username underneath), Actions (Edit, Delete). Next to the switch the text `On` or `Off` is shown. Below 860 px only `Created by` and `Updated` are hidden in the flags table; `Description` and `Actions` stay visible.
 - Search box filters flags in the group; a filter chip set: All / On / Off.
-- "+ New flag" button opens a modal: Key, Description, Initial state (switch, default off).
-- Empty group state: "No flags in this group" + "Add flag" button.
+- `New flag` button opens a modal: Key, Description, Initial state (switch, default off).
+- The plus sign in `New group` and `New flag` is a decorative icon with `aria-hidden="true"`; it is not part of the button name.
+- Empty group state: "No flags in this group" + `Add flag` button.
+- A flag search or status filter with no result shows `No flags match this filter.`
 - No group selected: placeholder "Select a group or create one".
+- The wording of relative times is not specified.
 
 Dialog texts (the New flag dialog matches its design; the others follow the same style):
 
@@ -418,24 +475,38 @@ Dialog texts (the New flag dialog matches its design; the others follow the same
 | New flag | `New flag in <group name>` | `Key` (prefix `<groupKey>.` shown), `Description (optional)`, switch `Initial state` | `Cancel`, `Create flag` |
 | Edit flag | `Edit flag` | `Key` (read-only, shows the full key), `Description (optional)` | `Cancel`, `Save changes` |
 
-Every dialog has `role="dialog"` and `aria-modal="true"` and is named by its title. Each also has a close icon button named `Close`.
+Every dialog in this table has `role="dialog"` and `aria-modal="true"` and is named by its title. Each also has a close icon button named `Close`. The confirm dialogs are defined in 8.5.
 
 ### 8.5 Interaction rules
 
 | Action | Behavior |
 | --- | --- |
 | Toggle a flag | Optimistic update via TanStack Query; calls `POST /flags/{id}/toggle` with the new value; on error revert and show a toast. Switch is disabled while its request is in flight. |
-| Delete a flag | Confirm dialog: "Delete flag `orders.new-checkout`? Services reading it will get 404." Buttons Cancel / Delete. |
-| Delete a group | Confirm dialog lists the flag count and requires typing the group key to enable the Delete button. After success, navigate to `/groups` and toast "Group `orders` and 2 flags deleted". |
-| Create / edit | Inline field errors from Zod; server 409 shown on the Key field ("Key already exists"); server 400 field errors mapped onto fields. |
+| Delete a flag | Confirm dialog (texts below). |
+| Delete a group | Confirm dialog (texts below) lists the flag count and requires typing the group key to enable the delete button. After success, navigate to `/groups` and show the success toast below. |
+| Create / edit | Inline field errors from Zod; server 409 shown on the Key field ("Key already exists"); server 400 field errors mapped onto fields (the server `message` of that field is shown). |
 | Concurrent edit (409 version conflict) | Toast "This item was changed by someone else" and refetch the group. |
 | Any success | Toast for 3 s (create, update, delete). Toggles do not toast. |
 
-Toasts are rendered with `role="status"` (success) or `role="alert"` (error). Toggle failure toast text: `Could not update flag <fullKey>` (full key without quotes).
+Toasts are rendered with `role="status"` (success) or `role="alert"` (error). Toggle failure toast text: `Could not update flag <fullKey>` (full key without quotes). Success toast texts: `Group <key> created`, `Group <key> updated`, `Flag <fullKey> created`, `Flag <fullKey> updated`, `Flag <fullKey> deleted`, and after a group delete `Group <key> and <N> flag(s) deleted`.
+
+Confirm dialogs use `role="alertdialog"` and are named by their title:
+
+- Delete flag dialog: title `Delete flag <fullKey>?`, text `Services reading it will get 404.`, buttons `Cancel` and `Delete`.
+- Delete group dialog: title `Delete group “<name>”?`, text `This permanently deletes the group and all <N> flag(s) in it. Services reading these flags will get 404.`, a list named `Flags that will be deleted` with the full keys, a text field labelled `Type <groupKey> to confirm`, buttons `Cancel` and `Delete group and <N> flag(s)`. The delete button is disabled until the field equals the key exactly (case-sensitive, no trimming).
+- `<N> flag(s)` is `1 flag` when N is 1, otherwise `N flags`. No backticks appear in the UI.
+
+Validation in dialogs: a field that fails validation gets `aria-invalid="true"` and a visible error text linked with `aria-describedby`; the dialog stays open and no request is sent. Texts: key `Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter`; name `Name is required` / `Name must be at most 100 characters`; description `Description must be at most 500 characters`.
 
 ### 8.6 Audit log page
 
-Table: Time (local, absolute + relative), Actor, Action (coloured label), Target, Details (e.g. "false → true"). Filter input on target key, "Load more" pagination (50 per page; the button is shown while `page.number + 1 < page.totalPages`).
+Table: Time (local, absolute + relative), Actor, Action (coloured label), Target, Details. Filter input on target key, "Load more" pagination (50 per page).
+
+- The target filter applies while the user types and is sent as `targetKey`; the results replace the list. `Load more` is shown only while `page.number + 1 < page.totalPages` and appends the next 50 events.
+- Below 860 px the `Time` and `Actor` columns are hidden; `Action`, `Target` and `Details` stay visible.
+- Action labels: GROUP\_CREATED `Group created`, GROUP\_UPDATED `Group updated`, GROUP\_DELETED `Group deleted`, FLAG\_CREATED `Flag created`, FLAG\_UPDATED `Flag updated`, FLAG\_TOGGLED `Flag toggled`, FLAG\_DELETED `Flag deleted`.
+- Details text: FLAG\_TOGGLED `false → true` or `true → false`; FLAG\_CREATED `Created off` or `Created on`; FLAG\_DELETED `Was on` or `Was off`; GROUP\_CREATED `Name: <name>`; GROUP\_UPDATED `Name: “<from>” → “<to>”` and/or `Description: “<from>” → “<to>”`; FLAG\_UPDATED `Description: “<from>” → “<to>”` and/or `Enabled: false → true`; GROUP\_DELETED `<N> flag(s) deleted: <full keys, comma separated>`.
+- The format of the Time column is not specified.
 
 ### 8.7 UI code structure
 
@@ -447,6 +518,10 @@ Table: Time (local, absolute + relative), Actor, Action (coloured label), Target
 - API base URL from `import.meta.env.VITE_API_BASE_URL` (default `/api`); in dev Vite proxies `/api` to `http://localhost:8080`.
 
 Accessibility: every control has a label, the toggle is a `button role="switch"` with `aria-checked`, modals trap focus and close on Escape.
+
+- Controls that perform an action are `button` elements. Only the navigation entries `Flags` and `Audit log` (and the link on the 404 page) are links.
+- The flags table and the audit table expose table semantics (`table`, `row`, `columnheader`, `cell`). Column headers: flags `Key`, `Description`, `Status`, `Created by`, `Updated`, `Actions`; audit `Time`, `Actor`, `Action`, `Target`, `Details`.
+- Accessible names: flag switch `Toggle <fullKey>` (`role="switch"`, `aria-checked`); row buttons `Edit <fullKey>` and `Delete <fullKey>`; group header button `Copy group key`; inputs labelled `Search groups`, `Search flags`, `Filter by target key`; the status filter is a group named `Filter by status` with buttons `All`, `On`, `Off` using `aria-pressed`; the group list is a `nav` named `Flag groups`; the delete-group input is labelled `Type <groupKey> to confirm`; the group buttons in the list have the group name and key as text.
 
 ## 9. Non-functional requirements
 
@@ -465,17 +540,22 @@ Errors use one problem-details shape everywhere; the service logs JSON, exposes 
 }
 ```
 
+`type` is always `https://featureflags.local/problems/<suffix>` using the suffix from the table. `title`, `status` (equal to the HTTP status), `detail` and `type` are always present; `instance` is the request path without the query. `errors` is present only for `validation`; each entry has `field` (the JSON property name, or the query parameter name) and `message`. The content type is `application/problem+json`. Tests do not assert `title`, `detail` or `message` texts, except the login `detail` in 5.2.
+
 | Situation | Status | `type` suffix |
 | --- | --- | --- |
 | Bean Validation / malformed JSON | 400 | `validation`, `malformed-request` |
 | Missing, expired or invalid JWT; wrong admin credentials | 401 | `unauthorized` |
 | Valid JWT without the required scope or audience | 403 | `forbidden` |
+| HTTPS required (10.2) | 403 | `https-required` |
 | Resource not found | 404 | `not-found` |
 | Duplicate key | 409 | `duplicate-key` |
 | Stale `version` (`OptimisticLockException`) | 409 | `version-conflict` |
+| Group or flag limit reached (9.2) | 409 | `limit-reached` |
+| Request body above 65,536 bytes | 413 | `payload-too-large` |
 | Unexpected | 500 | `internal` (no stack trace in body; logged with a correlation id) |
 
-Exception: `POST /api/v1/auth/token` returns OAuth 2.0 error bodies (`invalid_client`, `invalid_scope`, `unsupported_grant_type`) as section 5.5 defines.
+Exception: `POST /api/v1/auth/token` returns OAuth 2.0 error bodies (`invalid_client`, `invalid_scope`, `unsupported_grant_type`, `invalid_request`) as section 5.5 defines. Its `403 https-required` (10.2) is still a problem detail.
 
 Implemented once in a `@RestControllerAdvice` (`GlobalExceptionHandler`). DB unique violations MUST be mapped to 409, not 500.
 
@@ -483,14 +563,16 @@ Implemented once in a `@RestControllerAdvice` (`GlobalExceptionHandler`). DB uni
 
 - Evaluation API: p95 < 50 ms at 200 req/s on 1 vCPU / 512 MB (served from cache; hit rate ≥ 99 % after warm-up).
 - Admin API: p95 < 300 ms for any call with 1,000 groups × 100 flags.
-- Limits: max 1,000 groups, 500 flags per group (enforced, 409 `limit-reached`). Request body max 64 KB.
+- Limits: max 1,000 groups, 500 flags per group (enforced, 409 `limit-reached`). The 1,001st group and the 501st flag in a group are rejected with 409 `limit-reached`; deleting an item frees its slot. Request body max 64 KB (65,536 bytes); a larger body returns 413 `payload-too-large`.
+- Hit rate = Δ`cache_gets_total{result="hit"}` / (Δ`hit` + Δ`miss`), summed over the caches `flagCache`, `groupCache` and `allFlagsCache`, between the start and the end of the 60 s load on a freshly started stack after warm-up. The load calls only existing keys, split equally over the three Evaluation endpoints.
 
 ### 9.3 Observability
 
-- Logs: JSON to stdout (Spring Boot structured logging, `ecs` format). Every request logs method, path, status, duration and a correlation id (`X-Request-Id` header, generated if missing, echoed back).
+- Logs: JSON to stdout (Spring Boot structured logging, `ecs` format). Every request logs method, path, status, duration and a correlation id (`X-Request-Id` header, generated if missing, echoed back). Every response carries `X-Request-Id`. A value sent by the client is returned unchanged; otherwise a UUID is generated.
 - Never log passwords, client secrets or JWTs. Evaluation requests log the consumer's client id (JWT sub).
-- Actuator: `/actuator/health` (with DB check, liveness and readiness groups), `/actuator/info`, `/actuator/prometheus` (Micrometer; behind JWT).
-- Custom metrics: `ff_evaluations_total{endpoint,result}`, `ff_admin_writes_total{action}`.
+- Actuator: `/actuator/health` (with DB check, liveness and readiness groups), `/actuator/info`, `/actuator/prometheus` (Micrometer; admin token, see 5.4).
+- `GET /actuator/health` is public and returns 200 `{"status":"UP","components":{"db":{"status":"UP"}}}` (components are shown without authentication). `GET /actuator/health/liveness` and `/actuator/health/readiness` are public and return 200 `{"status":"UP"}`, or 503 `{"status":"DOWN"}`. `GET /actuator/info` is public and contains `build.version` and `git.commit.id`.
+- Custom metrics: `ff_evaluations_total{endpoint,result,client}` (`endpoint`: `all`, `group`, `flag`; `result`: `found`, `not_found`; `client`: the token `sub`), `ff_admin_writes_total{action}` (`action`: the audit action names).
 
 Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts.yml`, validated with `promtool check rules` in gate 1. Delivering alerts (Alertmanager, e-mail, chat) is not wired in v1.
 
@@ -537,7 +619,7 @@ Rules: controllers never touch repositories; services are `@Transactional`; enti
 - **Admin API:** used only by the bundled UI and released together with it; it still lives under `/api/v1/admin`.
 - **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`.
 - **Docker images:** both images are tagged `<version>` and `sha-<short commit>`, for example `feature-flag-backend:1.0.0` and `feature-flag-ui:1.0.0`. Deployment manifests never use `latest`. Each image can still be deployed on its own.
-- **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell.
+- **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell. The footer element contains the text `v<version>` (for example `v1.0.0`).
 - **CHANGELOG.md** in Keep a Changelog format: every chunk that changes behaviour adds a line under `Unreleased`; the final milestone moves them under `1.0.0`.
 
 ## 10. Repository, build and run
@@ -566,12 +648,13 @@ feature-flag-service/
 
 - Backend: multi-stage, `eclipse-temurin:21-jdk` build → `eclipse-temurin:21-jre` runtime, non-root user, `EXPOSE 8080`, `HEALTHCHECK` on `/actuator/health/readiness`, JVM flags `-XX:MaxRAMPercentage=75`.
 - Frontend: multi-stage, `node:20-alpine` build → `nginx:alpine` serving `dist/`. `nginx.conf` does SPA fallback (`try_files $uri /index.html`) and reverse-proxies `/api/` to `${BACKEND_URL}` (envsubst template), so the UI can be deployed on its own host and pointed at any backend.
+- Container ports: backend 8080, UI 80. The backend image starts with only `FF_DB_URL`, `FF_DB_USER` and `FF_DB_PASSWORD` set; the UI image starts with only `BACKEND_URL` set. Image names are the `image:` names in `docker-compose.yml`.
 
 **HTTPS in production.** TLS is terminated by an ingress in front of both services (a Kubernetes Ingress controller, a cloud load balancer, or Traefik or Caddy on a VM; the concrete choice comes with the hosting target). The ingress holds the certificates and routes the UI host and the API host to the two containers, which speak plain HTTP on a private network, so the images stay independent.
 
 - The backend sets `server.forward-headers-strategy=framework` and trusts `X-Forwarded-Proto` from the ingress.
 - The ingress (or the CDN / API gateway in front of it) also rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/token` per client IP (section 5.3). Its concrete limits come with the hosting target.
-- With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text.
+- With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text. A request without `X-Forwarded-Proto` or with `http` counts as not HTTPS. Only these two POST endpoints are affected. The 403 body is a problem detail with type `https-required`, also for the token endpoint.
 - Local docker-compose stays plain HTTP in the `dev` profile.
 
 **Security headers.** IBM Plex fonts are bundled with the UI via `@fontsource` packages, so the UI loads nothing from other origins. nginx adds to every UI response:
@@ -585,11 +668,15 @@ feature-flag-service/
 | `Referrer-Policy` | `no-referrer` |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
 
-The backend keeps Spring Security's default security headers and adds `Cache-Control: no-store` to every Admin API response. The UI build must contain no inline scripts, so the policy needs no `'unsafe-inline'`.
+nginx sends these headers on every response it returns, including error responses (`always`), SPA fallback pages and proxied `/api/` responses. `Strict-Transport-Security` is sent only when the request arrived with `X-Forwarded-Proto: https`; it is not sent in the plain-HTTP compose stack.
+
+The backend keeps Spring Security's default security headers, except `Cache-Control`. Exact `Cache-Control` values: every Admin API response (any status) has `Cache-Control: no-store`; every Evaluation API 200 and 304 response has `Cache-Control: no-cache`. These replace Spring Security's default `Cache-Control` for those paths. The UI build must contain no inline scripts, so the policy needs no `'unsafe-inline'`.
 
 ### 10.3 docker-compose
 
 Services: `postgres` (16-alpine, volume `pgdata`, healthcheck), `backend` (depends on healthy postgres, port 8080), `frontend` (port 3000 → nginx 80, `BACKEND_URL=http://backend:8080`). `make up` builds and starts; UI at `http://localhost:3000`, login `admin` / `admin123`.
+
+Acceptance check for `make up` (AC-OPS-1): the services `postgres`, `backend` and `frontend` are running, `postgres` and `backend` report healthy, and `GET /` on the UI port returns 200 `text/html`, within 90 seconds after the containers were started (image build time is not counted).
 
 `docker-compose.yml` passes every variable listed in 9.4 to the `backend` service as `${VAR:-<default from 9.4>}`. Host ports are `${FF_BACKEND_PORT:-8080}` for the backend and `${FF_UI_PORT:-3000}` for the UI, so several stacks (different `-p` project names) can run side by side, for example one with `FF_ADMIN_TOKEN_TTL=PT2S` or `FF_REQUIRE_HTTPS=true`.
 
@@ -618,6 +705,8 @@ The build is accepted when every checkbox below passes in CI; backend line cover
 
 ### 11.2 Acceptance criteria
 
+Keys and names in the criteria (`orders`, `new-checkout`) are examples of a valid new key. The `dev` profile already contains the group `orders`; tests use their own unique keys.
+
 Authentication
 
 - [ ] Given wrong credentials, when I sign in, then I see "Invalid username or password" and stay on `/login`.
@@ -633,7 +722,7 @@ Groups
 - [ ] Creating a second group with key `orders` shows "Key already exists" on the Key field.
 - [ ] Keys failing the regex (`Orders`, `1abc`, `a`, `has space`) are rejected in the UI and by the API.
 - [ ] I can edit name and description; key is read-only in the edit modal.
-- [ ] Deleting group `orders` with 2 flags requires typing `orders`; afterwards the group and both flags are gone from UI, DB and Evaluation API (404), and one GROUP\_DELETED audit event lists both flag keys.
+- [ ] Deleting group `orders` with 2 flags requires typing `orders`; afterwards the group and both flags are gone from the UI, from the Admin API (`GET /groups/{groupId}` returns 404) and from the Evaluation API (404), and one GROUP\_DELETED audit event lists both flag keys.
 
 Flags
 
@@ -651,7 +740,7 @@ Evaluation API
 - [ ] Evaluation call without a token or with an expired token → 401; with an admin token → 403; with a client token → 200.
 - [ ] A client token sent to any `/api/v1/admin/**` endpoint → 403.
 - [ ] After toggling a flag in the UI, the next evaluation call returns the new value (no restart).
-- [ ] Repeating a call with `If-None-Match` set to the returned ETag → 304 until the next admin write.
+- [ ] Repeating a call with `If-None-Match` set to the returned ETag → 304 until the next admin write that changes data (a failed or no-op write keeps the ETag, 7.2).
 - [ ] Unknown group or flag → 404.
 
 Caching (verified with a spy on the repositories counting database queries)
@@ -668,7 +757,7 @@ Caching (verified with a spy on the repositories counting database queries)
 
 Audit
 
-- [ ] A new group or flag stores created\_by = the signed-in user; every later update or toggle sets updated\_by to the signed-in user while created\_by stays unchanged; extra createdBy / updatedBy fields in a request body are ignored. Every create, update, toggle and delete produces exactly one audit event with actor `admin`.
+- [ ] A new group or flag stores created\_by = the signed-in user; every later update or toggle that changes a value sets updated\_by to the signed-in user while created\_by stays unchanged; extra createdBy / updatedBy fields in a request body are ignored. Every create, update, toggle and delete that changes data produces exactly one audit event with actor `admin`; a no-op update or toggle (6.1) produces none.
 - [ ] Audit page lists events newest first and filters by target key prefix.
 
 * [ ] Audit events older than the retention period are deleted by the purge job (verified with an injected `Clock`); newer events are kept.
@@ -715,6 +804,7 @@ A checkbox marked `[Removed — decision NNNN]` keeps its ID so later IDs do not
 - Each test names the IDs it proves: JUnit `@Tag("AC-FLAG-3")`; Vitest and Playwright titles contain `[AC-FLAG-3]`. One test may cover several IDs; one ID may need several tests.
 - `check-traceability.mjs` reads the registry plus the JUnit XML, Vitest JUnit and Playwright JSON reports, and writes an ID → tests → pass/fail matrix into the verify report. Every ID needs at least one test, and all its tests must pass.
 - In addition, every status code listed in the Errors column of 6.1, and every row of the 9.1 error table, must have an integration test asserting status and problem-detail `type`; the script checks this from tags of the form `ERR-<METHOD>-<path>-<status>`.
+- Two items are covered only by this repository's tests, not by the black-box acceptance tests that run outside it: the 500 row of 9.1 (backend integration tests only), and the DOWN state before warm-up in AC-CACHE-6 (backend tests and gate 11). The DOWN period is short; the black-box tests check only that readiness becomes UP and stays UP.
 
 ### 11.5 Test environments and data isolation
 
@@ -723,6 +813,8 @@ Every test run uses throwaway containers, and the database and the cache are alw
 - **Backend integration tests:** Testcontainers starts a fresh PostgreSQL container per run (container reuse off in CI). Before each test the harness truncates the tables and calls `FlagCacheService.reloadAll()`, the same public method used by warm-up and reconciliation, so no test-only code exists in the service.
 - **End-to-end, smoke and performance tests:** each run starts a new docker-compose stack under a unique project name (`ff-e2e-<run-id>`) with no persistent volumes, and removes it with `docker compose down -v` in a shell `trap`, so it is removed even when tests fail.
 - **Inside one end-to-end run:** each test creates its own data through the Admin API with unique keys (`e2e-<test-id>-...`), asserts only on that data, and deletes it through the Admin API in `afterEach`. Tests are independent and run with 4 parallel workers.
+- **Tests that need global state:** tests that depend on the global evaluation `revision` or ETag (304 behaviour, revision increases) run in a project with 1 worker that starts after the parallel project has finished, so no other test writes at the same time. The group-limit test (9.2) counts all groups in the service, so it runs in its own stack with 1 worker. The flag-limit test uses its own group and runs in the shared stack.
+- **Negative authentication cases:** tests may sign JWTs (HS256) with the documented dev `FF_JWT_SECRET` from 5.1 (wrong `aud`, `scope` or `iss`, expired). Tests never need the secret of a non-dev stack.
 - **Screenshot tests** run in their own fresh stack, seeded through the Admin API with the sample data shown in the designs; relative-time and username cells are masked so screenshots do not depend on the clock.
 
 ### 11.6 UI testing
@@ -737,6 +829,8 @@ Every test run uses throwaway containers, and the database and the cache are alw
 | `webkit-desktop` | 1440 × 900 | Tests tagged `@cross-browser` only |
 
 The `@cross-browser` subset has 6–8 tests: login, session-expired redirect, toggle a flag, create a flag, delete-group confirmation, audit log. Browsers never run in `make verify-fast`.
+
+UI tests may use Playwright request interception (`page.route`) to answer browser requests to `/api/**` with a fake status, an abort or a delay, to reach states the stack cannot produce (toggle failure, 429 with `Retry-After`, network error, slow response).
 
 **Matching the design**
 
