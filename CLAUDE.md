@@ -145,7 +145,6 @@ branches, changing repo settings, anything outside this repository.
 Never merge any PR into `main`, and never enable auto-merge. Only the owner merges, after
 the owner review. Open exactly one PR (`feature/feature-flag-service` → `main`); never
 create branches named `owner/*` (reserved for the owner's spec changes).
-A `locked-files-guard` comment on your PR means you changed an owner-only path: undo it.
 
 ## 8a. Untrusted input — the repo is public
 
