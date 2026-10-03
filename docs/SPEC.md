@@ -111,7 +111,7 @@ Three tables: `flag_group`, `feature_flag` (many per group, deleted with the gro
 
 Unique constraint: `(group_id, key)`.
 
-`version` starts at 0 and increases by exactly 1 on every change that modifies the row (PATCH with a real change, toggle that changes the value). Changes to flags do not change the group's `version`. A request `version` that differs from the current value (lower or higher) returns 409 `version-conflict`. A missing or negative `version` returns 400 `validation` (`field` `version`).
+`version` starts at 0 and increases by exactly 1 on every change that modifies the row (PATCH with a real change, toggle that changes the value). Changes to flags do not change the group's `version`. A request `version` that differs from the current value (lower or higher) returns 409 `version-conflict`. A missing or negative `version` returns 400 `validation` (`field` `version`). A `version` that is not a JSON integer (for example `"1"` or `1.5`) is a wrong JSON type and returns 400 `malformed-request` (4.2 item 5).
 
 Ownership columns: `created_by` and `updated_by` are filled by the backend from the authenticated username (the JWT `sub`), never from the request body. Implement this once with Spring Data JPA auditing (`@EnableJpaAuditing`, an `AuditorAware<String>` reading the security context, and `@CreatedBy` / `@LastModifiedBy` on a shared `@MappedSuperclass` together with `@CreatedDate` / `@LastModifiedDate`). The `created_by` column is mapped `updatable = false`. Seed data in `V2` uses `system` as the creator.
 
@@ -139,6 +139,8 @@ Audit rows are NOT linked by FK, so history survives deletions. Deleting a group
 | FLAG\_UPDATED | one entry per changed field, like GROUP\_UPDATED (`description`, `enabled`) |
 | FLAG\_TOGGLED | `{"enabled":{"from":false,"to":true}}` |
 | FLAG\_DELETED | `{"enabled":true}` (the value at deletion) |
+
+In `from` / `to`, a description that does not exist (before it is added, or after it is cleared) is JSON `null`, for example `{"description":{"from":null,"to":"New text"}}`.
 
 `FLAG_TOGGLED` is written only by `POST /flags/{flagId}/toggle`. `PATCH /flags/{flagId}` writes exactly one `FLAG_UPDATED` event, even if both `description` and `enabled` change. A no-op write (6.1) writes no audit event.
 
@@ -193,6 +195,7 @@ featureflags:
 Clients bind to a `List<ClientRegistration>` record via `@ConfigurationProperties`. More clients are added as list entries (or through `FF_AUTH_CLIENTS_0_CLIENT_ID`-style environment variables).
 
 - On startup the backend MUST fail fast if `jwt-secret` is shorter than 32 bytes, or if two clients share a `client-id`.
+- The HS256 signing key is the UTF-8 bytes of `jwt-secret`, used as is (no Base64 decoding, no hashing). The 32-byte minimum counts these bytes.
 - Any ISO-8601 duration of 1 second or more is accepted for `admin-token-ttl` and `client-token-ttl`. The JWT decoder uses a clock skew of 0 seconds: a token whose `exp` is at or before the current time is rejected with `401`. (The same service issues and validates tokens, so there is one clock.)
 - In the `prod` profile it MUST log a WARN if any default password or secret above is still in use.
 - Admin password and client secrets are compared in constant time (`MessageDigest.isEqual`). They are not stored hashed in v1 because they are config, but checks sit behind `AdminAuthenticator` and `ClientAuthenticator` interfaces so a real user or client store can replace them.
@@ -224,14 +227,14 @@ Not in the service (decision `decisions/0002-rate-limiting-at-edge.md`). Rate li
 | `/api/v1/evaluate/**` | JWT with scope `flags:read` and audience `feature-flag-service` |
 | `/actuator/health`, `/actuator/health/**`, `/actuator/info` | Public |
 | `/actuator/prometheus` | JWT with scope `admin` and audience `feature-flag-admin` |
-| `/swagger-ui/**`, `/v3/api-docs/**` | Public in `dev`, disabled in `prod` |
+| `/swagger-ui.html`, `/swagger-ui/**`, `/v3/api-docs/**` | Public in `dev`, disabled in `prod` |
 | Everything else | Denied |
 
-A request to a path in the last row is answered 401 `unauthorized` without a valid token and 403 `forbidden` with a valid token. In the `prod` profile `/swagger-ui/**` and `/v3/api-docs/**` answer 404 `not-found` for everyone.
+A request to a path in the last row is answered 401 `unauthorized` without a valid token and 403 `forbidden` with a valid token. In the `prod` profile `/swagger-ui.html`, `/swagger-ui/**` and `/v3/api-docs/**` answer 404 `not-found` for everyone.
 
-A token with the wrong scope or audience gets `403`; a missing, expired or badly signed token gets `401` with a `WWW-Authenticate: Bearer` header. Authorities come from the `scope` claim via `JwtGrantedAuthoritiesConverter` (`SCOPE_admin`, `SCOPE_flags:read`).
+A token with the wrong scope or audience gets `403`; a missing, expired or badly signed token gets `401` with a `WWW-Authenticate: Bearer` header. The header value starts with the scheme (`Bearer`, or `Basic` for the token endpoint in 5.5); parameters after the scheme are allowed and not specified. Authorities come from the `scope` claim via `JwtGrantedAuthoritiesConverter` (`SCOPE_admin`, `SCOPE_flags:read`).
 
-CSRF is disabled (stateless, token in header). CORS allows the origin in `FF_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`). Preflight requests from an allowed origin get `Access-Control-Allow-Origin` with that origin, allowed methods `GET, POST, PATCH, DELETE` and allowed headers `Authorization, Content-Type, If-None-Match`. A request from another origin gets no `Access-Control-Allow-Origin` header.
+CSRF is disabled (stateless, token in header). CORS allows the origin in `FF_CORS_ALLOWED_ORIGINS` (default `http://localhost:5173`). Preflight requests from an allowed origin get `Access-Control-Allow-Origin` with that origin, allowed methods `GET, POST, PATCH, DELETE` and allowed headers `Authorization, Content-Type, If-None-Match`. Values are compared as case-insensitive, comma-separated sets. `Access-Control-Allow-Headers` lists the requested headers that are allowed; a preflight that requests all three gets all three. A request from another origin gets no `Access-Control-Allow-Origin` header.
 
 ### 5.5 Consumer tokens (client credentials flow)
 
@@ -281,7 +284,7 @@ Design notes:
 - The toggle endpoint takes the target value instead of blindly flipping, so double-clicks and retries are safe. Group deletion needs no request body; the UI is responsible for confirmation.
 - `GET /groups`: `q` matches case-insensitively as a substring of key or name; empty `q` means no filter. `sort=key` and `sort=name` are ascending (`name` case-insensitive), `sort=updatedAt` is newest first; ties are ordered by key ascending. An unknown `sort` value returns 400 `validation` with `field` `sort`.
 - PATCH is a partial update: an omitted field stays unchanged. `description` set to `null` or `""` clears the description. `name` set to `null` or to a blank value returns 400 `validation`. `version` is always required; a missing `version` returns 400 `validation` (`field` `version`).
-- A toggle to the current value, or a PATCH that changes no field, is a no-op: the response is 200 with the unchanged resource, and `version`, `updatedAt`, `updatedBy`, the audit log and the evaluation `revision` do not change.
+- A toggle to the current value, or a PATCH that changes no field, is a no-op: the response is 200 with the unchanged resource, and `version`, `updatedAt`, `updatedBy`, the audit log and the evaluation `revision` do not change. The `version` check runs first: a PATCH whose `version` differs from the current one returns 409 `version-conflict`, even if it would change no field.
 - `GET /audit`: `size` must be between 1 and 200 and `page` must be 0 or more; otherwise 400 `validation` (`field` `size` or `page`). A non-numeric value returns 400 `malformed-request`. A page past the end returns 200 with an empty `content`. `targetKey` is a case-sensitive prefix match; characters have no special meaning; an empty value means no filter.
 - `Location` is an absolute path: `/api/v1/admin/groups/<id>` for a created group and `/api/v1/admin/flags/<id>` for a created flag.
 
@@ -353,6 +356,16 @@ All require `Authorization: Bearer <jwt>` with scope `flags:read` and audience `
 | GET | `/api/v1/evaluate/groups/{groupKey}` | One group: `{ "group": "orders", "flags": { "new-checkout": true, "split-payments": false }, "revision": 42 }`; unknown group → 404 |
 | GET | `/api/v1/evaluate/flags/{groupKey}/{flagKey}` | One flag: `{ "key": "orders.new-checkout", "enabled": true }`; unknown → 404 |
 
+Response bodies (200):
+
+```ts
+type AllFlags   = { flags: Record<string, boolean>; revision: number };            // key = full key
+type GroupFlags = { group: string; flags: Record<string, boolean>; revision: number }; // key = flag key; {} if no flags
+type OneFlag    = { key: string; enabled: boolean };                                // key = full key
+```
+
+`revision` in a body equals the number inside the `ETag` header of the same response.
+
 A group or flag key that does not match the key regex (4.2) is unknown and returns 404.
 
 Unknown flags return 404, never a silent `false`. Clients decide their own default; the spec's README MUST tell them to default to `false` on 404 or network error.
@@ -413,7 +426,7 @@ Fetch a token from `POST /api/v1/auth/token` and cache it; refresh it when less 
 
 The UI is a three-route SPA: a login page, a two-pane flags workspace (groups on the left, the selected group's flags on the right), and an audit log. Simple, clean, keyboard accessible, desktop-first but usable down to 768 px wide.
 
-**Visual reference.** The approved screen designs are committed in `docs/design/`, one HTML file and one PNG per screen: sign in, flags workspace, new flag dialog, delete group confirmation, audit log. The UI MUST match them in layout, colours, typography (IBM Plex Sans and IBM Plex Mono), spacing and component states. Where a design and this section disagree, this section decides behaviour and the design decides appearance. Names and values shown in the designs are sample data only.
+**Visual reference.** The approved screen designs are committed in `docs/design/`, one HTML file and one PNG per screen: sign in, flags workspace, new flag dialog, delete group confirmation, audit log. The UI MUST match them in layout, colours, typography (IBM Plex Sans and IBM Plex Mono), spacing and component states. Where a design and this section disagree, this section decides behaviour and the design decides appearance. Roles, accessible names and ARIA states are behaviour: where the design markup differs from 8.7, 8.7 decides. Names and values shown in the designs are sample data only.
 
 ### 8.1 Routes
 
@@ -433,7 +446,7 @@ The 404 page has the heading `Page not found` and a link `Back to flags` that go
 
 - Centered card: app title "Feature Flags", Username, Password, "Sign in" button.
 - Button disabled and shows a spinner while the request runs; Enter submits.
-- Errors: 401 → "Invalid username or password"; 429 (returned by the edge, section 5.3; N from its `Retry-After` header) → "Too many attempts, try again in N seconds"; network → "Cannot reach server".
+- Errors: 401 → "Invalid username or password"; 429 (returned by the edge, section 5.3; N from its `Retry-After` header) → "Too many attempts, try again in N seconds"; network → "Cannot reach server". `N seconds` is `1 second` when N is 1. If `Retry-After` is missing or not a whole number of seconds, the text is `Too many attempts, try again later`.
 - `?expired=1` shows an info banner "Your session expired. Please sign in again." (`role="status"`).
 - The error message is shown in an element with `role="alert"` between the fields and the Sign in button. The text `Sessions last 8 hours.` in the design is replaced by no text (the lifetime is configurable).
 
@@ -447,7 +460,7 @@ Top bar: app name, nav links (Flags, Audit log), signed-in username, "Sign out" 
 
 Left pane (groups, \~280 px):
 
-- Search box filtering groups by key or name (client-side).
+- Search box filtering groups (client-side): a group is shown when the text is a case-insensitive substring of its key or name; empty text shows all groups.
 - List items show group name, key in monospace, and a badge `enabled/total` (e.g. `1/2`).
 - `New group` button opens a modal: Key, Name, Description. Key field auto-suggests a slug from Name until the user edits Key manually. Slug rule: lower-case the name, replace every run of characters outside `a-z` and `0-9` with one `-`, remove leading and trailing `-`, cut to 50 characters. Example: `My New Group` gives `my-new-group`. The rule applies to the New group dialog only.
 - After a group is created it is selected and the URL becomes `/groups/<id>`. A `/groups/<id>` URL with an unknown id shows the placeholder `Select a group or create one`.
@@ -457,8 +470,8 @@ Left pane (groups, \~280 px):
 Right pane (selected group):
 
 - Header: group name, key (with copy button), description, a meta line "Created by admin · Updated by admin, 2 hours ago" (from createdBy, updatedBy, updatedAt), `Edit group` (modal for name/description) and `Delete group` (danger) buttons. The group header description line ends with `<n> of <m> flags on`.
-- Flags table, columns: Key (key in monospace, the full key `<groupKey>.<flagKey>` as visible text under it), Description, Status toggle switch, Created by (username), Updated (relative time with the editor's username underneath), Actions (Edit, Delete). Next to the switch the text `On` or `Off` is shown. Below 860 px only `Created by` and `Updated` are hidden in the flags table; `Description` and `Actions` stay visible.
-- Search box filters flags in the group; a filter chip set: All / On / Off.
+- Flags table, columns: Key (key in monospace, the full key `<groupKey>.<flagKey>` as visible text under it), Description, Status toggle switch, Created by (username), Updated (relative time, with `by <updatedBy>` underneath), Actions (Edit, Delete). Next to the switch the text `On` or `Off` is shown. Below 860 px only `Created by` and `Updated` are hidden in the flags table; `Description` and `Actions` stay visible.
+- Search box filters flags in the group (client-side): a flag is shown when the text is a case-insensitive substring of its key or description, and it also matches the status filter. A filter chip set: All / On / Off.
 - `New flag` button opens a modal: Key, Description, Initial state (switch, default off).
 - The plus sign in `New group` and `New flag` is a decorative icon with `aria-hidden="true"`; it is not part of the button name.
 - Empty group state: "No flags in this group" + `Add flag` button.
@@ -475,7 +488,7 @@ Dialog texts (the New flag dialog matches its design; the others follow the same
 | New flag | `New flag in <group name>` | `Key` (prefix `<groupKey>.` shown), `Description (optional)`, switch `Initial state` | `Cancel`, `Create flag` |
 | Edit flag | `Edit flag` | `Key` (read-only, shows the full key), `Description (optional)` | `Cancel`, `Save changes` |
 
-Every dialog in this table has `role="dialog"` and `aria-modal="true"` and is named by its title. Each also has a close icon button named `Close`. The confirm dialogs are defined in 8.5.
+Every dialog in this table has `role="dialog"` and `aria-modal="true"` and is named by its title. Each also has a close icon button named `Close`. The read-only `Key` field in Edit group and Edit flag is an `<input readonly>` labelled `Key`; its value is the group key or the full flag key. The confirm dialogs are defined in 8.5.
 
 ### 8.5 Interaction rules
 
@@ -485,7 +498,7 @@ Every dialog in this table has `role="dialog"` and `aria-modal="true"` and is na
 | Delete a flag | Confirm dialog (texts below). |
 | Delete a group | Confirm dialog (texts below) lists the flag count and requires typing the group key to enable the delete button. After success, navigate to `/groups` and show the success toast below. |
 | Create / edit | Inline field errors from Zod; server 409 shown on the Key field ("Key already exists"); server 400 field errors mapped onto fields (the server `message` of that field is shown). |
-| Concurrent edit (409 version conflict) | Toast "This item was changed by someone else" and refetch the group. |
+| Concurrent edit (409 version conflict) | The Edit group and Edit flag dialogs send the `version` the item had when the dialog was opened, even if newer data arrives while the dialog is open. On 409: the dialog closes, an error toast "This item was changed by someone else" appears (`role="alert"`), and the group is refetched, so the header and the flags table show the current server values. |
 | Any success | Toast for 3 s (create, update, delete). Toggles do not toast. |
 
 Toasts are rendered with `role="status"` (success) or `role="alert"` (error). Toggle failure toast text: `Could not update flag <fullKey>` (full key without quotes). Success toast texts: `Group <key> created`, `Group <key> updated`, `Flag <fullKey> created`, `Flag <fullKey> updated`, `Flag <fullKey> deleted`, and after a group delete `Group <key> and <N> flag(s) deleted`.
@@ -496,7 +509,7 @@ Confirm dialogs use `role="alertdialog"` and are named by their title:
 - Delete group dialog: title `Delete group “<name>”?`, text `This permanently deletes the group and all <N> flag(s) in it. Services reading these flags will get 404.`, a list named `Flags that will be deleted` with the full keys, a text field labelled `Type <groupKey> to confirm`, buttons `Cancel` and `Delete group and <N> flag(s)`. The delete button is disabled until the field equals the key exactly (case-sensitive, no trimming).
 - `<N> flag(s)` is `1 flag` when N is 1, otherwise `N flags`. No backticks appear in the UI.
 
-Validation in dialogs: a field that fails validation gets `aria-invalid="true"` and a visible error text linked with `aria-describedby`; the dialog stays open and no request is sent. Texts: key `Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter`; name `Name is required` / `Name must be at most 100 characters`; description `Description must be at most 500 characters`.
+Validation in dialogs: a field that fails validation gets `aria-invalid="true"` and a visible error text linked with `aria-describedby`; the dialog stays open and no request is sent. Validation runs when the user clicks the submit button (`Create group`, `Create flag`, `Save changes`) or presses Enter; it may also run on blur. The submit button is enabled except while its request is in flight. Inputs never change what the user typed (no automatic lower-casing or trimming of the Key field); only the New group slug suggestion fills Key while the user has not edited it. Server field errors (409 on Key, 400 field errors) are shown the same way: the field gets `aria-invalid="true"`, the text is linked with `aria-describedby`, and the dialog stays open. Texts: key `Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter`; name `Name is required` / `Name must be at most 100 characters`; description `Description must be at most 500 characters`.
 
 ### 8.6 Audit log page
 
@@ -506,6 +519,7 @@ Table: Time (local, absolute + relative), Actor, Action (coloured label), Target
 - Below 860 px the `Time` and `Actor` columns are hidden; `Action`, `Target` and `Details` stay visible.
 - Action labels: GROUP\_CREATED `Group created`, GROUP\_UPDATED `Group updated`, GROUP\_DELETED `Group deleted`, FLAG\_CREATED `Flag created`, FLAG\_UPDATED `Flag updated`, FLAG\_TOGGLED `Flag toggled`, FLAG\_DELETED `Flag deleted`.
 - Details text: FLAG\_TOGGLED `false → true` or `true → false`; FLAG\_CREATED `Created off` or `Created on`; FLAG\_DELETED `Was on` or `Was off`; GROUP\_CREATED `Name: <name>`; GROUP\_UPDATED `Name: “<from>” → “<to>”` and/or `Description: “<from>” → “<to>”`; FLAG\_UPDATED `Description: “<from>” → “<to>”` and/or `Enabled: false → true`; GROUP\_DELETED `<N> flag(s) deleted: <full keys, comma separated>`.
+- When several fields changed, the parts appear in the order Name, Description, Enabled, joined by `; ` (for example `Description: “a” → “b”; Enabled: false → true`). A description that does not exist shows as `“”`. GROUP\_DELETED with no flags shows `0 flags deleted`. Full keys are joined by `, ` (comma and space).
 - The format of the Time column is not specified.
 
 ### 8.7 UI code structure
@@ -597,6 +611,7 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 | `FF_CLIENT_TOKEN_TTL` | `PT15M` | Consumer token lifetime |
 | `FF_CLIENT_ORDER_SERVICE_SECRET` | `order-service-dev-secret` | Secret of the sample consumer client |
 | `FF_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | UI origin(s) |
+| `FF_REQUIRE_HTTPS` | `false` (`true` in `prod`) | Reject login and token requests that did not arrive over HTTPS (10.2) |
 | `SERVER_PORT` | `8080` | HTTP port |
 | `VITE_API_BASE_URL` (UI build) | `/api` | API base URL |
 
@@ -619,7 +634,7 @@ Rules: controllers never touch repositories; services are `@Transactional`; enti
 - **Admin API:** used only by the bundled UI and released together with it; it still lives under `/api/v1/admin`.
 - **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`.
 - **Docker images:** both images are tagged `<version>` and `sha-<short commit>`, for example `feature-flag-backend:1.0.0` and `feature-flag-ui:1.0.0`. Deployment manifests never use `latest`. Each image can still be deployed on its own.
-- **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell. The footer element contains the text `v<version>` (for example `v1.0.0`).
+- **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell. The footer element contains the text `v<version>` (for example `v1.0.0`). `build.version` is a SemVer `MAJOR.MINOR.PATCH` string, `git.commit.id` is a lower-case hex commit id (7 to 40 characters), and the UI footer shows `v` followed by the same `build.version`.
 - **CHANGELOG.md** in Keep a Changelog format: every chunk that changes behaviour adds a line under `Unreleased`; the final milestone moves them under `1.0.0`.
 
 ## 10. Repository, build and run
@@ -649,12 +664,13 @@ feature-flag-service/
 - Backend: multi-stage, `eclipse-temurin:21-jdk` build → `eclipse-temurin:21-jre` runtime, non-root user, `EXPOSE 8080`, `HEALTHCHECK` on `/actuator/health/readiness`, JVM flags `-XX:MaxRAMPercentage=75`.
 - Frontend: multi-stage, `node:20-alpine` build → `nginx:alpine` serving `dist/`. `nginx.conf` does SPA fallback (`try_files $uri /index.html`) and reverse-proxies `/api/` to `${BACKEND_URL}` (envsubst template), so the UI can be deployed on its own host and pointed at any backend.
 - Container ports: backend 8080, UI 80. The backend image starts with only `FF_DB_URL`, `FF_DB_USER` and `FF_DB_PASSWORD` set; the UI image starts with only `BACKEND_URL` set. Image names are the `image:` names in `docker-compose.yml`.
+- Standalone check (AC-OPS-2): with a separate `postgres:16-alpine` container, the backend image started with only `FF_DB_URL`, `FF_DB_USER` and `FF_DB_PASSWORD` answers `GET /actuator/health/readiness` with 200 `{"status":"UP"}` within 90 s. The UI image started with only `BACKEND_URL` pointing at that backend answers `GET /` with 200 `text/html`, and `GET /api/v1/evaluate/flags` without a token with the backend's 401.
 
 **HTTPS in production.** TLS is terminated by an ingress in front of both services (a Kubernetes Ingress controller, a cloud load balancer, or Traefik or Caddy on a VM; the concrete choice comes with the hosting target). The ingress holds the certificates and routes the UI host and the API host to the two containers, which speak plain HTTP on a private network, so the images stay independent.
 
 - The backend sets `server.forward-headers-strategy=framework` and trusts `X-Forwarded-Proto` from the ingress.
 - The ingress (or the CDN / API gateway in front of it) also rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/token` per client IP (section 5.3). Its concrete limits come with the hosting target.
-- With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text. A request without `X-Forwarded-Proto` or with `http` counts as not HTTPS. Only these two POST endpoints are affected. The 403 body is a problem detail with type `https-required`, also for the token endpoint.
+- With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text. A request without `X-Forwarded-Proto` or with `http` counts as not HTTPS. Only these two POST endpoints are affected. The 403 body is a problem detail with type `https-required`, also for the token endpoint. In the AC-OPS-4 check, the login and token requests are sent to the backend port directly; whether nginx passes `X-Forwarded-Proto` on to the backend is not specified.
 - Local docker-compose stays plain HTTP in the `dev` profile.
 
 **Security headers.** IBM Plex fonts are bundled with the UI via `@fontsource` packages, so the UI loads nothing from other origins. nginx adds to every UI response:
@@ -662,13 +678,13 @@ feature-flag-service/
 | Header | Value |
 | --- | --- |
 | `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (production only, when served over HTTPS) |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` (only on requests with `X-Forwarded-Proto: https`, see below) |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `no-referrer` |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
 
-nginx sends these headers on every response it returns, including error responses (`always`), SPA fallback pages and proxied `/api/` responses. `Strict-Transport-Security` is sent only when the request arrived with `X-Forwarded-Proto: https`; it is not sent in the plain-HTTP compose stack.
+nginx sends these headers on every response it returns, including error responses (`always`), SPA fallback pages and proxied `/api/` responses. Each header in the table appears exactly once. For proxied `/api/` responses nginx removes the same headers from the backend response (`proxy_hide_header`) before adding its own. `Strict-Transport-Security` is sent exactly when the request arrived with `X-Forwarded-Proto: https`, in every profile and stack. A plain-HTTP request (no header, or `http`) gets no `Strict-Transport-Security`.
 
 The backend keeps Spring Security's default security headers, except `Cache-Control`. Exact `Cache-Control` values: every Admin API response (any status) has `Cache-Control: no-store`; every Evaluation API 200 and 304 response has `Cache-Control: no-cache`. These replace Spring Security's default `Cache-Control` for those paths. The UI build must contain no inline scripts, so the policy needs no `'unsafe-inline'`.
 
@@ -677,6 +693,8 @@ The backend keeps Spring Security's default security headers, except `Cache-Cont
 Services: `postgres` (16-alpine, volume `pgdata`, healthcheck), `backend` (depends on healthy postgres, port 8080), `frontend` (port 3000 → nginx 80, `BACKEND_URL=http://backend:8080`). `make up` builds and starts; UI at `http://localhost:3000`, login `admin` / `admin123`.
 
 Acceptance check for `make up` (AC-OPS-1): the services `postgres`, `backend` and `frontend` are running, `postgres` and `backend` report healthy, and `GET /` on the UI port returns 200 `text/html`, within 90 seconds after the containers were started (image build time is not counted).
+
+For black-box tests, the harness that runs `make up` (the owner review script `scripts/owner-review.sh`) exports `FF_STACK_STARTED_AT` (ISO-8601 UTC, taken right after `docker compose up` returns) and `FF_COMPOSE_PROJECT` (the compose project name). The test passes when `docker compose -p $FF_COMPOSE_PROJECT ps` shows the three services running, `postgres` and `backend` healthy, and `GET /` on the UI port returns 200 `text/html`, all observed no later than `FF_STACK_STARTED_AT` + 90 s.
 
 `docker-compose.yml` passes every variable listed in 9.4 to the `backend` service as `${VAR:-<default from 9.4>}`. Host ports are `${FF_BACKEND_PORT:-8080}` for the backend and `${FF_UI_PORT:-3000}` for the UI, so several stacks (different `-p` project names) can run side by side, for example one with `FF_ADMIN_TOKEN_TTL=PT2S` or `FF_REQUIRE_HTTPS=true`.
 
@@ -768,7 +786,7 @@ Operations
 - [ ] Backend image runs standalone with only env vars set (no UI needed); UI image runs standalone pointed at any `BACKEND_URL`.
 - [ ] `/actuator/health` reports UP with DB status.
 
-* [ ] With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2.
+* [ ] With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`).
 
 ### 11.3 Automated quality gates
 
@@ -786,7 +804,7 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 8 | API contract | springdoc writes `backend/openapi.json`; `openapi-typescript` generates `frontend/src/api/schema.d.ts`; `git diff --exit-code` | Committed OpenAPI file or generated types are out of date, or UI code does not compile against them | M4 |
 | 9 | Frontend tests | `npm test -- --coverage` (Vitest, RTL, MSW) | Any failing test | M6 |
 | 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. The only exception is a vulnerability with no fixed version, listed in .trivyignore with a reason and an expiry date and recorded in docs/DECISIONS.md | M1 |
-| 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present | M5 |
+| 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present (HSTS only when the request has `X-Forwarded-Proto: https`, 10.2) | M5 |
 | 12 | End-to-end | Playwright, `--repeat-each=2`, retries 0 | Any failure, including a test that passes once and fails once (flaky), or any Content-Security-Policy violation reported in the browser console | M8 |
 | 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | p95 ≥ 50 ms, any error, or cache hit rate < 99 % | M8 |
 | 14 | Traceability | `scripts/check-traceability.mjs` (section 11.4) | Any acceptance criterion without a passing test, or a test tagged with an unknown ID | M1 |
@@ -804,7 +822,8 @@ A checkbox marked `[Removed — decision NNNN]` keeps its ID so later IDs do not
 - Each test names the IDs it proves: JUnit `@Tag("AC-FLAG-3")`; Vitest and Playwright titles contain `[AC-FLAG-3]`. One test may cover several IDs; one ID may need several tests.
 - `check-traceability.mjs` reads the registry plus the JUnit XML, Vitest JUnit and Playwright JSON reports, and writes an ID → tests → pass/fail matrix into the verify report. Every ID needs at least one test, and all its tests must pass.
 - In addition, every status code listed in the Errors column of 6.1, and every row of the 9.1 error table, must have an integration test asserting status and problem-detail `type`; the script checks this from tags of the form `ERR-<METHOD>-<path>-<status>`.
-- Two items are covered only by this repository's tests, not by the black-box acceptance tests that run outside it: the 500 row of 9.1 (backend integration tests only), and the DOWN state before warm-up in AC-CACHE-6 (backend tests and gate 11). The DOWN period is short; the black-box tests check only that readiness becomes UP and stays UP.
+- Two items are covered only by this repository's tests, not by the black-box acceptance tests that run outside it: the 500 row of 9.1 (backend integration tests only), and the DOWN state before warm-up in AC-CACHE-6 (backend tests and gate 11). The DOWN period is short; the black-box tests check only that readiness becomes UP and is still UP at the end of the test run (checked once before the first test and once after the last).
+- In AC-AUD-1, the black-box tests check `createdBy` / `updatedBy` = the signed-in user and that body fields `createdBy` / `updatedBy` are ignored; that `created_by` stays unchanged when a different user updates a row is covered only by this repository's tests (one admin user exists per stack).
 
 ### 11.5 Test environments and data isolation
 
@@ -813,8 +832,8 @@ Every test run uses throwaway containers, and the database and the cache are alw
 - **Backend integration tests:** Testcontainers starts a fresh PostgreSQL container per run (container reuse off in CI). Before each test the harness truncates the tables and calls `FlagCacheService.reloadAll()`, the same public method used by warm-up and reconciliation, so no test-only code exists in the service.
 - **End-to-end, smoke and performance tests:** each run starts a new docker-compose stack under a unique project name (`ff-e2e-<run-id>`) with no persistent volumes, and removes it with `docker compose down -v` in a shell `trap`, so it is removed even when tests fail.
 - **Inside one end-to-end run:** each test creates its own data through the Admin API with unique keys (`e2e-<test-id>-...`), asserts only on that data, and deletes it through the Admin API in `afterEach`. Tests are independent and run with 4 parallel workers.
-- **Tests that need global state:** tests that depend on the global evaluation `revision` or ETag (304 behaviour, revision increases) run in a project with 1 worker that starts after the parallel project has finished, so no other test writes at the same time. The group-limit test (9.2) counts all groups in the service, so it runs in its own stack with 1 worker. The flag-limit test uses its own group and runs in the shared stack.
-- **Negative authentication cases:** tests may sign JWTs (HS256) with the documented dev `FF_JWT_SECRET` from 5.1 (wrong `aud`, `scope` or `iss`, expired). Tests never need the secret of a non-dev stack.
+- **Tests that need global state:** tests that depend on the global evaluation `revision` or ETag (304 behaviour, revision increases) run in a project with 1 worker that starts after the parallel project has finished, so no other test writes at the same time. The group-limit test (9.2) counts all groups in the service, so it runs in its own stack with 1 worker. The flag-limit test uses its own group and runs in the shared stack. The cache hit-rate test (AC-CACHE-9) counts cache metrics for the whole service, so it runs in the same 1-worker project, after the parallel project. It creates its own group and flags, then runs the 9.2 load against those keys only. The hit rate is computed from the difference of the counters read just before and just after the load (9.2), so earlier traffic does not count.
+- **Negative authentication cases:** tests may sign JWTs (HS256) with the documented dev `FF_JWT_SECRET` from 5.1 (wrong `aud`, `scope` or `iss`, expired). Tests never need the secret of a non-dev stack. UI tests may read `sessionStorage['ff.accessToken']` to check that a token is stored or removed, and may write it only with a negative token (expired, or with a changed signature) to reach the session-expired state.
 - **Screenshot tests** run in their own fresh stack, seeded through the Admin API with the sample data shown in the designs; relative-time and username cells are masked so screenshots do not depend on the clock.
 
 ### 11.6 UI testing
@@ -830,7 +849,9 @@ Every test run uses throwaway containers, and the database and the cache are alw
 
 The `@cross-browser` subset has 6–8 tests: login, session-expired redirect, toggle a flag, create a flag, delete-group confirmation, audit log. Browsers never run in `make verify-fast`.
 
-UI tests may use Playwright request interception (`page.route`) to answer browser requests to `/api/**` with a fake status, an abort or a delay, to reach states the stack cannot produce (toggle failure, 429 with `Retry-After`, network error, slow response).
+UI tests may use Playwright request interception (`page.route`) to answer browser requests to `/api/**` with a fake status, an abort or a delay, to reach states the stack cannot produce (toggle failure, 429 with `Retry-After`, network error, slow response, empty group list (`GET /api/v1/admin/groups` answered with `200 []`)).
+
+In the black-box suite, API tests run once in an `api` project; UI tests run in the browser projects above; the serial project of 11.5 starts after all other projects have finished.
 
 **Matching the design**
 
