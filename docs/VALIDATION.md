@@ -114,7 +114,7 @@ flowchart TD
 | `make verify-fast` | Builder | Every chunk, before commit | Chunk may be committed |
 | `make verify` (15 gates) | Builder | Every milestone end | Milestone may be marked complete |
 | Agent CI on the PR | GitHub, from the agent's branch | Every push | Signal only; the agent can edit it |
-| `locked-files-guard` | GitHub, from `main` | Every push to the PR | Merge blocked if locked files changed |
+| `locked-files-guard` | GitHub, from `main` | Every push to the PR | Alert comment if locked files changed (does not block) |
 | Owner review + black-box acceptance suite | Owner, from `main` | After M8 (optional: earlier, 4.3) | Build accepted, or bug reports |
 | Planted bugs + click-through | Owner | Final review | Merge to `main` |
 
@@ -179,8 +179,8 @@ The repo is public so branch protection is available on a personal account.
 | Require a pull request before merging | On, 0 approvals | Approvals cannot work: builder and owner use the same GitHub account |
 | Do not allow bypassing the above settings | On | The rules also apply to the owner's account, which the builder uses |
 | Allow force pushes / deletions | Off | No history rewrite on `main` |
-| Who merges | Owner only, after the owner review | Builder rule in `CLAUDE.md` section 8. With 0 approvals and one account, GitHub cannot enforce this; the owner review script and the guard catch locked-file changes, and every merge is visible in history |
-| Required status check | `locked-files-guard` | `.github/workflows/locked-files-guard.yml` on `pull_request_target`: always runs `main`'s copy and `main`'s `scripts/locked-paths.txt`; uses no actions; only fetches the PR as git objects and compares, never runs PR code. Runs on every PR to `main`, including forks, except branches `owner/*` from this repo (the owner's spec changes) |
+| Who merges | Owner only, after the owner review | Builder rule in `CLAUDE.md` section 8. With 0 approvals and one account, GitHub cannot enforce this; the alert comment and the owner review script show locked-file changes, and every merge is visible in history |
+| Locked-files alert | `locked-files-guard` (not a required check) | `.github/workflows/locked-files-guard.yml` on `pull_request_target`: runs `main`'s copy and `main`'s `scripts/locked-paths.txt`; uses no actions; never runs PR code. On every PR to `main` it posts or updates one PR comment listing changed locked paths and commit hashes. It does not block: it can be worked around, and only the owner merges. The hard check is `scripts/owner-review.sh` before every merge |
 | `CODEOWNERS` | Owner on locked paths | A record of ownership only, not enforcement |
 
 ### 6.3 Protection from outside
@@ -240,7 +240,7 @@ traces. Max 3 rounds per AC, then the owner decides.
 | Black-box acceptance suite repo `feature-flag-acceptance` | Skeleton created; tests not written yet |
 | `scripts/owner-review.sh` | Created and tested on a bad and a clean branch |
 | Edit-block hook | Created: `.claude/hooks/block_locked_files.py`, list in `scripts/locked-paths.txt`. Owner sessions: `FF_OWNER_SESSION=1 claude` |
-| `locked-files-guard.yml` | Created and tested locally on a bad and a good PR. Owner: make it a required check after the first run |
+| `locked-files-guard.yml` | Created as a non-blocking alert (PR comment). Path comparison tested locally; the comment step runs only on GitHub |
 | GitHub settings (6.2, 6.3) | Owner to set |
 | Account spend limit | Owner to set |
 
