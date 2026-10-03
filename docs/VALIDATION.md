@@ -211,6 +211,10 @@ Builder rules for untrusted input: `CLAUDE.md` section 8a.
    repeat-each 2, `maxDiffPixelRatio` 0.01, k6 targets, banned dependencies, verbatim
    acceptance criteria), weakened tests, and runs the black-box acceptance suite.
    Report: `build/owner-review-<time>.md`.
+   For the suite it starts three stacks from the build under review: default (`make up`,
+   ports 8080/3000), https (`FF_REQUIRE_HTTPS=true`, 8280/3200) and limits (own stack for
+   the group limit, 8380/3300), then runs the suite's 5 phases in order (`npm test` in the
+   suite repo; see its `docs/black-box-testing.md` section 6a). Stop other local stacks first.
 2. Planted bugs: on a scratch branch, break about 5 things by hand (return `false`
    instead of 404, skip the cache update after a toggle, allow a duplicate key, ...).
    Each must turn at least one of the builder's tests red. A bug that stays green = weak spot.

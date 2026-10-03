@@ -8,6 +8,8 @@
 #   REF        branch to review (default: origin/feature/feature-flag-service)
 #   --since    only check test changes after this ref (default: where the branch left main)
 #   --no-suite skip the black-box acceptance suite (no Docker needed)
+#   Ports used by the suite stacks: 8080/3000 (default), 8280/3200 (https), 8380/3300 (limits);
+#   stop any other local stack first.
 # Env: ACCEPTANCE_DIR (default: ../feature-flag-acceptance)
 #
 # Exit 0 = no FAIL. Exit 1 = at least one FAIL. WARN = look at it yourself.
@@ -28,7 +30,6 @@ done
 ROOT=$(git rev-parse --show-toplevel) || exit 2
 cd "$ROOT"
 ACCEPTANCE_DIR="${ACCEPTANCE_DIR:-$ROOT/../feature-flag-acceptance}"
-HEALTH_URL="${HEALTH_URL:-http://localhost:8080/actuator/health}"
 HEALTH_TIMEOUT_S=90
 mkdir -p build
 REPORT="build/owner-review-$(date +%Y%m%d-%H%M%S).md"
@@ -150,8 +151,14 @@ if [ -n "$removed" ]; then warn "commits that removed assertion lines (count, co
 else pass "no assertion lines removed"; fi
 
 # ---------------------------------------------------------------- 4. Black-box acceptance suite
+# Starts three stacks from the build under review (spec 10.3: compose passes 9.4 variables,
+# host ports from FF_BACKEND_PORT / FF_UI_PORT), then runs the suite's 5 phases
+# (feature-flag-acceptance/docs/black-box-testing.md section 6a).
 log ""
 log "## 4. Black-box acceptance suite"
+PROJECT_DEFAULT=ff-review
+PROJECT_HTTPS=ff-review-https
+PROJECT_LIMITS=ff-review-limits
 if [ "$RUN_SUITE" = "0" ]; then
   warn "skipped (--no-suite)"
 elif [ ! -f "$ACCEPTANCE_DIR/package.json" ]; then
@@ -163,26 +170,47 @@ else
 
   WT=$(mktemp -d)/build
   cleanup() {
-    (cd "$WT" 2>/dev/null && make down >/dev/null 2>&1)
+    for p in "$PROJECT_DEFAULT" "$PROJECT_HTTPS" "$PROJECT_LIMITS"; do
+      (cd "$WT" 2>/dev/null && docker compose -p "$p" down -v >/dev/null 2>&1)
+    done
     git worktree remove --force "$WT" >/dev/null 2>&1
   }
   trap cleanup EXIT
-  if ! git worktree add --quiet --detach "$WT" "$REF"; then
-    fail "could not check out $REF into a temporary worktree"
-  elif ! (cd "$WT" && make up); then
-    fail "make up failed on $REF"
-  else
-    healthy=0
+
+  wait_healthy() { # name, port
+    local url="http://localhost:$2/actuator/health"
     for _ in $(seq 1 "$HEALTH_TIMEOUT_S"); do
-      if curl -fs "$HEALTH_URL" 2>/dev/null | grep -q '"UP"'; then healthy=1; break; fi
+      if curl -fs "$url" 2>/dev/null | grep -q '"UP"'; then pass "$1 stack UP at :$2"; return 0; fi
       sleep 1
     done
-    if [ "$healthy" = "0" ]; then
-      fail "backend not UP at $HEALTH_URL within ${HEALTH_TIMEOUT_S}s"
-    elif (cd "$ACCEPTANCE_DIR" && npm test); then
-      pass "black-box acceptance suite passed"
+    fail "$1 stack not UP at $url within ${HEALTH_TIMEOUT_S}s"; return 1
+  }
+
+  stacks_ok=1
+  if ! git worktree add --quiet --detach "$WT" "$REF"; then
+    fail "could not check out $REF into a temporary worktree"; stacks_ok=0
+  else
+    # default stack through `make up` (AC-OPS-1 names it); project name fixed for the ops tests
+    (cd "$WT" && COMPOSE_PROJECT_NAME="$PROJECT_DEFAULT" make up) || { fail "make up failed on $REF"; stacks_ok=0; }
+    (cd "$WT" && FF_REQUIRE_HTTPS=true FF_BACKEND_PORT=8280 FF_UI_PORT=3200 \
+        docker compose -p "$PROJECT_HTTPS" up -d --build) || { fail "https stack failed to start"; stacks_ok=0; }
+    (cd "$WT" && FF_BACKEND_PORT=8380 FF_UI_PORT=3300 \
+        docker compose -p "$PROJECT_LIMITS" up -d --build) || { fail "limits stack failed to start"; stacks_ok=0; }
+  fi
+  if [ "$stacks_ok" = "1" ]; then
+    wait_healthy default 8080 || stacks_ok=0
+    wait_healthy https 8280 || stacks_ok=0
+    wait_healthy limits 8380 || stacks_ok=0
+  fi
+  if [ "$stacks_ok" = "1" ]; then
+    if (cd "$ACCEPTANCE_DIR" && \
+        UI_URL=http://localhost:3000 API_URL=http://localhost:8080 \
+        HTTPS_API_URL=http://localhost:8280 LIMITS_API_URL=http://localhost:8380 \
+        FF_COMPOSE_DIR="$WT" FF_COMPOSE_PROJECT="$PROJECT_DEFAULT" \
+        npm test); then
+      pass "black-box acceptance suite passed (5 phases)"
     else
-      fail "black-box acceptance suite failed — see $ACCEPTANCE_DIR/reports/html/index.html"
+      fail "black-box acceptance suite failed — see $ACCEPTANCE_DIR/reports/"
     fi
   fi
 fi
