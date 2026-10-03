@@ -179,7 +179,8 @@ The repo is public so branch protection is available on a personal account.
 | Require a pull request before merging | On, 0 approvals | Approvals cannot work: builder and owner use the same GitHub account |
 | Do not allow bypassing the above settings | On | The rules also apply to the owner's account, which the builder uses |
 | Allow force pushes / deletions | Off | No history rewrite on `main` |
-| Required status check | `locked-files-guard` | `pull_request_target` workflow: always runs `main`'s copy, only runs `git diff`, never the builder's code. Runs only on PRs from `feature/feature-flag-service`, so owner PRs that change the spec are not blocked |
+| Who merges | Owner only, after the owner review | Builder rule in `CLAUDE.md` section 8. With 0 approvals and one account, GitHub cannot enforce this; the owner review script and the guard catch locked-file changes, and every merge is visible in history |
+| Required status check | `locked-files-guard` | `.github/workflows/locked-files-guard.yml` on `pull_request_target`: always runs `main`'s copy and `main`'s `scripts/locked-paths.txt`; uses no actions; only fetches the PR as git objects and compares, never runs PR code. Runs on every PR to `main`, including forks, except branches `owner/*` from this repo (the owner's spec changes) |
 | `CODEOWNERS` | Owner on locked paths | A record of ownership only, not enforcement |
 
 ### 6.3 Protection from outside
@@ -197,7 +198,7 @@ GitHub settings (owner sets them; check again before every builder run):
 | 4 | Actions → Fork pull request workflows | "Require approval for all external contributors" | A fork PR cannot start a workflow without the owner |
 | 5 | Actions → Workflow permissions | "Read repository contents" by default | A workflow gets write access only where it asks for it |
 | 6 | Repository secrets | None | Nothing to steal; the project needs none in v1 |
-| 7 | `pull_request_target` workflows | Only for this repo's `feature/feature-flag-service`; never check out or run PR code | They run with write access, so a fork PR must never reach them |
+| 7 | `pull_request_target` workflows | Never check out or run PR code; read-only token; no secrets; untrusted PR fields never in shell commands | They run with this repo's token, so PR code must never execute in them |
 | 8 | `escalation-notify.yml` | Acts only on comments by the owner's login; permissions only `issues: write`, `pull-requests: write` | Strangers cannot trigger pings or labels |
 
 Builder rules for untrusted input: `CLAUDE.md` section 8a.
@@ -239,7 +240,7 @@ traces. Max 3 rounds per AC, then the owner decides.
 | Black-box acceptance suite repo `feature-flag-acceptance` | Skeleton created; tests not written yet |
 | `scripts/owner-review.sh` | Created and tested on a bad and a clean branch |
 | Edit-block hook | Created: `.claude/hooks/block_locked_files.py`, list in `scripts/locked-paths.txt`. Owner sessions: `FF_OWNER_SESSION=1 claude` |
-| `locked-files-guard.yml` | Not created |
+| `locked-files-guard.yml` | Created and tested locally on a bad and a good PR. Owner: make it a required check after the first run |
 | GitHub settings (6.2, 6.3) | Owner to set |
 | Account spend limit | Owner to set |
 

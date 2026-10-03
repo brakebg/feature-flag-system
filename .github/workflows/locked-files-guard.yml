@@ -1,0 +1,71 @@
+# Blocks a PR to main when it changes an owner-only path (scripts/locked-paths.txt).
+#
+# Safety (pull_request_target runs with this repo's token, so it must never run PR code):
+# - The workflow file and scripts/locked-paths.txt always come from main, never from the PR.
+# - No actions are used and nothing from the PR is checked out or executed; the PR is only
+#   fetched as git objects and compared with `git log`.
+# - Untrusted PR fields (branch name, title, body) are never put into a shell command;
+#   only the numeric PR number is.
+# - Token permission: contents read only. No secrets.
+#
+# Runs on every PR to main, including forks, except branches named owner/* from this
+# repo (the owner's own spec changes). Branch protection: make the job
+# "locked-files-guard" a required status check.
+name: locked-files-guard
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  locked-files-guard:
+    if: >-
+      ${{ github.event.pull_request.head.repo.full_name != github.repository
+          || !startsWith(github.event.pull_request.head.ref, 'owner/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Compare locked paths with main
+        run: |
+          set -euo pipefail
+          git init -q guard && cd guard
+          git remote add origin "https://github.com/${REPO}.git"
+          git fetch -q --no-tags origin \
+            "+refs/heads/main:refs/remotes/origin/main" \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+
+          git show origin/main:scripts/locked-paths.txt > ../locked-paths.txt
+          base=$(git merge-base origin/main pr/head)
+          range="${base}..pr/head"
+          failed=0
+
+          while IFS= read -r line; do
+            case "$line" in ''|'#'*) continue ;; esac
+            path="${line%% *}"
+            if [ "$line" != "$path" ] && [ "${line##* }" = "create-once" ]; then
+              bad=$(git log -M --format='%h %s' --diff-filter=MDR "$range" -- ":(glob)$path")
+            else
+              bad=$(git log -M --format='%h %s' "$range" -- ":(glob)$path")
+            fi
+            if [ -n "$bad" ]; then
+              echo "::error title=Locked path changed::$path"
+              printf '%s\n' "$bad" | sed 's/^/    /'
+              failed=1
+            else
+              echo "ok  $path"
+            fi
+          done < ../locked-paths.txt
+
+          if [ "$failed" -ne 0 ]; then
+            echo "This PR changes owner-only paths (scripts/locked-paths.txt on main)."
+            echo "Owner spec changes go through a branch named owner/*."
+            exit 1
+          fi
+          echo "No locked path changed."
