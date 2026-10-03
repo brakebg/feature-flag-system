@@ -116,6 +116,78 @@ Collected from Claude, ChatGPT, Gemini and Meta AI.
 | Planted bugs | Owner, at review | Agent's tests catch real bugs |
 | Manual click-through | Owner, at review | It works and looks right for a person |
 
+### 4.1 When each check runs — end-to-end process
+
+The builder validates every small chunk itself before it commits. The black-box
+acceptance suite runs at milestone ends, from the owner's machine. The builder never
+waits for the owner; findings reach it as PR comments.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant O as Owner
+  participant T as Tester session
+  participant AR as Acceptance repo (private)
+  participant B as Builder session
+  participant R as Main repo + PR
+  O->>R: Commit SPEC, designs, CLAUDE.md on main (locked)
+  O->>T: Start with SPEC + designs only
+  T->>AR: Write black-box acceptance suite, tagged by AC ID
+  O->>AR: Review once, tag v1, frozen
+  O->>B: Start cloud session, main repo only
+  loop Every chunk, up to about 300 lines
+    B->>B: Test first, implement, make verify-fast
+    B->>R: Green only - commit and push to feature branch
+  end
+  B->>R: Milestone end - make verify 15 gates, M n complete, PR summary
+  R->>R: locked-files-guard runs from main
+  opt After M3, M4, M5, M7, M8
+    O->>O: owner-review.sh from main, then make up
+    O->>AR: Run the suite tests for this milestone
+    alt All pass
+      O->>R: Comment - milestone accepted
+    else Failures
+      O->>R: Bug report by AC ID, no test code
+      R->>B: Read at next startup, fixed as a new chunk
+    end
+  end
+  Note over B: The builder does not wait, it continues with the next milestone
+  O->>O: Final - full suite, planted bugs, click-through
+  O->>R: Merge to main
+```
+
+Builder loop for one chunk (spec 12.4, 12.6):
+
+```mermaid
+flowchart TD
+  A["Startup ritual<br/>CLAUDE.md, STATE.md, owner PR comments"] --> B["Pick next step from STATE.md<br/>name spec section + AC IDs"]
+  B --> C["Write the test first, tagged AC ID<br/>run it - it must FAIL"]
+  C --> D["Implement production code"]
+  D --> E{"make verify-fast<br/>gates 1-6, 9, 10, 14, 15"}
+  E -->|red| F["Read build/verify-report.md<br/>fix production code, never the test"]
+  F --> G{"Same error 5 times?"}
+  G -->|no| E
+  G -->|yes| H["Revert to last green, try another way<br/>after 3 ways: BLOCKERS.md, move on"]
+  H --> B
+  E -->|green| I["Self-check git diff<br/>no weakened test or threshold"]
+  I --> J["Update STATE.md + PROGRESS.md<br/>commit with AC trailer, push"]
+  J --> K{"Milestone done?"}
+  K -->|no| B
+  K -->|yes| L{"make verify<br/>all 15 gates"}
+  L -->|red| F
+  L -->|green| M["Commit M n complete<br/>PR summary comment"]
+  M --> B
+```
+
+| Check | Who runs it | When | Decides |
+| --- | --- | --- | --- |
+| `make verify-fast` | Builder | Every chunk, before commit | Chunk may be committed |
+| `make verify` (15 gates) | Builder | Every milestone end | Milestone may be marked complete |
+| Agent CI on the PR | GitHub, from the agent's branch | Every push | Signal only; the agent can edit it |
+| `locked-files-guard` | GitHub, from `main` | Every push to the PR | Merge blocked if locked files changed |
+| Owner review + black-box acceptance suite | Owner, from `main` | After M3, M4, M5, M7, M8 | Milestone accepted, or bug reports |
+| Planted bugs + click-through | Owner | Final review | Merge to `main` |
+
 ## 5. Owner review — at the end, before merge
 
 1. From a `main` checkout, run `scripts/owner-review.sh feature/feature-flag-service`. It:
