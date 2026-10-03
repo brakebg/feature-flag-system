@@ -166,6 +166,7 @@ Separate private repo `feature-flag-acceptance`. Never a folder or branch in thi
 | Suite repo stays private | Even when this repo is public |
 | Suite uses no code from this repo | It only calls the running app: UI `http://localhost:3000`, API `http://localhost:8080` |
 | Written before M1 by a separate tester session, then frozen as `v1` | Input is only `docs/SPEC.md` and `docs/design/` |
+| Tests follow `docs/black-box-testing.md` in the suite repo | One definition: allowed interfaces, expected values only from the spec, design techniques |
 | Run by the owner review script from `main` | `make up`, then the suite from the owner's local clone |
 | After final acceptance it may be copied here as regression tests | Secrecy only matters while the builder is building |
 
