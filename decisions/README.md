@@ -9,5 +9,6 @@ Not the same as `docs/DECISIONS.md`: that file holds the agent's own Level 1 dec
 | # | Decision | Status |
 | --- | --- | --- |
 | 0001 | [Validation approach: single builder + black-box acceptance suite](0001-validation-approach.md) | Accepted |
+| 0002 | [Rate limiting at the edge, not in the service](0002-rate-limiting-at-edge.md) | Accepted |
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.

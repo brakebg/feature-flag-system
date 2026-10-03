@@ -22,6 +22,7 @@ Build a standalone Feature Flag Service: a Java 21 backend that stores boolean f
 - Client SDKs. Clients call the HTTP API directly.
 - Real-time push (SSE/WebSocket) to clients. Clients poll with ETag caching.
 - Distributed cache (Redis, Hazelcast or similar) and horizontal scaling. The cache lives inside the service process, so v1 runs as exactly one backend instance (see section 7.2).
+- Rate limiting inside the service. It is done at the edge (CDN, API gateway or ingress), which sees the real client IP; see section 5.3 and decision `decisions/0002-rate-limiting-at-edge.md`.
 
 ### 1.3 Glossary
 
@@ -182,7 +183,7 @@ Clients bind to a `List<ClientRegistration>` record via `@ConfigurationPropertie
 
 ### 5.3 Rate limiting
 
-The login and token endpoints MUST each allow at most 10 failed attempts per IP per 5 minutes (in-memory Caffeine counter); the 11th returns `429` with a `Retry-After` header.
+Not in the service (decision `decisions/0002-rate-limiting-at-edge.md`). Rate limiting of `POST /api/v1/auth/login` and `POST /api/v1/auth/token` is done at the edge (CDN, API gateway or ingress, section 10.2). The service MUST NOT implement its own rate limiter. The UI still handles a `429` from the edge (section 8.2).
 
 ### 5.4 Security rules (Spring Security)
 
@@ -376,7 +377,7 @@ A `RequireAuth` wrapper checks for a non-expired token (decode `exp` client-side
 
 - Centered card: app title "Feature Flags", Username, Password, "Sign in" button.
 - Button disabled and shows a spinner while the request runs; Enter submits.
-- Errors: 401 → "Invalid username or password"; 429 → "Too many attempts, try again in N seconds"; network → "Cannot reach server".
+- Errors: 401 → "Invalid username or password"; 429 (returned by the edge, section 5.3; N from its `Retry-After` header) → "Too many attempts, try again in N seconds"; network → "Cannot reach server".
 - `?expired=1` shows an info banner "Your session expired, please sign in again".
 
 ### 8.3 App shell
@@ -452,7 +453,6 @@ Errors use one problem-details shape everywhere; the service logs JSON, exposes 
 | Resource not found | 404 | `not-found` |
 | Duplicate key | 409 | `duplicate-key` |
 | Stale `version` (`OptimisticLockException`) | 409 | `version-conflict` |
-| Login or token rate limit | 429 | `rate-limited` |
 | Unexpected | 500 | `internal` (no stack trace in body; logged with a correlation id) |
 
 Exception: `POST /api/v1/auth/token` returns OAuth 2.0 error bodies (`invalid_client`, `invalid_scope`, `unsupported_grant_type`) as section 5.5 defines.
@@ -502,7 +502,7 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 
 Package `com.example.featureflags`, layered by feature:
 
-- `auth/` — `AuthController` (login), `TokenController` (client credentials), `TokenIssuer` (wraps `JwtEncoder`), `AdminAuthenticator`, `ClientAuthenticator`, `ClientRegistrationProperties`, `LoginRateLimiter`.
+- `auth/` — `AuthController` (login), `TokenController` (client credentials), `TokenIssuer` (wraps `JwtEncoder`), `AdminAuthenticator`, `ClientAuthenticator`, `ClientRegistrationProperties`.
 - `group/` — `FlagGroup` entity, `FlagGroupRepository`, `GroupService`, `GroupController`, DTO records.
 - `flag/` — `FeatureFlag` entity, repository, `FlagService`, `FlagController`, DTOs.
 - `evaluation/` — `FlagCacheService`, `EvaluationController`.
@@ -550,6 +550,7 @@ feature-flag-service/
 **HTTPS in production.** TLS is terminated by an ingress in front of both services (a Kubernetes Ingress controller, a cloud load balancer, or Traefik or Caddy on a VM; the concrete choice comes with the hosting target). The ingress holds the certificates and routes the UI host and the API host to the two containers, which speak plain HTTP on a private network, so the images stay independent.
 
 - The backend sets `server.forward-headers-strategy=framework` and trusts `X-Forwarded-Proto` from the ingress.
+- The ingress (or the CDN / API gateway in front of it) also rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/token` per client IP (section 5.3). Its concrete limits come with the hosting target.
 - With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text.
 - Local docker-compose stays plain HTTP in the `dev` profile.
 
@@ -588,7 +589,7 @@ The build is accepted when every checkbox below passes in CI; backend line cover
 
 | Layer | Tooling | Must cover |
 | --- | --- | --- |
-| Backend unit | JUnit 5, AssertJ, Mockito | Services: validation, uniqueness, cascade delete, audit details, cache hit, miss and load, write-through for every change type, rollback leaves cache unchanged, JWT create/parse/expiry, rate limiter |
+| Backend unit | JUnit 5, AssertJ, Mockito | Services: validation, uniqueness, cascade delete, audit details, cache hit, miss and load, write-through for every change type, rollback leaves cache unchanged, JWT create/parse/expiry |
 | Backend integration | `@SpringBootTest` + MockMvc + Testcontainers PostgreSQL | Every endpoint in sections 6 and 7: happy path, 400, 401, 404, 409; ETag / 304; Flyway migrations apply on empty DB |
 | Frontend unit | Vitest, RTL, MSW | Login form errors, group/flag modals with validation, optimistic toggle + revert, delete-group typed confirmation, 401 → redirect |
 | End-to-end | Playwright against docker-compose | Scenarios in 11.2 |
@@ -601,7 +602,7 @@ Authentication
 - [ ] Given `admin` / `admin123`, when I sign in, then I land on `/groups`.
 - [ ] Given no token, when I open `/groups` directly, then I am redirected to `/login`.
 - [ ] Given an expired token, when any admin call returns 401, then I am sent to `/login?expired=1`.
-- [ ] 11 failed logins within 5 minutes from one IP return 429.
+- [ ] [Removed — decision 0002] ~~11 failed logins within 5 minutes from one IP return 429.~~ Rate limiting is done at the edge. ID kept so the other IDs do not shift; no test required.
 - [ ] Sign out clears the token; Back button does not show protected data.
 
 Groups
@@ -686,6 +687,8 @@ A gate not yet active passes trivially but is already wired into `make verify` f
 
 Every checkbox in 11.2 gets a stable ID by group and position: `AC-AUTH-1…6`, `AC-GRP-1…5`, `AC-FLAG-1…6`, `AC-EVAL-1…7`, `AC-CACHE-1…9`, `AC-AUD-1…3`, `AC-OPS-1…4` (for example, the first Groups checkbox is `AC-GRP-1`).
 
+A checkbox marked `[Removed — decision NNNN]` keeps its ID so later IDs do not shift. It needs no test, and `check-traceability.mjs` skips it. Currently removed: `AC-AUTH-5` (decision 0002).
+
 - In M1 the agent copies the criteria verbatim with their IDs into `docs/acceptance-criteria.md`. That file is read-only for the agent afterwards.
 - Each test names the IDs it proves: JUnit `@Tag("AC-FLAG-3")`; Vitest and Playwright titles contain `[AC-FLAG-3]`. One test may cover several IDs; one ID may need several tests.
 - `check-traceability.mjs` reads the registry plus the JUnit XML, Vitest JUnit and Playwright JSON reports, and writes an ID → tests → pass/fail matrix into the verify report. Every ID needs at least one test, and all its tests must pass.
@@ -735,7 +738,7 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 
 1. **M1 Scaffolding** — repo layout (10.1), Spring Boot app with health endpoint, Vite React TS app, docker-compose with Postgres, CI workflow, lint/format configured, make verify with all 15 gates wired (inactive gates pass trivially), docs/acceptance-criteria.md registry with IDs, CLAUDE.md with the startup ritual, docs/STATE.md and docs/PROGRESS.md, the draft PR, and the escalation-notify workflow. Done when: `make up` shows a placeholder UI and `/actuator/health` is UP.
 2. **M2 Schema and domain** — Flyway V1/V2, entities, repositories, DTO records, `GlobalExceptionHandler`. Done when: migration test on Testcontainers passes.
-3. **M3 Auth** — config properties, `/auth/login`, client credentials token endpoint, resource-server JWT validation with scopes and audiences, rate limiter, security rules (5.4). Done when: auth integration tests pass.
+3. **M3 Auth** — config properties, `/auth/login`, client credentials token endpoint, resource-server JWT validation with scopes and audiences, security rules (5.4). Done when: auth integration tests pass.
 4. **M4 Admin API** — group and flag services/controllers, optimistic locking, cascade delete, audit events, `/audit`. Done when: all section 6 integration tests pass and OpenAPI renders.
 5. **M5 Evaluation API** — flag cache (Caffeine loading caches, warm-up, after-commit write-through, daily reconciliation job), ETag/304, metrics. Done when: section 7 tests pass, including "toggle then read".
 6. **M6 UI foundation** — API client, auth flow, routing, app shell, shared components, toasts. Done when: login/logout/redirect unit tests pass.

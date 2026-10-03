@@ -122,7 +122,7 @@ flowchart TD
 
 | After | Builder finished | Suite tests that should now pass |
 | --- | --- | --- |
-| M3 | Auth | Login API, AC-AUTH-5 (429), AC-EVAL-1, 2, 4, `ERR-*` 401 / 403 / 429 |
+| M3 | Auth | Login API, AC-EVAL-1, 2, 4, `ERR-*` 401 / 403 |
 | M4 | Admin API, audit | AC-GRP-1…5, AC-FLAG-1…6, AC-AUD-1 at API level; admin `ERR-*` |
 | M5 | Evaluation API, cache | AC-EVAL-3, 5, 6, 7; AC-CACHE-4 (visible part) |
 | M7 | UI features | UI parts of AUTH, GRP, FLAG; AC-AUD-2 |
@@ -139,8 +139,9 @@ flowchart TD
 | Planted bugs | Owner, at review | Builder's tests catch real bugs |
 | Manual click-through | Owner, at review | It works and looks right for a person |
 
-Coverage of the black-box acceptance suite: 31 ACs fully, 2 partly (AC-CACHE-4, 6), plus
-every `ERR-*` case. The 7 white-box ACs (AC-CACHE-1, 2, 3, 5, 7, 8, AC-AUD-3) rely on the
+Coverage of the black-box acceptance suite: 30 ACs fully, 2 partly (AC-CACHE-4, 6), plus
+every `ERR-*` case. AC-AUTH-5 is removed (decision 0002: rate limiting at the edge); 39
+criteria are active. The 7 white-box ACs (AC-CACHE-1, 2, 3, 5, 7, 8, AC-AUD-3) rely on the
 builder's tests and PIT.
 
 ## 6. What is outside the builder's control
