@@ -95,7 +95,7 @@ Collected from Claude, ChatGPT, Gemini and Meta AI.
 | # | Idea | Description | From | Verdict |
 | --- | --- | --- | --- | --- |
 | 1 | Separate agent writes black-box tests | A second agent reads only the spec and writes tests that call the running system (HTTP, browser). It never sees the code, so code and tests cannot share the same mistake. | Gemini, Meta | **Adopted.** Black-box acceptance suite. |
-| 2 | Frontend mutation testing (Stryker) | A tool makes small changes to the frontend code (flip `true` to `false`, remove a line) and reruns the tests. If tests still pass, they do not really check anything. | Gemini | **Optional.** Spec has PIT for backend only. Needs a spec change (new gate and dependency). |
+| 2 | Frontend mutation testing (Stryker) | A tool makes small changes to the frontend code (flip `true` to `false`, remove a line) and reruns the tests. If tests still pass, they do not really check anything. | Gemini | **Phase 2.** Only if the benchmark (decision 0001) gives good results and we continue. Spec has PIT for backend only; adding Stryker needs a spec change (new gate and dependency). |
 | 3 | CI outside the agent's control | The checks that decide "done" must run from files the agent cannot change. | ChatGPT, Meta | **Adopted.** Owner review script run from `main`. |
 | 4 | Edit-block hook | A Claude Code hook refuses the agent's edit tools on locked files (spec, designs, acceptance criteria, thresholds). | Meta | **Adopted.** Stops mistakes, not a determined agent (shell commands can get around it). |
 | 5 | Limits outside the agent | Hard limits on attempts, time or money, so a stuck agent cannot loop and spend for days. | Meta | **Adopted.** Spec escalates after 20 failed `make verify` runs per milestone; owner sets an account spend limit. |
@@ -140,5 +140,5 @@ benchmark: see `decisions/0001-validation-approach.md`.
 | 1 | Black-box acceptance suite (separate private repo `feature-flag-acceptance`, see 2.1) | Location decided; not started |
 | 3 | `scripts/owner-review.sh` | Not started |
 | 4 | Edit-block hook in `.claude/settings.json` | Not started |
-| 2 | Stryker gate in spec | Decision pending |
+| 2 | Stryker gate in spec | Phase 2 — after the benchmark, only if we continue |
 | 5 | Account spend limit | Owner to set |

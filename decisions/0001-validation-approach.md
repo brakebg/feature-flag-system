@@ -217,3 +217,9 @@ _Filled in after the benchmark._
 2. Confirm the decision rule thresholds in 7.4.
 3. Gate 9 under B: builder keeps frontend unit tests, or the tester writes them blind.
 4. Write the referee suite and freeze the planted-bug list before either run starts.
+
+## 11. Phase 2 — only if the benchmark results are good and we continue
+
+| Item | Why later |
+| --- | --- |
+| Stryker: frontend mutation testing (`docs/VALIDATION.md` idea #2) | PIT covers the backend only. Adding Stryker needs a spec change (new gate and dependency); not worth it before we know which approach we keep |
