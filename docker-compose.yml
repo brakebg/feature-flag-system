@@ -1,0 +1,60 @@
+# Local stack (spec 10.3): postgres + backend + frontend. `make up` builds and starts it.
+# Every variable of spec 9.4 is passed to the backend with its dev default.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: featureflags
+      POSTGRES_USER: ${FF_DB_USER:-featureflags}
+      POSTGRES_PASSWORD: ${FF_DB_PASSWORD:-featureflags}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d featureflags"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    image: feature-flag-backend:${FF_VERSION:-1.0.0}
+    build:
+      context: ./backend
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      replicas: 1 # v1 runs exactly one backend instance (spec 7.2)
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      FF_DB_URL: ${FF_DB_URL:-jdbc:postgresql://postgres:5432/featureflags}
+      FF_DB_USER: ${FF_DB_USER:-featureflags}
+      FF_DB_PASSWORD: ${FF_DB_PASSWORD:-featureflags}
+      FF_ADMIN_USERNAME: ${FF_ADMIN_USERNAME:-admin}
+      FF_ADMIN_PASSWORD: ${FF_ADMIN_PASSWORD:-admin123}
+      FF_JWT_SECRET: ${FF_JWT_SECRET:-change-me-to-a-32-byte-minimum-secret!!}
+      FF_ADMIN_TOKEN_TTL: ${FF_ADMIN_TOKEN_TTL:-PT8H}
+      FF_CLIENT_TOKEN_TTL: ${FF_CLIENT_TOKEN_TTL:-PT15M}
+      FF_CLIENT_ORDER_SERVICE_SECRET: ${FF_CLIENT_ORDER_SERVICE_SECRET:-order-service-dev-secret}
+      FF_CORS_ALLOWED_ORIGINS: ${FF_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      FF_REQUIRE_HTTPS: ${FF_REQUIRE_HTTPS:-false}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+    ports:
+      - "${FF_BACKEND_PORT:-8080}:${SERVER_PORT:-8080}"
+
+  frontend:
+    image: feature-flag-ui:${FF_VERSION:-1.0.0}
+    build:
+      context: ./frontend
+      args:
+        APP_VERSION: ${FF_VERSION:-1.0.0}
+    depends_on:
+      - backend
+    environment:
+      BACKEND_URL: http://backend:${SERVER_PORT:-8080}
+    ports:
+      - "${FF_UI_PORT:-3000}:80"
+
+volumes:
+  pgdata:

@@ -1,0 +1,43 @@
+# Prometheus alert rules (spec 9.3). Validated by `promtool check rules` in gate 1.
+# Delivery (Alertmanager, e-mail, chat) is not wired in v1.
+groups:
+  - name: feature-flag-service
+    rules:
+      - alert: FFReconcileDrift
+        expr: increase(ff_cache_reconcile_drift_total[24h]) >= 1
+        labels:
+          severity: warning
+        annotations:
+          summary: Cache reconciliation found at least one difference in the last 24 h
+
+      - alert: FFReconcileStale
+        expr: time() - ff_cache_reconcile_last_success_seconds > 26 * 3600
+        labels:
+          severity: critical
+        annotations:
+          summary: No successful cache reconciliation for more than 26 h
+
+      - alert: FFNotReady
+        expr: max_over_time(ff_readiness_up[5m]) == 0
+        labels:
+          severity: critical
+        annotations:
+          summary: Readiness probe DOWN for more than 5 min
+
+      - alert: FFHighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[10m]))
+            / sum(rate(http_server_requests_seconds_count[10m])) > 0.01
+        labels:
+          severity: critical
+        annotations:
+          summary: 5xx responses above 1 % of requests over 10 min
+
+      - alert: FFSlowEvaluation
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_server_requests_seconds_bucket{uri=~"/api/v1/evaluate/.*"}[15m]))) > 0.05
+        labels:
+          severity: warning
+        annotations:
+          summary: Evaluation API p95 latency above 50 ms over 15 min
