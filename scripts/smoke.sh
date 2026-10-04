@@ -46,8 +46,21 @@ else
   record failed "[AC-OPS-3] health UP with db UP within 90 s"; finish
 fi
 
-logs=$(cd "$STACK_ROOT" && docker compose -p "$PROJECT" logs backend 2>/dev/null)
-if [ "$saw_down" = 1 ] || { grep -q 'readiness DOWN until cache warm-up' <<<"$logs" && grep -q 'cache warm-up finished' <<<"$logs"; }; then
+# Readiness DOWN before warm-up (AC-CACHE-6). The DOWN window is short (spec 11.4), so a 503 seen
+# by the poller is the direct proof. Otherwise the backend's own readiness transitions must be in
+# this order: REFUSING_TRAFFIC, then warm-up finished, then ACCEPTING_TRAFFIC, with no
+# ACCEPTING_TRAFFIC before the warm-up has finished, and the probe must now answer 200 UP.
+logs=$(cd "$STACK_ROOT" && docker compose -p "$PROJECT" logs --no-log-prefix backend 2>/dev/null)
+line_of() { grep -n "$1" <<<"$logs" | head -1 | cut -d: -f1; }
+refusing=$(line_of 'Readiness state: REFUSING_TRAFFIC')
+finished=$(line_of 'cache warm-up finished')
+accepting=$(line_of 'Readiness state: ACCEPTING_TRAFFIC')
+order_ok=0
+if [ -n "$refusing" ] && [ -n "$finished" ] && [ -n "$accepting" ] \
+  && [ "$refusing" -lt "$finished" ] && [ "$finished" -lt "$accepting" ]; then order_ok=1; fi
+if [ "$order_ok" = 1 ] && { [ "$saw_down" = 1 ] || [ "$ready" = 1 ]; }; then
+  [ "$saw_down" = 1 ] && note="503 observed" || note="503 window not observed; state order from the backend"
+  echo "readiness: $note"
   record passed "[AC-CACHE-6] readiness DOWN before warm-up, UP after"
 else
   record failed "[AC-CACHE-6] readiness DOWN before warm-up, UP after"

@@ -3,6 +3,8 @@ package com.example.featureflags.evaluation;
 import com.example.featureflags.common.NotFoundException;
 import com.example.featureflags.common.RequestIdFilter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.Map;
@@ -40,18 +42,45 @@ public class EvaluationController {
 
   public record OneFlag(String key, boolean enabled) {}
 
-  @GetMapping("/flags")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Current values",
+      headers = {
+        @Header(name = "ETag", description = "\"<revision>\""),
+        @Header(name = "Cache-Control", description = "no-cache")
+      })
+  @ApiResponse(responseCode = "304", description = "Not modified (If-None-Match matches)")
+  @ApiResponse(responseCode = "401", description = "Missing, expired or invalid token")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Token without flags:read / feature-flag-service")
+  @GetMapping(value = "/flags", produces = "application/json")
   public ResponseEntity<AllFlags> all(
       @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
       Principal client,
       HttpServletRequest request) {
+    // Read the revision before the data: a racing write then gives newer data with an older
+    // ETag (one extra 200 later), never old data with a new ETag.
     long revision = cache.revision();
     Map<String, Boolean> flags = cache.all();
     count("all", true, client, request);
     return respond(revision, ifNoneMatch, new AllFlags(flags, revision));
   }
 
-  @GetMapping("/groups/{groupKey}")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Current values",
+      headers = {
+        @Header(name = "ETag", description = "\"<revision>\""),
+        @Header(name = "Cache-Control", description = "no-cache")
+      })
+  @ApiResponse(responseCode = "304", description = "Not modified (If-None-Match matches)")
+  @ApiResponse(responseCode = "401", description = "Missing, expired or invalid token")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Token without flags:read / feature-flag-service")
+  @ApiResponse(responseCode = "404", description = "Unknown key")
+  @GetMapping(value = "/groups/{groupKey}", produces = "application/json")
   public ResponseEntity<GroupFlags> group(
       @PathVariable String groupKey,
       @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch,
@@ -60,12 +89,24 @@ public class EvaluationController {
     long revision = cache.revision();
     Optional<Map<String, Boolean>> flags = cache.group(groupKey);
     count("group", flags.isPresent(), client, request);
-    Map<String, Boolean> found =
-        flags.orElseThrow(() -> new NotFoundException("No group " + groupKey));
+    Map<String, Boolean> found = flags.orElseThrow(() -> new NotFoundException("Unknown group"));
     return respond(revision, ifNoneMatch, new GroupFlags(groupKey, found, revision));
   }
 
-  @GetMapping("/flags/{groupKey}/{flagKey}")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Current values",
+      headers = {
+        @Header(name = "ETag", description = "\"<revision>\""),
+        @Header(name = "Cache-Control", description = "no-cache")
+      })
+  @ApiResponse(responseCode = "304", description = "Not modified (If-None-Match matches)")
+  @ApiResponse(responseCode = "401", description = "Missing, expired or invalid token")
+  @ApiResponse(
+      responseCode = "403",
+      description = "Token without flags:read / feature-flag-service")
+  @ApiResponse(responseCode = "404", description = "Unknown key")
+  @GetMapping(value = "/flags/{groupKey}/{flagKey}", produces = "application/json")
   public ResponseEntity<OneFlag> flag(
       @PathVariable String groupKey,
       @PathVariable String flagKey,
@@ -75,8 +116,7 @@ public class EvaluationController {
     long revision = cache.revision();
     Optional<Boolean> enabled = cache.flag(groupKey, flagKey);
     count("flag", enabled.isPresent(), client, request);
-    boolean value =
-        enabled.orElseThrow(() -> new NotFoundException("No flag " + groupKey + "." + flagKey));
+    boolean value = enabled.orElseThrow(() -> new NotFoundException("Unknown flag"));
     return respond(revision, ifNoneMatch, new OneFlag(groupKey + "." + flagKey, value));
   }
 

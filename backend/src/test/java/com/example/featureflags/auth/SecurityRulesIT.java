@@ -152,6 +152,7 @@ class SecurityRulesIT {
   }
 
   @Test
+  @Tag("AC-EVAL-3")
   @Tag("ERR-GET-/evaluate/flags-401")
   @Tag("ERR-GET-/evaluate/groups/{groupKey}-401")
   @Tag("ERR-GET-/evaluate/flags/{groupKey}/{flagKey}-401")
@@ -176,6 +177,7 @@ class SecurityRulesIT {
   }
 
   @Test
+  @Tag("AC-EVAL-3")
   @Tag("ERR-GET-/evaluate/flags-403")
   @Tag("ERR-GET-/evaluate/groups/{groupKey}-403")
   @Tag("ERR-GET-/evaluate/flags/{groupKey}/{flagKey}-403")
@@ -197,11 +199,7 @@ class SecurityRulesIT {
 
   @Test
   void evaluationWithClientTokenPassesSecurity() throws Exception {
-    getWith("/api/v1/evaluate/flags", clientToken(mvc, json))
-        .andExpect(
-            result ->
-                org.assertj.core.api.Assertions.assertThat(result.getResponse().getStatus())
-                    .isNotIn(401, 403));
+    getWith("/api/v1/evaluate/flags", clientToken(mvc, json)).andExpect(status().isOk());
   }
 
   @Test

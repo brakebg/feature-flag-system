@@ -625,13 +625,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Current values */
             200: {
+                headers: {
+                    /** @description no-cache */
+                    "Cache-Control"?: unknown;
+                    /** @description "<revision>" */
+                    ETag?: unknown;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllFlags"];
+                };
+            };
+            /** @description Not modified (If-None-Match matches) */
+            304: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AllFlags"];
+                    "application/json": components["schemas"]["AllFlags"];
+                };
+            };
+            /** @description Missing, expired or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllFlags"];
+                };
+            };
+            /** @description Token without flags:read / feature-flag-service */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllFlags"];
                 };
             };
         };
@@ -650,13 +681,53 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Current values */
             200: {
+                headers: {
+                    /** @description no-cache */
+                    "Cache-Control"?: unknown;
+                    /** @description "<revision>" */
+                    ETag?: unknown;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OneFlag"];
+                };
+            };
+            /** @description Not modified (If-None-Match matches) */
+            304: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["OneFlag"];
+                    "application/json": components["schemas"]["OneFlag"];
+                };
+            };
+            /** @description Missing, expired or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OneFlag"];
+                };
+            };
+            /** @description Token without flags:read / feature-flag-service */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OneFlag"];
+                };
+            };
+            /** @description Unknown key */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OneFlag"];
                 };
             };
         };
@@ -674,13 +745,53 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Current values */
             200: {
+                headers: {
+                    /** @description no-cache */
+                    "Cache-Control"?: unknown;
+                    /** @description "<revision>" */
+                    ETag?: unknown;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupFlags"];
+                };
+            };
+            /** @description Not modified (If-None-Match matches) */
+            304: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["GroupFlags"];
+                    "application/json": components["schemas"]["GroupFlags"];
+                };
+            };
+            /** @description Missing, expired or invalid token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupFlags"];
+                };
+            };
+            /** @description Token without flags:read / feature-flag-service */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupFlags"];
+                };
+            };
+            /** @description Unknown key */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupFlags"];
                 };
             };
         };

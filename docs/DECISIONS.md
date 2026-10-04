@@ -215,3 +215,19 @@ threshold stays 60 %. Not an exclusion of production code.
 The JUnit tag listener (gate 14 input) is switched off inside PIT's mutant runs
 (`-Dff.tags.off=true` in the PIT `jvmArgs`); a killed mutant is a failing test run by design and
 must not show as a failing acceptance test. Normal test runs are recorded as before.
+
+## D-025 · 2026-10-04 · 7.2, 9.3, 11.3 gate 11 · M5 audit fixes
+
+- Reconciliation loads the database snapshot inside the cache writer lock, so a write that
+  commits meanwhile is never undone by an older snapshot.
+- A write while the all-flags entry is not cached drops any in-flight load of it.
+- The revision moves on in a `finally` block, also when the cache update and its fallback fail.
+- `ff_cache_reconcile_last_success_seconds` starts at the startup time (warm-up is a full load
+  from the database), so `FFReconcileStale` does not fire after every restart.
+- Drift is counted per cache entry (flag, group and all-flags entries), so one changed flag can
+  give up to three WARN lines and +3 on `ff_cache_reconcile_drift_total`.
+- Evaluation 404 details are fixed texts ("Unknown group", "Unknown flag").
+- Readiness changes are logged ("Readiness state: ..."). Gate 11 passes the readiness step when it
+  sees a 503, or when the backend's own transitions are REFUSING_TRAFFIC → warm-up finished →
+  ACCEPTING_TRAFFIC and the probe ends UP; the DOWN window is short (spec 11.4). Raised in ESC-006.
+- The OpenAPI document lists the 304/401/403/404 answers and the ETag / Cache-Control headers.

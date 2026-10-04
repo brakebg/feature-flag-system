@@ -743,13 +743,53 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AllFlags"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Current values",
+            "headers" : {
+              "Cache-Control" : {
+                "description" : "no-cache",
+                "style" : "simple"
+              },
+              "ETag" : {
+                "description" : "\"<revision>\"",
+                "style" : "simple"
+              }
+            }
+          },
+          "304" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AllFlags"
+                }
+              }
+            },
+            "description" : "Not modified (If-None-Match matches)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AllFlags"
+                }
+              }
+            },
+            "description" : "Missing, expired or invalid token"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AllFlags"
+                }
+              }
+            },
+            "description" : "Token without flags:read / feature-flag-service"
           }
         },
         "tags" : [ "evaluation-controller" ]
@@ -783,13 +823,63 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OneFlag"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Current values",
+            "headers" : {
+              "Cache-Control" : {
+                "description" : "no-cache",
+                "style" : "simple"
+              },
+              "ETag" : {
+                "description" : "\"<revision>\"",
+                "style" : "simple"
+              }
+            }
+          },
+          "304" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OneFlag"
+                }
+              }
+            },
+            "description" : "Not modified (If-None-Match matches)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OneFlag"
+                }
+              }
+            },
+            "description" : "Missing, expired or invalid token"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OneFlag"
+                }
+              }
+            },
+            "description" : "Token without flags:read / feature-flag-service"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OneFlag"
+                }
+              }
+            },
+            "description" : "Unknown key"
           }
         },
         "tags" : [ "evaluation-controller" ]
@@ -816,13 +906,63 @@
         "responses" : {
           "200" : {
             "content" : {
-              "*/*" : {
+              "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/GroupFlags"
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Current values",
+            "headers" : {
+              "Cache-Control" : {
+                "description" : "no-cache",
+                "style" : "simple"
+              },
+              "ETag" : {
+                "description" : "\"<revision>\"",
+                "style" : "simple"
+              }
+            }
+          },
+          "304" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupFlags"
+                }
+              }
+            },
+            "description" : "Not modified (If-None-Match matches)"
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupFlags"
+                }
+              }
+            },
+            "description" : "Missing, expired or invalid token"
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupFlags"
+                }
+              }
+            },
+            "description" : "Token without flags:read / feature-flag-service"
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupFlags"
+                }
+              }
+            },
+            "description" : "Unknown key"
           }
         },
         "tags" : [ "evaluation-controller" ]

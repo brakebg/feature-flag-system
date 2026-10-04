@@ -24,6 +24,7 @@ import com.example.featureflags.support.SecurityTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,7 @@ class EvaluationIT extends AdminApiTest {
   @Autowired FlagService flagService;
   @Autowired TransactionTemplate tx;
   @Autowired MeterRegistry meters;
+  @Autowired java.time.Clock clock;
 
   String clientToken;
   String groupId;
@@ -125,6 +127,7 @@ class EvaluationIT extends AdminApiTest {
     evaluate("/flags/orders/new-checkout")
         .andExpect(status().isOk())
         .andExpect(header().string("ETag", "\"" + revision + "\""))
+        .andExpect(header().string("Cache-Control", "no-cache"))
         .andExpect(jsonPath("$.key").value("orders.new-checkout"))
         .andExpect(jsonPath("$.enabled").value(true));
   }
@@ -170,6 +173,20 @@ class EvaluationIT extends AdminApiTest {
     evaluate("/groups/orders").andExpect(jsonPath("$.flags['new-checkout']").value(false));
     evaluate("/flags").andExpect(jsonPath("$.flags['orders.new-checkout']").value(false));
     verifyNoQueries();
+  }
+
+  @Test
+  @Tag("AC-GRP-5")
+  void deletedGroupAndBothFlagsAre404OnTheEvaluationApi() throws Exception {
+    admin.delete("/groups/" + groupId).andExpect(status().isNoContent());
+    for (String path :
+        new String[] {
+          "/groups/orders", "/flags/orders/new-checkout", "/flags/orders/split-payments"
+        }) {
+      evaluate(path)
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.type").value(PROBLEM + "not-found"));
+    }
   }
 
   @Test
@@ -279,16 +296,30 @@ class EvaluationIT extends AdminApiTest {
 
     evaluate("/flags/orders/new-checkout").andExpect(jsonPath("$.enabled").value(true));
 
-    assertThat(reconciliation.reconcile()).isGreaterThan(0);
+    double driftBefore = meters.get("ff_cache_reconcile_drift_total").counter().count();
+    long t0 = Instant.now(clock).getEpochSecond();
+    int diffs = reconciliation.reconcile();
+    long t1 = Instant.now(clock).getEpochSecond();
+
+    assertThat(diffs).isGreaterThan(0);
     String after =
         etag(evaluate("/flags/orders/new-checkout").andExpect(jsonPath("$.enabled").value(false)));
     assertThat(after).isNotEqualTo(before);
-    assertThat(output.getOut())
-        .contains("WARN")
-        .contains("Cache drift fixed: key=orders.new-checkout");
-    assertThat(meters.get("ff_cache_reconcile_drift_total").counter().count()).isGreaterThan(0);
+    String line =
+        output
+            .getOut()
+            .lines()
+            .filter(l -> l.contains("Cache drift fixed: key=orders.new-checkout"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(line)
+        .contains("\"level\":\"WARN\"")
+        .contains("cached=true")
+        .contains("database=false");
+    assertThat(meters.get("ff_cache_reconcile_drift_total").counter().count() - driftBefore)
+        .isEqualTo(diffs);
     assertThat(meters.get("ff_cache_reconcile_last_success_seconds").gauge().value())
-        .isGreaterThan(0);
+        .isBetween((double) t0, (double) t1);
   }
 
   @Test
@@ -350,28 +381,50 @@ class EvaluationIT extends AdminApiTest {
     verify(queries, atLeastOnce()).findAllRows();
   }
 
+  private double evaluations(String endpoint, String result) {
+    var c =
+        meters
+            .find("ff_evaluations_total")
+            .tag("endpoint", endpoint)
+            .tag("result", result)
+            .tag("client", "order-service")
+            .counter();
+    return c == null ? 0 : c.count();
+  }
+
+  private void expectCounted(String path, String endpoint, String result) throws Exception {
+    String[][] all = {
+      {"all", "found"},
+      {"group", "found"},
+      {"group", "not_found"},
+      {"flag", "found"},
+      {"flag", "not_found"}
+    };
+    double[] before = new double[all.length];
+    for (int i = 0; i < all.length; i++) before[i] = evaluations(all[i][0], all[i][1]);
+    evaluate(path);
+    for (int i = 0; i < all.length; i++) {
+      double expected = all[i][0].equals(endpoint) && all[i][1].equals(result) ? 1 : 0;
+      assertThat(evaluations(all[i][0], all[i][1]) - before[i])
+          .as(path + " " + String.join("/", all[i]))
+          .isEqualTo(expected);
+    }
+  }
+
   @Test
   void evaluationsAreCountedPerEndpointResultAndClient() throws Exception {
-    evaluate("/flags/orders/new-checkout");
-    evaluate("/flags/orders/ghost");
-    assertThat(
-            meters
-                .get("ff_evaluations_total")
-                .tag("endpoint", "flag")
-                .tag("result", "found")
-                .tag("client", "order-service")
-                .counter()
-                .count())
-        .isGreaterThanOrEqualTo(1);
-    assertThat(
-            meters
-                .get("ff_evaluations_total")
-                .tag("endpoint", "flag")
-                .tag("result", "not_found")
-                .tag("client", "order-service")
-                .counter()
-                .count())
-        .isGreaterThanOrEqualTo(1);
+    expectCounted("/flags", "all", "found");
+    expectCounted("/groups/orders", "group", "found");
+    expectCounted("/groups/ghost", "group", "not_found");
+    expectCounted("/flags/orders/new-checkout", "flag", "found");
+    expectCounted("/flags/orders/ghost", "flag", "not_found");
+  }
+
+  @Test
+  void requestLogCarriesTheClientId(CapturedOutput output) throws Exception {
+    evaluate("/flags").andExpect(status().isOk());
+    assertThat(output.getOut().lines().filter(l -> l.contains("GET /api/v1/evaluate/flags 200")))
+        .anyMatch(l -> l.contains("client=order-service"));
   }
 
   @Test

@@ -29,6 +29,9 @@ public class CacheReconciliationJob {
     this.cache = cache;
     this.clock = clock;
     this.drift = meters.counter("ff_cache_reconcile_drift_total");
+    // Startup warms the cache from the database, which counts as a fresh state (alert
+    // FFReconcileStale).
+    lastSuccess.set(clock.instant().getEpochSecond());
     meters.gauge("ff_cache_reconcile_last_success_seconds", lastSuccess);
   }
 
@@ -36,8 +39,7 @@ public class CacheReconciliationJob {
   @Scheduled(cron = "${featureflags.cache.reconcile-cron}")
   public int reconcile() {
     try {
-      FlagCacheService.Snapshot db = cache.loadSnapshot();
-      List<FlagCacheService.Difference> diffs = cache.reconcile(db);
+      List<FlagCacheService.Difference> diffs = cache.reconcileWithDatabase();
       for (FlagCacheService.Difference d : diffs) {
         log.warn(
             "Cache drift fixed: key={} cached={} database={}", d.key(), d.cached(), d.database());

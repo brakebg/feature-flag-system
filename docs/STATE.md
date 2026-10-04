@@ -51,6 +51,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 ## Open escalations and blockers
 
 - ESC-001 resolved: A (owner comment 5979791924). Due milestones may only move earlier.
+- ESC-006 (open): PIT runs kept out of the tag log (D-024); smoke readiness step (D-025).
 - ESC-005 (open): PIT unit tests only (D-020); duplicate-key before limit-reached (D-021).
 - ESC-004 (open): token endpoint error order (D-018); FF_AUTH_CLIENTS_n replace the yml list.
 - ESC-003 (open): NimbusJwtEncoder writes one-element aud as string (5.1 vs 5.2); option A (HmacJwtEncoder) in place.

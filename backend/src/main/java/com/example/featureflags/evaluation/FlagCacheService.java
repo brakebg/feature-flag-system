@@ -152,9 +152,18 @@ public class FlagCacheService {
         apply(event);
       } catch (RuntimeException e) {
         log.warn("Cache update failed for {}; invalidating affected entries", event, e);
-        invalidate(event);
+        try {
+          invalidate(event);
+        } catch (RuntimeException again) {
+          log.warn("Cache invalidation failed; dropping all cache entries", again);
+          flagCache.invalidateAll();
+          groupCache.invalidateAll();
+          allFlagsCache.invalidateAll();
+        }
+      } finally {
+        // The change is committed: the ETag must move on even if the cache update failed.
+        revision.incrementAndGet();
       }
-      revision.incrementAndGet();
     }
   }
 
@@ -225,6 +234,8 @@ public class FlagCacheService {
   private void updateAll(java.util.function.Consumer<Map<String, Boolean>> change) {
     Map<String, Boolean> current = allFlagsCache.getIfPresent(ALL);
     if (current == null) {
+      // A load may be running with data from before this commit: drop it, reload on next read.
+      allFlagsCache.invalidate(ALL);
       return;
     }
     Map<String, Boolean> copy = new TreeMap<>(current);
@@ -238,6 +249,16 @@ public class FlagCacheService {
    * Spec 7.2: compares the cache with a database snapshot and fixes each difference with the same
    * copy-on-write updates. Returns the differences found (key, cached, database).
    */
+  /**
+   * Loads the database snapshot and compares it under the writer lock, so a write that commits
+   * meanwhile is either in both the snapshot and the cache, or applied after the comparison.
+   */
+  List<Difference> reconcileWithDatabase() {
+    synchronized (writeLock) {
+      return reconcile(loadSnapshot());
+    }
+  }
+
   List<Difference> reconcile(Snapshot db) {
     synchronized (writeLock) {
       List<Difference> diffs = new java.util.ArrayList<>();
