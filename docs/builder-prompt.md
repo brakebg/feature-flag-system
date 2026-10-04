@@ -107,7 +107,10 @@ every endpoint). It can also read the private suite. So the builder gets its own
    `docker-toolkit`. Then paste the kickoff prompt (section 2). The first `git push`
    must run without an approval prompt; if it asks, stop and fix the settings.
 
-Escalations: answer on the PR, or type the answer in the running session.
+Escalations: answer on the PR (`ESC-<NNN>: <option>`), or type the answer in the running
+session. Phase 1 has no Auto-fix: the builder reads new owner comments before every commit
+(`CLAUDE.md` 8b) and reacts 👀 when read and 🚀 when applied. A comment without 👀 after the
+next commit was missed; nudge the session.
 
 Known gap: the macOS keychain may still hold your full git credentials, so a `git clone`
 of the suite repo by URL could work. The prompt forbids it and step 3 removes the local
