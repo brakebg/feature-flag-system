@@ -4,39 +4,38 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M3 Auth — in progress
-- `scripts/current-milestone`: 3
+- Milestone: M4 Admin API — next (M3 complete)
+- `scripts/current-milestone`: 3 (set to 4 at the start of M4)
 
 ## Last green commit
 
-- ba19b68 (M2 audit fixes; full `make verify` PASS). `M2: complete` follows it.
+- e7dc662 (M3 audit fixes; full `make verify` PASS). `M3: complete` follows it.
 
 ## Last full `make verify`
 
-- 2026-10-04 on ba19b68: PASS. Active and green: 1, 2, 3, 4, 5, 6, 10 (incl. image scan), 14, 15.
-  Inactive: 7, 8 (M4), 9 (M6), 11 (M5), 12, 13 (M8).
+- 2026-10-04 on e7dc662: PASS. Active and green: 1-6, 10, 14, 15. Inactive: 7, 8 (M4), 9 (M6), 11 (M5), 12, 13 (M8).
 
-## Chunks done in M2
+## Chunks done in M3
 
-- ac86ad1 Flyway V1 (`db/migration/common`) + V2 seed (`db/migration/dev`), MigrationIT, health body, ArchitectureTest.
-- 01f65fc common: strict JSON types, UUIDv7, Clock, exceptions, GlobalExceptionHandler (9.1).
-- a0e498c / 2b3a6b7 entities, repositories, JPA auditing (a0e498c was pushed red on format; fixed next).
-- 2620c39 DTO records (6.2) and request validation (4.2).
-- ba19b68 audit fixes: SecurityAuditor, RequestIdFilter, framework errors, profile seed IT, ArchUnit fixtures.
+- b0aec95 auth: config + fail-fast, TokenIssuer (HmacJwtEncoder, ESC-003), login, token endpoint,
+  SecurityConfig (5.4), https-required, CORS, admin no-store, prod WARN.
+- e7dc662 audit fixes: decoded-path filters, bearer only on protected paths, 413 body limit,
+  default cache headers elsewhere, blank secret / fractional TTL fail, evaluate rule tests.
 
 ## Next 3 steps
 
-1. M3: set `scripts/current-milestone` to 3. Add `spring-boot-starter-security` and
-   `-oauth2-resource-server`; `ClientRegistrationProperties` + auth config (5.1, fail fast on short
-   secret / duplicate client id, prod WARN on defaults); `TokenIssuer` (NimbusJwtEncoder, HS256).
-2. M3: `AuthController` (login 5.2), `TokenController` (client credentials 5.5, OAuth errors,
-   Basic auth, `Cache-Control: no-store`), `SecurityConfig` (5.4 rules, decoder with issuer +
-   audience validators, skew 0, 401/403 problem bodies with WWW-Authenticate), CORS, https-required
-   filter (10.2, FF_REQUIRE_HTTPS default true in prod — audit SA-11 for compose), Cache-Control
-   no-store on admin responses. Tests tagged AC-EVAL-1/2/4 and ERR-POST-/auth/login-*, -/auth/token-*.
-3. M3 end: `make verify`, audit (spec-auditor, test-auditor, security-reviewer, ecc:java-reviewer).
-   `HealthIT.otherJsonResponsesPassTheHealthFilterUnchanged` uses an unknown path: it becomes 401
-   in M3 (5.4 "everything else") — adjust with a DECISIONS note.
+1. M4: set `scripts/current-milestone` to 4. Unit tests first (Mockito) for GroupService,
+   FlagService, AuditService (PIT gate 7 needs >= 60 % on auth/group/flag/evaluation; plan:
+   PIT `targetTests` = `*Test` unit tests only, record in DECISIONS). Then MockMvc ITs per 6.1
+   endpoint with every ERR tag (`ERR-<METHOD>-/admin/...-<status>`, list in trace-registry).
+2. M4: services and controllers (6.1, 6.2): groups list (q, sort), create (limit 1000, advisory
+   lock), detail (flags sorted by code point), PATCH (version first, no-op), delete (audit
+   deletedFlags), flags create (limit 500, lock group row), PATCH, toggle, delete; audit events
+   (4.1 details), `GET /audit` (VIA_DTO page, prefix filter escaped LIKE), purge job (AC-AUD-3),
+   `ff_admin_writes_total{action}`, `FlagsChangedEvent` published after each change (M5 listens).
+3. M4: springdoc (dev only; prod 404), `OpenApiExportIT` writes `backend/openapi.json`,
+   `frontend/src/api/schema.d.ts` via openapi-typescript (gate 8). Then `make verify`, audit
+   (spec-auditor, test-auditor, security-reviewer, ecc:java-reviewer).
 
 ## Notes for M4/M5 (from the M2 audit)
 
@@ -46,6 +45,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 - Audit `targetKey` prefix: escaped LIKE so the varchar_pattern_ops index is used (DB-2).
 - Audit `details`: build with LinkedHashMap (JSON nulls), never Map.of.
 - ArchUnit: remove `allowEmptyShould(true)` once controllers / evaluation classes exist (TA-10).
+- AC-OPS-4: backend tests cover https-required; the UI header half is covered by smoke (gate 11, M5).
 - AC-GRP-3 needs MockMvc tests (POST /groups and /flags with Orders, 1abc, a, has space) + UI tests.
 - M5: `DatabaseCleaner` must also call `FlagCacheService.reloadAll()` (11.5, TA-14).
 - M5: gauge `ff_readiness_up` (D-009); histogram for `/api/v1/evaluate/**`; smoke checks readiness
