@@ -38,6 +38,47 @@ every endpoint). It can also read the private suite. So the builder gets its own
    the repo `CLAUDE.md` is loaded, no output style, no superpowers, `ECC_GATEGUARD=off`,
    vendor agents available.
 
+   Not covered: permission rules. `ask` rules in `~/.claude/settings.json` (for example
+   `git push`, `gh api`, `gh pr create`) override auto mode and stop the builder on every
+   push. So step 5 skips user settings (`--setting-sources project,local`) and step 1a
+   gives the builder its own rules.
+
+1a. **Builder-only local settings.** In the builder clone (step 4), create
+   `.claude/settings.local.json` (git-ignored). It turns risky commands into hard blocks
+   (nobody is there to answer an "ask"), keeps the vendor plugins on, and turns off MCP
+   servers with GitHub write tools:
+
+   ```json
+   {
+     "model": "opus",
+     "enabledPlugins": {
+       "ecc@ecc": true,
+       "pr-review-toolkit@claude-plugins-official": true,
+       "jdtls-lsp@claude-plugins-official": true
+     },
+     "disabledMcpjsonServers": ["stock-scanner", "docker-toolkit"],
+     "permissions": {
+       "deny": [
+         "Bash(sudo:*)", "Bash(chown:*)", "Bash(chmod -R:*)", "Bash(launchctl:*)",
+         "Bash(rm -rf /)", "Bash(rm -rf ~)", "Bash(rm -rf ~/*)",
+         "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git credential:*)",
+         "Bash(security:*)", "Bash(git push origin main:*)",
+         "Bash(git push origin --delete:*)", "Bash(git push --delete:*)",
+         "Bash(gh pr merge:*)", "Bash(gh pr close:*)", "Bash(gh release:*)",
+         "Bash(gh secret:*)", "Bash(gh repo:*)", "Bash(git clone:*)",
+         "Bash(mvn deploy:*)", "Bash(npm publish:*)", "Bash(docker push:*)",
+         "Bash(docker system prune:*)", "Bash(docker volume prune:*)",
+         "Bash(brew:*)", "Bash(npm install -g:*)", "Bash(npm i -g:*)",
+         "Bash(claude plugin:*)",
+         "Edit(~/.zshrc)", "Edit(~/.ssh/**)",
+         "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.claude/.credentials.json)",
+         "Read(~/Library/Keychains/**)", "Read(**/.env)", "Read(**/.env.*)",
+         "Read(**/*.pem)", "Read(**/feature-flag-acceptance/**)"
+       ]
+     }
+   }
+   ```
+
 2. **GitHub token for this repo only.** Create a fine-grained token: repository
    `feature-flag-system` only; Contents, Pull requests and Issues read/write. Your normal
    `gh` login can read the private suite repo; this token cannot.
@@ -57,11 +98,14 @@ every endpoint). It can also read the private suite. So the builder gets its own
    ```bash
    cd ~/dev/ff-build
    export GH_TOKEN=<token from step 2>
-   caffeinate -i claude
+   caffeinate -i claude --setting-sources project,local
    ```
 
    Switch to auto mode (Shift+Tab). Do not use `--dangerously-skip-permissions`.
-   `caffeinate -i` keeps the Mac awake. Paste the kickoff prompt (section 2).
+   `caffeinate -i` keeps the Mac awake. Before the kickoff prompt, check: `/agents`
+   lists the `ecc:` and `pr-review-toolkit:` agents, and `/mcp` does not list
+   `docker-toolkit`. Then paste the kickoff prompt (section 2). The first `git push`
+   must run without an approval prompt; if it asks, stop and fix the settings.
 
 Escalations: answer on the PR, or type the answer in the running session.
 
