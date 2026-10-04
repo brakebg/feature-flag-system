@@ -4,8 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M6 UI foundation — next (M5 complete)
-- `scripts/current-milestone`: 5 (set to 6 at the start of M6)
+- Milestone: M6 UI foundation — in progress
+- `scripts/current-milestone`: 6
 
 ## Last green commit
 

@@ -1,0 +1,66 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog {
+  width: 100%;
+  max-width: 500px;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+}
+.top {
+  padding: 24px 24px 0;
+  display: flex;
+  gap: 16px;
+}
+.icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--color-danger-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.text {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.5;
+}
+.body {
+  padding: 20px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
