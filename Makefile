@@ -11,7 +11,7 @@ export GIT_COMMIT
 
 ## Local stack (spec 10.3): UI http://localhost:3000, login admin / admin123.
 up:
-	docker compose build
+	docker compose build --pull
 	docker tag feature-flag-backend:$(VERSION) feature-flag-backend:sha-$(SHORT_SHA)
 	docker tag feature-flag-ui:$(VERSION) feature-flag-ui:sha-$(SHORT_SHA)
 	docker compose up -d
@@ -20,7 +20,7 @@ down:
 	docker compose down
 
 build-images:
-	docker compose build
+	docker compose build --pull
 	docker tag feature-flag-backend:$(VERSION) feature-flag-backend:sha-$(SHORT_SHA)
 	docker tag feature-flag-ui:$(VERSION) feature-flag-ui:sha-$(SHORT_SHA)
 

@@ -10,7 +10,9 @@ RUN npx vite build
 
 FROM nginx:alpine
 # Run as the unprivileged nginx user; envsubst writes the config at start.
-RUN rm -f /etc/nginx/conf.d/default.conf \
+# Pick up OS security fixes newer than the base image (gate 10, Trivy).
+RUN apk upgrade --no-cache \
+ && rm -f /etc/nginx/conf.d/default.conf \
  && chown -R nginx:nginx /var/cache/nginx /etc/nginx/conf.d \
  && touch /var/run/nginx.pid && chown nginx:nginx /var/run/nginx.pid
 COPY nginx.conf /etc/nginx/templates/default.conf.template

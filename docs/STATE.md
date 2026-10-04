@@ -10,7 +10,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last green commit
 
-- (set after the first push)
+- 1f? see git log (scaffold pushed)
 
 ## Last full `make verify`
 
