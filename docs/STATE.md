@@ -31,13 +31,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 1. Package rule to avoid cycles: common <- audit <- group <- flag <- evaluation; group reads
    flags through a port interface in `group` implemented in `flag`.
-2. Batch for an escalation at the M4 boundary: D-011 (PATCH enabled null), D-012 (405 -> 404).
 3. M2 end: `make verify`, audit (spec-auditor, test-auditor, ecc:java-reviewer, ecc:database-reviewer).
 
 ## Open escalations and blockers
 
-- ESC-001 (open, PR comment 5979739294): confirm gate 14 due milestones (D-003), ERR ID format
-  (D-004), compose FF_DB_URL default (D-001). Not blocking; current behaviour kept.
+- ESC-001 resolved: A (owner comment 5979791924). Due milestones may only move earlier.
+- ESC-002 (open): D-011 PATCH enabled null -> 400 validation; D-012 unknown method -> 404. Not blocking.
 
 ## wip/ branches
 
@@ -45,7 +44,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last processed PR comment
 
-- 5979739294 (2026-10-04T12:05:31Z, my ESC-001). No owner comments yet.
+- 5979791924 (2026-10-04T12:12:17Z, owner: ESC-001: A).
 
 ## Notes for the next session
 

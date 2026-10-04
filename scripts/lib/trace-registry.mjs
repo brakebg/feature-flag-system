@@ -9,6 +9,8 @@
 // - `due`: the milestone (spec 12.2) whose "Done when" first needs the ID. Before that
 //   milestone a missing test is reported as pending, not as a failure. From M8 every ID
 //   is due (DECISIONS.md D-003).
+// Owner condition (ESC-001): a due milestone may only move earlier, never later, without a
+// new escalation.
 import { readFileSync } from 'node:fs';
 
 export function acIds(file = 'docs/acceptance-criteria.md') {

@@ -5,7 +5,16 @@ Owner decisions live in `decisions/` (not here).
 
 Format: ID · date · spec section · decision · why.
 
+## ESC-001 · 2026-10-04 · answer: A
+
+Owner (PR comment 5979791924): "ESC-001: A. Accepted all three choices (gate 14 due
+milestones, ERR ID format, compose FF_DB_URL default)." Condition: the due milestones in
+`scripts/lib/trace-registry.mjs` (`acDue`, `errIds`) may only move earlier, never later,
+without a new escalation. D-001, D-003 and D-004 are accepted under this answer.
+
 ## D-001 · 2026-10-04 · 10.3, 9.4 · Compose default for `FF_DB_URL`
+
+Status: accepted by the owner (ESC-001: A).
 
 In `docker-compose.yml` the default for `FF_DB_URL` is
 `jdbc:postgresql://postgres:5432/featureflags`, not the 9.4 default (`localhost`).
@@ -21,6 +30,8 @@ release checksum file. `make verify*` calls it when a gate needs the tool.
 
 ## D-003 · 2026-10-04 · 11.3 gate 14, 11.4 · Gate 14 before M8
 
+Status: accepted by the owner (ESC-001: A).
+
 Gate 14 is active from M1, but most acceptance criteria can only have tests later
 (spec 12.2). `scripts/lib/trace-registry.mjs` gives every AC and ERR ID the milestone
 whose "Done when" first needs it. Gate 14 always fails on an unknown ID or a failing
@@ -32,12 +43,18 @@ This is listed in the M1 PR comment so the owner can object.
 
 ## D-004 · 2026-10-04 · 11.4 · ERR ID format and the 9.1 rows
 
+Status: accepted by the owner (ESC-001: A).
+
 ERR IDs use the path relative to `/api/v1`, for example `ERR-POST-/admin/groups-409`.
 The list is in `scripts/lib/trace-registry.mjs`: every status in the 6.1 Errors column,
 plus `POST /auth/login` (400, 401, 403), `POST /auth/token` (400, 401, 403) and the
 evaluation endpoints (401, 403, 404). Each 9.1 row is mapped to one ERR ID whose test
 asserts that row's status and problem `type` (for example `409 limit-reached` →
 `ERR-POST-/admin/groups/{groupId}/flags-409`). The 500 row uses `ERR-GET-/admin/groups-500`.
+
+## D-005 · removed
+
+D-005 (gate 6 UI step from M6) was dropped after the M1 audit: the step runs from M2.
 
 ## D-006 · 2026-10-04 · 2, 10.2 · Node versions
 
@@ -78,12 +95,12 @@ metric is absent (service gone). Error rate and latency use Spring Boot's
 
 `PATCH /flags/{flagId}` with `"enabled": null` returns 400 `validation` (`field` `enabled`):
 a boolean flag cannot be null, the same rule as `name: null` (6.1). An omitted `enabled`
-stays unchanged. To confirm with the owner at the M4 boundary (touches the API).
+stays unchanged. Raised as ESC-002 (touches the API).
 
 ## D-012 · 2026-10-04 · 9.1 · Unknown route or method
 
 A request that passes security but matches no endpoint or method (for example `PUT` on an
-admin path) returns 404 `not-found`. Spec 9.1 has no 405 row. To confirm at the M4 boundary.
+admin path) returns 404 `not-found`. Spec 9.1 has no 405 row. Raised as ESC-002.
 
 ## D-013 · 2026-10-04 · 9.3 · Exact `/actuator/health` body
 
