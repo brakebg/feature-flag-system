@@ -1,0 +1,5 @@
+# Test profile: schema from Flyway (V1 only, no seed); Hibernate checks the entity mapping.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate

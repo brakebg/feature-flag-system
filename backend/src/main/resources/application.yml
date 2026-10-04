@@ -15,7 +15,7 @@ spring:
     hibernate:
       ddl-auto: none
   flyway:
-    locations: classpath:db/migration
+    locations: classpath:db/migration/common
 
 server:
   port: ${SERVER_PORT:8080}
@@ -37,6 +37,13 @@ management:
       probes:
         enabled: true
   health:
+    # Spec 9.3: only the db component is part of /actuator/health.
+    diskspace:
+      enabled: false
+    ping:
+      enabled: false
+    ssl:
+      enabled: false
     livenessstate:
       enabled: true
     readinessstate:
