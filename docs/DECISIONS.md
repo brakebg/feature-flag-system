@@ -39,12 +39,6 @@ evaluation endpoints (401, 403, 404). Each 9.1 row is mapped to one ERR ID whose
 asserts that row's status and problem `type` (for example `409 limit-reached` →
 `ERR-POST-/admin/groups/{groupId}/flags-409`). The 500 row uses `ERR-GET-/admin/groups-500`.
 
-## D-005 · 2026-10-04 · 11.3 gate 6 · Frontend coverage step from M6
-
-Gate 6 is active from M2. Its backend step (JaCoCo) runs from M2. Its frontend step
-(Vitest thresholds) runs from M6, when the first frontend tests exist (gate 9 is also
-active from M6). Before M6 `src/features` and `src/api` do not exist.
-
 ## D-006 · 2026-10-04 · 2, 10.2 · Node versions
 
 The UI image builds with `node:20-alpine` (spec 10.2); it only runs `vite build`.
@@ -62,3 +56,20 @@ patched releases.
 The backend Docker build has no `.git`. `make up` and CI pass `GIT_COMMIT` as a build
 argument; the Dockerfile writes `git.properties` from it, so `/actuator/info` shows
 `git.commit.id`.
+
+## D-009 · 2026-10-04 · 9.3 · Metric names used by the alert rules
+
+Spec 9.3 names the custom metrics `ff_evaluations_total` and `ff_admin_writes_total`; spec 7.2
+names `ff_cache_reconcile_drift_total` and `ff_cache_reconcile_last_success_seconds`. The
+`FFNotReady` rule also needs the readiness state as a metric, so the backend exports a gauge
+`ff_readiness_up` (1 = UP, 0 = DOWN). `FFNotReady` fires after 5 min of DOWN or when the
+metric is absent (service gone). Error rate and latency use Spring Boot's
+`http_server_requests_seconds` metrics.
+
+## D-010 · 2026-10-04 · 10.2, 10.3 · Small build and compose details
+
+- `deploy.replicas: 1` on the backend service writes down the single-instance rule (spec 7.2).
+- The UI build stage installs npm 11 (`npm install -g npm@11.19.1`): the lockfile was made by
+  npm 11, and `npm ci` from npm 10 (shipped with Node 20) rejects it. CI does the same.
+- The nginx stage runs `apk upgrade` and `make up` builds with `--pull`, so the image scan of
+  gate 10 sees current OS packages.

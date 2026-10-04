@@ -84,7 +84,6 @@ export const gates = [
         name: 'Vitest coverage thresholds',
         cwd: 'frontend',
         cmd: 'npm test -- --coverage',
-        activeFrom: 6,
       },
     ],
   },

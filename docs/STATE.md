@@ -29,7 +29,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Open escalations and blockers
 
-- None.
+- ESC-001 (open): confirm gate 14 due milestones (D-003), ERR ID format (D-004), compose FF_DB_URL default (D-001). Not blocking.
 
 ## wip/ branches
 

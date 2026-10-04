@@ -18,7 +18,10 @@ groups:
           summary: No successful cache reconciliation for more than 26 h
 
       - alert: FFNotReady
-        expr: max_over_time(ff_readiness_up[5m]) == 0
+        # ff_readiness_up: 1 while readiness is UP (exported by the backend). absent() also
+        # fires when the service is gone completely.
+        expr: ff_readiness_up == 0 or absent(ff_readiness_up)
+        for: 5m
         labels:
           severity: critical
         annotations:
