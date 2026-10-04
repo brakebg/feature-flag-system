@@ -72,7 +72,7 @@ Collected from Claude, ChatGPT, Gemini and Meta AI while deciding.
 | 1 | Separate agent writes black-box tests | Gemini, Meta | Adopted: black-box acceptance suite |
 | 2 | Frontend mutation testing (Stryker) | Gemini | Phase 2, later, if we continue |
 | 3 | CI outside the agent's control | ChatGPT, Meta | Adopted: owner review script from `main` |
-| 4 | Edit-block hook | Meta | Adopted: early warning; the shell can get around it |
+| 4 | Edit-block hook | Meta | Adopted: early warning; the shell can get around it. Removed by 0006 |
 | 5 | Limits outside the agent | Meta | Adopted: spec escalation after 20 failed `make verify`; account spend limit |
 | 6 | Builder cannot read or run tests | Gemini | Rejected: breaks test-first work and `make verify` |
 | 7 | `CODEOWNERS`, agent cannot merge | Gemini, ChatGPT | Adopted with limits: branch protection on public repo; approvals impossible (same account); `CODEOWNERS` as record only |
