@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +43,7 @@ public class TokenController {
     if (!isForm(req.getContentType())) {
       return error(HttpStatus.BAD_REQUEST, "invalid_request");
     }
-    Optional<ClientRegistration> client =
-        basicCredentials(req).flatMap(c -> clients.authenticate(c[0], c[1]));
+    Optional<ClientRegistration> client = basicCredentials(req).flatMap(this::authenticate);
     if (client.isEmpty()) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .header(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"feature-flag-service\"")
@@ -103,6 +101,27 @@ public class TokenController {
    * {@code [clientId, secret]} from {@code Authorization: Basic}, form-url-decoded (RFC 6749
    * 2.3.1).
    */
+  /**
+   * Checks the credentials as sent, then form-url-decoded (RFC 6749 2.3.1), so both plain and
+   * encoded client secrets work.
+   */
+  private Optional<ClientRegistration> authenticate(String[] raw) {
+    Optional<ClientRegistration> plain = clients.authenticate(raw[0], raw[1]);
+    if (plain.isPresent()) {
+      return plain;
+    }
+    try {
+      String id = java.net.URLDecoder.decode(raw[0], StandardCharsets.UTF_8);
+      String secret = java.net.URLDecoder.decode(raw[1], StandardCharsets.UTF_8);
+      if (id.equals(raw[0]) && secret.equals(raw[1])) {
+        return Optional.empty();
+      }
+      return clients.authenticate(id, secret);
+    } catch (IllegalArgumentException notEncoded) {
+      return Optional.empty();
+    }
+  }
+
   private static Optional<String[]> basicCredentials(HttpServletRequest req) {
     String header = req.getHeader(HttpHeaders.AUTHORIZATION);
     if (header == null || !header.regionMatches(true, 0, "Basic ", 0, 6)) {
@@ -116,10 +135,7 @@ public class TokenController {
       if (colon < 0) {
         return Optional.empty();
       }
-      return Optional.of(
-          Arrays.stream(new String[] {decoded.substring(0, colon), decoded.substring(colon + 1)})
-              .map(s -> java.net.URLDecoder.decode(s, StandardCharsets.UTF_8))
-              .toArray(String[]::new));
+      return Optional.of(new String[] {decoded.substring(0, colon), decoded.substring(colon + 1)});
     } catch (IllegalArgumentException e) {
       return Optional.empty();
     }

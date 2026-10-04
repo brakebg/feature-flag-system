@@ -152,6 +152,113 @@ class SecurityRulesIT {
   }
 
   @Test
+  @Tag("ERR-GET-/evaluate/flags-401")
+  @Tag("ERR-GET-/evaluate/groups/{groupKey}-401")
+  @Tag("ERR-GET-/evaluate/flags/{groupKey}/{flagKey}-401")
+  void evaluationWithoutOrWithExpiredTokenIs401() throws Exception {
+    for (String path :
+        new String[] {
+          "/api/v1/evaluate/flags",
+          "/api/v1/evaluate/groups/orders",
+          "/api/v1/evaluate/flags/orders/new-checkout"
+        }) {
+      expect401(getWith(path, null), path);
+      String expired =
+          Tokens.sign(
+              Tokens.claims(
+                  "order-service",
+                  "flags:read",
+                  "feature-flag-service",
+                  NOW.minusSeconds(60),
+                  NOW));
+      expect401(getWith(path, expired), path);
+    }
+  }
+
+  @Test
+  @Tag("ERR-GET-/evaluate/flags-403")
+  @Tag("ERR-GET-/evaluate/groups/{groupKey}-403")
+  @Tag("ERR-GET-/evaluate/flags/{groupKey}/{flagKey}-403")
+  void evaluationWithAdminTokenOrWrongScopeOrAudienceIs403() throws Exception {
+    String admin = adminToken(mvc, json);
+    String serviceNoScope = signed("other", "feature-flag-service", NOW, NOW.plusSeconds(60));
+    String readWithAdminAud = signed("flags:read", "feature-flag-admin", NOW, NOW.plusSeconds(60));
+    for (String path :
+        new String[] {
+          "/api/v1/evaluate/flags",
+          "/api/v1/evaluate/groups/orders",
+          "/api/v1/evaluate/flags/orders/new-checkout"
+        }) {
+      expect403(getWith(path, admin));
+      expect403(getWith(path, serviceNoScope));
+      expect403(getWith(path, readWithAdminAud));
+    }
+  }
+
+  @Test
+  void evaluationWithClientTokenPassesSecurity() throws Exception {
+    getWith("/api/v1/evaluate/flags", clientToken(mvc, json))
+        .andExpect(
+            result ->
+                org.assertj.core.api.Assertions.assertThat(result.getResponse().getStatus())
+                    .isNotIn(401, 403));
+  }
+
+  @Test
+  void tokensWithOtherAlgorithmsOrMissingClaimsAre401() throws Exception {
+    Map<String, Object> noExp =
+        Tokens.claims("admin", "admin", "feature-flag-admin", NOW, NOW.plusSeconds(60));
+    noExp.remove("exp");
+    expect401(getWith("/api/v1/admin/groups", Tokens.sign(noExp)), "/api/v1/admin/groups");
+    Map<String, Object> noAud =
+        Tokens.claims("admin", "admin", "feature-flag-admin", NOW, NOW.plusSeconds(60));
+    noAud.remove("aud");
+    expect401(getWith("/api/v1/admin/groups", Tokens.sign(noAud)), "/api/v1/admin/groups");
+    String hs512 =
+        Tokens.sign(
+            Tokens.claims("admin", "admin", "feature-flag-admin", NOW, NOW.plusSeconds(60)),
+            Tokens.DEV_SECRET + Tokens.DEV_SECRET,
+            com.nimbusds.jose.JWSAlgorithm.HS512);
+    expect401(getWith("/api/v1/admin/groups", hs512), "/api/v1/admin/groups");
+    String none =
+        java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString("{\"alg\":\"none\"}".getBytes())
+            + "."
+            + java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(
+                    json.writeValueAsBytes(
+                        Tokens.claims(
+                            "admin", "admin", "feature-flag-admin", NOW, NOW.plusSeconds(60))))
+            + ".";
+    expect401(getWith("/api/v1/admin/groups", none), "/api/v1/admin/groups");
+  }
+
+  @Test
+  void publicPathsIgnoreAStaleBearerHeader() throws Exception {
+    getWith("/actuator/health", "garbage").andExpect(status().isOk());
+    getWith("/actuator/info", "garbage").andExpect(status().isOk());
+  }
+
+  @Test
+  void springSecurityDefaultHeadersStayAndAdminCacheControlIsOnlyNoStore() throws Exception {
+    getWith("/actuator/health", null)
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+        .andExpect(header().string("X-Frame-Options", "DENY"))
+        .andExpect(header().string("Cache-Control", Matchers.containsString("no-cache")));
+    getWith("/api/v1/admin/groups", adminToken(mvc, json))
+        .andExpect(header().stringValues("Cache-Control", "no-store"))
+        .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+  }
+
+  @Test
+  void encodedAdminPathStillGetsNoStore() throws Exception {
+    mvc.perform(get(java.net.URI.create("/api/v1/%61dmin/groups")))
+        .andExpect(header().string("Cache-Control", "no-store"));
+  }
+
+  @Test
   void adminResponsesAreNeverCachedWhateverTheStatus() throws Exception {
     getWith("/api/v1/admin/groups", null).andExpect(header().string("Cache-Control", "no-store"));
     getWith("/api/v1/admin/groups", clientToken(mvc, json))
@@ -191,22 +298,37 @@ class SecurityRulesIT {
         .andExpect(status().isOk())
         .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
         .andExpect(
-            header()
-                .string(
-                    "Access-Control-Allow-Methods",
-                    Matchers.allOf(
-                        Matchers.containsString("GET"),
-                        Matchers.containsString("POST"),
-                        Matchers.containsString("PATCH"),
-                        Matchers.containsString("DELETE"))))
+            r ->
+                org.assertj.core.api.Assertions.assertThat(
+                        set(r.getResponse().getHeader("Access-Control-Allow-Methods")))
+                    .containsExactlyInAnyOrder("get", "post", "patch", "delete"))
         .andExpect(
-            header()
-                .string(
-                    "Access-Control-Allow-Headers",
-                    Matchers.allOf(
-                        Matchers.containsStringIgnoringCase("authorization"),
-                        Matchers.containsStringIgnoringCase("content-type"),
-                        Matchers.containsStringIgnoringCase("if-none-match"))));
+            r ->
+                org.assertj.core.api.Assertions.assertThat(
+                        set(r.getResponse().getHeader("Access-Control-Allow-Headers")))
+                    .containsExactlyInAnyOrder("authorization", "content-type", "if-none-match"));
+  }
+
+  private static java.util.Set<String> set(String header) {
+    java.util.Set<String> out = new java.util.HashSet<>();
+    for (String part : header.split(",")) {
+      out.add(part.strip().toLowerCase(java.util.Locale.ROOT));
+    }
+    return out;
+  }
+
+  @Test
+  void preflightAskingForAnotherHeaderDoesNotGetIt() throws Exception {
+    mvc.perform(
+            options("/api/v1/admin/groups")
+                .header("Origin", "http://localhost:5173")
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", "X-Other"))
+        .andExpect(
+            r ->
+                org.assertj.core.api.Assertions.assertThat(
+                        r.getResponse().getHeader("Access-Control-Allow-Headers"))
+                    .isNull());
   }
 
   @Test

@@ -35,8 +35,12 @@ public final class Tokens {
   }
 
   public static String sign(Map<String, Object> claims, String secret) {
+    return sign(claims, secret, JWSAlgorithm.HS256);
+  }
+
+  public static String sign(Map<String, Object> claims, String secret, JWSAlgorithm alg) {
     try {
-      JWSObject jws = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(claims));
+      JWSObject jws = new JWSObject(new JWSHeader(alg), new Payload(claims));
       jws.sign(new MACSigner(secret.getBytes(StandardCharsets.UTF_8)));
       return jws.serialize();
     } catch (JOSEException e) {

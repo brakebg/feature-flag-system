@@ -18,4 +18,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | 7a398b9 | M2 | ESC-001 applied (A), ESC-002 raised | docs only |
 | 2026-10-04 | ba19b68 | M2 | M2 audit fixes: SecurityAuditor, RequestIdFilter, handler for framework errors, fixed test ids, profile seed IT, ArchUnit fixtures, git.commit.id in info | verify-fast PASS |
 | 2026-10-04 | 09ce8fe | M2 | M2: complete | verify PASS (full) |
-| 2026-10-04 | (next commit) | M3 | auth: config, TokenIssuer, login, token endpoint, SecurityConfig (5.4), https-required, CORS, admin no-store; ESC-003 | verify-fast PASS |
+| 2026-10-04 | b0aec95 | M3 | auth: config, TokenIssuer, login, token endpoint, SecurityConfig (5.4), https-required, CORS, admin no-store; ESC-003 | verify-fast PASS |
+| 2026-10-04 | (next commit) | M3 | audit fixes: decoded-path filters, bearer resolver on protected paths, 413 limit, default cache headers, startup checks, evaluate rule tests; ESC-004 | verify-fast PASS |

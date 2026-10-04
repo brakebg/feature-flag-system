@@ -20,7 +20,8 @@ public class AdminCacheControlFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !request.getRequestURI().startsWith("/api/v1/admin/");
+    String path = RequestPaths.of(request);
+    return !(path.equals("/api/v1/admin") || path.startsWith("/api/v1/admin/"));
   }
 
   @Override

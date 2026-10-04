@@ -31,6 +31,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -90,7 +92,6 @@ public class SecurityConfig {
         .logout(AbstractHttpConfigurer::disable)
         .requestCache(AbstractHttpConfigurer::disable)
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .headers(h -> h.cacheControl(c -> c.disable()))
         .authorizeHttpRequests(
             a ->
                 a.dispatcherTypeMatchers(DispatcherType.ERROR)
@@ -110,6 +111,7 @@ public class SecurityConfig {
         .oauth2ResourceServer(
             o ->
                 o.jwt(j -> j.decoder(decoder).jwtAuthenticationConverter(converter))
+                    .bearerTokenResolver(bearerTokenResolver())
                     .authenticationEntryPoint(unauthorized)
                     .accessDeniedHandler(forbidden))
         .exceptionHandling(
@@ -117,6 +119,25 @@ public class SecurityConfig {
         .addFilterBefore(
             new HttpsRequiredFilter(requireHttps, problems), BearerTokenAuthenticationFilter.class);
     return http.build();
+  }
+
+  /**
+   * Bearer tokens are read only on protected paths: a stale {@code Authorization} header on a
+   * public path (login, token, health, info) must not turn it into a 401 (spec 5.4, 5.5).
+   */
+  @Bean
+  BearerTokenResolver bearerTokenResolver() {
+    DefaultBearerTokenResolver delegate = new DefaultBearerTokenResolver();
+    return request -> {
+      String path = RequestPaths.of(request);
+      boolean open =
+          path.equals("/api/v1/auth/login")
+              || path.equals("/api/v1/auth/token")
+              || path.equals("/actuator/health")
+              || path.startsWith("/actuator/health/")
+              || path.equals("/actuator/info");
+      return open ? null : delegate.resolve(request);
+    };
   }
 
   static AuthorizationManager<RequestAuthorizationContext> scopeAndAudience(

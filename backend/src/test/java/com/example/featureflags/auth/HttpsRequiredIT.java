@@ -64,6 +64,42 @@ class HttpsRequiredIT {
 
   @Test
   @Tag("AC-OPS-4")
+  void percentEncodedPathsAreCheckedToo() throws Exception {
+    mvc.perform(
+            post(java.net.URI.create("/api/v1/auth/%6cogin"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"admin\",\"password\":\"admin123\"}")
+                .header("X-Forwarded-Proto", "http"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.type").value(TYPE));
+    mvc.perform(
+            post(java.net.URI.create("/api/v1/auth/t%6Fken"))
+                .header(
+                    HttpHeaders.AUTHORIZATION, basic("order-service", "order-service-dev-secret"))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .content("grant_type=client_credentials")
+                .header("X-Forwarded-Proto", "http"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.type").value(TYPE));
+  }
+
+  @Test
+  void otherPathsStillWorkOverPlainHttp() throws Exception {
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                    "/actuator/health")
+                .header("X-Forwarded-Proto", "http"))
+        .andExpect(status().isOk());
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                    "/api/v1/admin/groups")
+                .header("X-Forwarded-Proto", "http"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.type").value("https://featureflags.local/problems/unauthorized"));
+  }
+
+  @Test
+  @Tag("AC-OPS-4")
   void sameRequestsOverHttpsSucceed() throws Exception {
     mvc.perform(login().header("X-Forwarded-Proto", "https")).andExpect(status().isOk());
     mvc.perform(token().header("X-Forwarded-Proto", "https")).andExpect(status().isOk());

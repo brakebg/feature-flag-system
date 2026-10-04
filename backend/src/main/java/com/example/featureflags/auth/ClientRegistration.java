@@ -8,4 +8,10 @@ public record ClientRegistration(String clientId, String clientSecret, List<Stri
   public ClientRegistration {
     scopes = scopes == null ? List.of() : List.copyOf(scopes);
   }
+
+  /** The secret is never part of {@code toString()} (spec 9.3). */
+  @Override
+  public String toString() {
+    return "ClientRegistration[clientId=" + clientId + ", scopes=" + scopes + "]";
+  }
 }

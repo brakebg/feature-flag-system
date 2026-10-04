@@ -142,6 +142,23 @@ other problem bodies whole (type, title, detail, instance).
 
 - Client authentication runs first; then `grant_type`, then `scope`. A body that is not
   `application/x-www-form-urlencoded` gets `invalid_request` before anything else.
-- Client id and secret from the Basic header are form-url-decoded (RFC 6749 2.3.1).
+- Client id and secret from the Basic header are checked as sent, then form-url-decoded
+  (RFC 6749 2.3.1), so plain and encoded secrets both work.
 - A 401 `invalid_client` carries `WWW-Authenticate: Basic realm="feature-flag-service"`.
 - Login responses also carry `Cache-Control: no-store` (they hold a token).
+- The error order and the env-variable client semantics are raised as ESC-004 (M3 audit SA-2, SA-4).
+
+## D-019 · 2026-10-04 · 5.4, 9.2, 10.2 · M3 audit fixes
+
+- Filters match the decoded path (`RequestPaths`), like Spring Security and MVC, so a
+  percent-encoded path cannot skip the HTTPS check or the admin `Cache-Control`.
+- Bearer tokens are read only on protected paths; a stale `Authorization: Bearer` header on
+  login, token, health or info is ignored (5.4 "Public", 5.5 errors).
+- Spring Security's default `Cache-Control` stays on other paths; the Admin API sets
+  `no-store` first and the default writer then leaves the header alone (10.2).
+- `BodySizeLimitFilter` answers 413 `payload-too-large` for a body above 65,536 bytes on every
+  endpoint, login and token included (9.1, 9.2). Tomcat's form limit is also 64 KB.
+- Startup fails for a blank admin password, a blank client secret, or a TTL with fractions of a
+  second (5.1 TTL is "1 second or more"; tokens carry whole seconds).
+- `ClientRegistration.toString()` leaves out the secret.
+- `spring-boot-configuration-processor` removed (not in the spec stack).

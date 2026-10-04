@@ -50,7 +50,7 @@ class AuthPropertiesTest {
   void secretShorterThan32BytesFailsStartup() {
     runner
         .withPropertyValues("featureflags.auth.jwt-secret=" + "x".repeat(31))
-        .run(ctx -> assertThat(ctx).hasFailed());
+        .run(ctx -> failedWith(ctx, "jwt-secret"));
     runner
         .withPropertyValues("featureflags.auth.jwt-secret=" + "x".repeat(32))
         .run(ctx -> assertThat(ctx).hasNotFailed());
@@ -74,17 +74,49 @@ class AuthPropertiesTest {
             "featureflags.auth.clients[1].client-id=order-service",
             "featureflags.auth.clients[1].client-secret=other",
             "featureflags.auth.clients[1].scopes[0]=flags:read")
-        .run(ctx -> assertThat(ctx).hasFailed());
+        .run(ctx -> failedWith(ctx, "client-id"));
+  }
+
+  private static void failedWith(
+      org.springframework.boot.test.context.assertj.AssertableApplicationContext ctx, String text) {
+    assertThat(ctx).hasFailed();
+    assertThat(
+            org.springframework.core.NestedExceptionUtils.getMostSpecificCause(
+                ctx.getStartupFailure()))
+        .hasMessageContaining(text);
   }
 
   @Test
-  void ttlBelowOneSecondFails() {
+  void ttlBelowOneSecondOrWithFractionsFails() {
     runner
         .withPropertyValues("featureflags.auth.admin-token-ttl=PT0.5S")
-        .run(ctx -> assertThat(ctx).hasFailed());
+        .run(ctx -> failedWith(ctx, "admin-token-ttl"));
     runner
-        .withPropertyValues("featureflags.auth.client-token-ttl=PT1S")
+        .withPropertyValues("featureflags.auth.client-token-ttl=PT0.5S")
+        .run(ctx -> failedWith(ctx, "client-token-ttl"));
+    runner
+        .withPropertyValues("featureflags.auth.client-token-ttl=PT1.5S")
+        .run(ctx -> failedWith(ctx, "client-token-ttl"));
+    runner
+        .withPropertyValues(
+            "featureflags.auth.client-token-ttl=PT1S", "featureflags.auth.admin-token-ttl=PT1S")
         .run(ctx -> assertThat(ctx).hasNotFailed());
+  }
+
+  @Test
+  void blankClientSecretOrAdminPasswordFails() {
+    runner
+        .withPropertyValues("featureflags.auth.clients[0].client-secret=")
+        .run(ctx -> failedWith(ctx, "client-secret"));
+    runner
+        .withPropertyValues("featureflags.auth.admin-password=")
+        .run(ctx -> failedWith(ctx, "admin-password"));
+  }
+
+  @Test
+  void secretIsNeverInToString() {
+    assertThat(new ClientRegistration("a", "top-secret", List.of("flags:read")).toString())
+        .doesNotContain("top-secret");
   }
 
   @Test
@@ -93,12 +125,12 @@ class AuthPropertiesTest {
         .withSystemProperties(
             "FF_AUTH_CLIENTS_0_CLIENT_ID=billing",
             "FF_AUTH_CLIENTS_0_CLIENT_SECRET=billing-secret",
-            "FF_AUTH_CLIENTS_0_SCOPES=flags:read")
+            "FF_AUTH_CLIENTS_0_SCOPES=flags:read, other")
         .run(
             ctx ->
                 assertThat(ctx.getBean(ClientRegistrationProperties.class).clients())
                     .containsExactly(
                         new ClientRegistration(
-                            "billing", "billing-secret", List.of("flags:read"))));
+                            "billing", "billing-secret", List.of("flags:read", "other"))));
   }
 }

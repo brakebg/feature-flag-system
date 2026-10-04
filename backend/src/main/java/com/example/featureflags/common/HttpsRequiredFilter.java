@@ -26,7 +26,7 @@ public class HttpsRequiredFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    String path = request.getRequestURI();
+    String path = RequestPaths.of(request);
     return !required
         || !"POST".equals(request.getMethod())
         || !(path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/token"));

@@ -89,6 +89,37 @@ class LoginIT {
 
   @Test
   @Tag("ERR-POST-/auth/login-400")
+  void blankUsernameAndMissingPasswordAreValidationErrors() throws Exception {
+    login("{\"username\":\"  \",\"password\":\"admin123\"}")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value(BASE + "validation"))
+        .andExpect(jsonPath("$.errors[0].field").value("username"));
+    login("{\"username\":\"admin\"}")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value(BASE + "validation"))
+        .andExpect(jsonPath("$.errors[0].field").value("password"));
+  }
+
+  @Test
+  void bodyAbove65536BytesIs413() throws Exception {
+    String big = "{\"username\":\"admin\",\"password\":\"" + "x".repeat(65_600) + "\"}";
+    login(big)
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(jsonPath("$.type").value(BASE + "payload-too-large"));
+  }
+
+  @Test
+  void staleBearerHeaderDoesNotBlockLogin() throws Exception {
+    mvc.perform(
+            post("/api/v1/auth/login")
+                .header("Authorization", "Bearer garbage")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  @Tag("ERR-POST-/auth/login-400")
   void invalidJsonOrWrongTypesAreMalformed() throws Exception {
     login("{nope")
         .andExpect(status().isBadRequest())

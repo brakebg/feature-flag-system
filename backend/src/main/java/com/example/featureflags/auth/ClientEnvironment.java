@@ -1,6 +1,5 @@
 package com.example.featureflags.auth;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -40,13 +39,11 @@ public class ClientEnvironment implements EnvironmentPostProcessor {
           for (int i = 0; i < scopes.length; i++) {
             mapped.put(key(m) + "[" + i + "]", scopes[i].strip());
           }
-          mapped.put(key(m), Arrays.toString(scopes));
         } else {
           mapped.put(key(m), value);
         }
       }
     }
-    mapped.keySet().removeIf(k -> k.endsWith(".scopes"));
     if (!mapped.isEmpty()) {
       env.getPropertySources().addFirst(new MapPropertySource("ffAuthClients", mapped));
     }

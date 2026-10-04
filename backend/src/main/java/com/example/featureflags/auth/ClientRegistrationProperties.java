@@ -29,6 +29,9 @@ public record ClientRegistrationProperties(
       throw new IllegalArgumentException(
           "featureflags.auth.jwt-secret must be at least " + MIN_SECRET_BYTES + " bytes");
     }
+    if (adminPassword == null || adminPassword.isBlank()) {
+      throw new IllegalArgumentException("featureflags.auth.admin-password must not be blank");
+    }
     requireTtl("admin-token-ttl", adminTokenTtl);
     requireTtl("client-token-ttl", clientTokenTtl);
     Set<String> ids = new HashSet<>();
@@ -37,13 +40,17 @@ public record ClientRegistrationProperties(
         throw new IllegalArgumentException(
             "featureflags.auth.clients: duplicate or empty client-id " + c.clientId());
       }
+      if (c.clientSecret() == null || c.clientSecret().isBlank()) {
+        throw new IllegalArgumentException(
+            "featureflags.auth.clients: blank client-secret for " + c.clientId());
+      }
     }
   }
 
   private static void requireTtl(String name, Duration ttl) {
-    if (ttl == null || ttl.compareTo(Duration.ofSeconds(1)) < 0) {
+    if (ttl == null || ttl.compareTo(Duration.ofSeconds(1)) < 0 || ttl.getNano() != 0) {
       throw new IllegalArgumentException(
-          "featureflags.auth." + name + " must be at least 1 second");
+          "featureflags.auth." + name + " must be whole seconds, at least 1 second");
     }
   }
 

@@ -28,6 +28,44 @@ class FlywayProfileIT {
     PG.stop();
   }
 
+  private static ConfigurableApplicationContext start(String database, String... profiles) {
+    new JdbcTemplate(
+            new org.springframework.jdbc.datasource.DriverManagerDataSource(
+                PG.getJdbcUrl(), PG.getUsername(), PG.getPassword()))
+        .execute("CREATE DATABASE " + database);
+    String url = PG.getJdbcUrl().replace("/" + PG.getDatabaseName(), "/" + database);
+    return new SpringApplicationBuilder(FeatureFlagServiceApplication.class)
+        .web(WebApplicationType.NONE)
+        .profiles(profiles)
+        .properties(
+            "FF_DB_URL=" + url,
+            "FF_DB_USER=" + PG.getUsername(),
+            "FF_DB_PASSWORD=" + PG.getPassword())
+        .run();
+  }
+
+  @Test
+  @org.junit.jupiter.api.extension.ExtendWith(
+      org.springframework.boot.test.system.OutputCaptureExtension.class)
+  void prodProfileRequiresHttpsByDefaultAndWarnsAboutDevSecrets(
+      org.springframework.boot.test.system.CapturedOutput output) {
+    try (ConfigurableApplicationContext ctx = start("profile_prod_https", "prod")) {
+      assertThat(ctx.getEnvironment().getProperty("featureflags.require-https", Boolean.class))
+          .isTrue();
+    }
+    assertThat(output.getOut())
+        .contains("Default dev credential in use in prod: FF_ADMIN_PASSWORD")
+        .contains("Default dev credential in use in prod: FF_JWT_SECRET");
+  }
+
+  @Test
+  void devProfileDoesNotRequireHttpsByDefault() {
+    try (ConfigurableApplicationContext ctx = start("profile_dev_https", "dev")) {
+      assertThat(ctx.getEnvironment().getProperty("featureflags.require-https", Boolean.class))
+          .isFalse();
+    }
+  }
+
   private static int groupsAfterStartup(String database, String... profiles) {
     new JdbcTemplate(
             new org.springframework.jdbc.datasource.DriverManagerDataSource(

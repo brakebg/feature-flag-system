@@ -35,6 +35,9 @@ featureflags:
 server:
   port: ${SERVER_PORT:8080}
   forward-headers-strategy: framework
+  tomcat:
+    # Spec 9.2: request body max 65,536 bytes (BodySizeLimitFilter answers 413).
+    max-http-form-post-size: 64KB
 
 logging:
   structured:

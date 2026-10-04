@@ -111,11 +111,29 @@ class TokenEndpointIT {
   }
 
   @Test
+  @Tag("ERR-POST-/auth/token-401")
+  void bearerHeaderOnTheTokenEndpointIsInvalidClient() throws Exception {
+    token("Bearer garbage", "grant_type=client_credentials")
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().string("WWW-Authenticate", org.hamcrest.Matchers.startsWith("Basic")))
+        .andExpect(jsonPath("$.error").value("invalid_client"));
+  }
+
+  @Test
+  void bodyAbove65536BytesIs413() throws Exception {
+    token(GOOD, "grant_type=client_credentials&pad=" + "x".repeat(65_600))
+        .andExpect(status().isPayloadTooLarge())
+        .andExpect(
+            jsonPath("$.type").value("https://featureflags.local/problems/payload-too-large"));
+  }
+
+  @Test
   @Tag("AC-EVAL-2")
   @Tag("ERR-POST-/auth/token-400")
   void unknownGrantTypeIsUnsupported() throws Exception {
     token(GOOD, "grant_type=password")
         .andExpect(status().isBadRequest())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.error").value("unsupported_grant_type"));
   }
 
