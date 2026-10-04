@@ -37,6 +37,30 @@ class OpenApiExportIT {
     assertThat(doc.get("paths").has("/api/v1/admin/groups")).isTrue();
     assertThat(doc.get("paths").has("/api/v1/admin/flags/{flagId}/toggle")).isTrue();
     assertThat(doc.get("paths").has("/api/v1/auth/login")).isTrue();
+    JsonNode schemas = doc.get("components").get("schemas");
+    assertThat(names(schemas.get("Flag").get("required")))
+        .containsExactly(
+            "createdAt",
+            "createdBy",
+            "enabled",
+            "fullKey",
+            "groupId",
+            "id",
+            "key",
+            "updatedAt",
+            "updatedBy",
+            "version");
+    assertThat(names(schemas.get("GroupSummary").get("required")))
+        .contains("flagCount", "enabledCount", "version")
+        .doesNotContain("description");
+    assertThat(names(schemas.get("ToggleFlagRequest").get("required"))).containsExactly("enabled");
+    assertThat(names(schemas.get("UpdateGroupRequest").get("required"))).containsExactly("version");
+    assertThat(names(schemas.get("CreateGroupRequest").get("required")))
+        .containsExactly("key", "name");
+    assertThat(
+            names(
+                schemas.get("CreateGroupRequest").get("properties").get("description").get("type")))
+        .containsExactlyInAnyOrder("string", "null");
     String pretty =
         json.copy()
                 .enable(SerializationFeature.INDENT_OUTPUT)
@@ -44,6 +68,14 @@ class OpenApiExportIT {
                 .writeValueAsString(json.treeToValue(doc, Object.class))
             + "\n";
     Files.writeString(Path.of("openapi.json"), pretty, StandardCharsets.UTF_8);
+  }
+
+  private static java.util.List<String> names(JsonNode array) {
+    java.util.List<String> out = new java.util.ArrayList<>();
+    if (array != null) {
+      array.forEach(n -> out.add(n.asText()));
+    }
+    return out;
   }
 
   @Test

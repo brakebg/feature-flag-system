@@ -211,8 +211,8 @@ class GroupServiceTest {
   @Test
   void lookupAdapterMapsGroups() {
     GroupLookupAdapter adapter = new GroupLookupAdapter(groups);
-    assertThat(adapter.find(G)).contains(new com.example.featureflags.flag.GroupRef(G, "orders"));
     assertThat(adapter.lock(G)).contains(new com.example.featureflags.flag.GroupRef(G, "orders"));
-    assertThat(adapter.find(id(9))).isEmpty();
+    when(groups.findForUpdate(id(9))).thenReturn(Optional.empty());
+    assertThat(adapter.lock(id(9))).isEmpty();
   }
 }

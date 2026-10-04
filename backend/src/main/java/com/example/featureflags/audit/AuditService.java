@@ -4,8 +4,10 @@ import com.example.featureflags.common.SecurityAuditor;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -48,8 +50,14 @@ public class AuditService {
   @Transactional(readOnly = true)
   public Page<AuditEventView> page(int page, int size, String targetKey) {
     PageRequest request = PageRequest.of(page, size);
+    boolean all = targetKey == null || targetKey.isEmpty();
+    if ((long) page * size > Integer.MAX_VALUE) {
+      // Far past the end (spec 6.1: 200 with an empty content); JPA offsets are ints.
+      long total = all ? events.count() : events.countByPrefix(likePrefix(targetKey));
+      return new PageImpl<AuditEventView>(List.of(), request, total);
+    }
     Page<AuditEvent> result =
-        targetKey == null || targetKey.isEmpty()
+        all
             ? events.findNewestFirst(request)
             : events.findByPrefixNewestFirst(likePrefix(targetKey), request);
     return result.map(AuditEventView::of);

@@ -43,10 +43,15 @@ class GroupControllerTest {
 
   @Test
   void listPassesQueryAndSort() throws Exception {
-    when(service.list("ord", "name")).thenReturn(List.of());
+    when(service.list("ord", "name"))
+        .thenReturn(
+            List.of(
+                new GroupSummary(
+                    id(1), "orders", "Orders", null, 2, 1, "admin", Entities.T0, "admin", 3)));
     mvc.perform(get("/api/v1/admin/groups?q=ord&sort=name"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$").isArray());
+        .andExpect(jsonPath("$[0].key").value("orders"))
+        .andExpect(jsonPath("$[0].flagCount").value(2));
     verify(service).list("ord", "name");
   }
 
@@ -73,7 +78,9 @@ class GroupControllerTest {
             patch("/api/v1/admin/groups/" + id(1))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"version\":0}"))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.key").value("orders"))
+        .andExpect(jsonPath("$.version").value(0));
     mvc.perform(delete("/api/v1/admin/groups/" + id(1))).andExpect(status().isNoContent());
     verify(service).delete(id(1));
   }

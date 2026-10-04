@@ -137,92 +137,92 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AuditEventView: {
-            action?: string;
-            actor?: string;
+            action: string;
+            actor: string;
             details?: {
                 [key: string]: unknown;
             };
             /** Format: int64 */
-            id?: number;
+            id: number;
             /** Format: date-time */
-            occurredAt?: string;
-            targetKey?: string;
+            occurredAt: string;
+            targetKey: string;
         };
         CreateFlagRequest: {
-            description?: string;
+            description?: string | null;
             enabled?: boolean;
             key: string;
         };
         CreateGroupRequest: {
-            description?: string;
+            description?: string | null;
             key: string;
             name: string;
         };
         Flag: {
             /** Format: date-time */
-            createdAt?: string;
-            createdBy?: string;
+            createdAt: string;
+            createdBy: string;
             description?: string;
-            enabled?: boolean;
-            fullKey?: string;
+            enabled: boolean;
+            fullKey: string;
             /** Format: uuid */
-            groupId?: string;
+            groupId: string;
             /** Format: uuid */
-            id?: string;
-            key?: string;
+            id: string;
+            key: string;
             /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
+            updatedAt: string;
+            updatedBy: string;
             /** Format: int64 */
-            version?: number;
+            version: number;
         };
         Group: {
             /** Format: date-time */
-            createdAt?: string;
-            createdBy?: string;
+            createdAt: string;
+            createdBy: string;
             description?: string;
             /** Format: uuid */
-            id?: string;
-            key?: string;
-            name?: string;
+            id: string;
+            key: string;
+            name: string;
             /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
+            updatedAt: string;
+            updatedBy: string;
             /** Format: int64 */
-            version?: number;
+            version: number;
         };
         GroupDetail: {
             /** Format: date-time */
-            createdAt?: string;
-            createdBy?: string;
+            createdAt: string;
+            createdBy: string;
             description?: string;
-            flags?: components["schemas"]["Flag"][];
+            flags: components["schemas"]["Flag"][];
             /** Format: uuid */
-            id?: string;
-            key?: string;
-            name?: string;
+            id: string;
+            key: string;
+            name: string;
             /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
+            updatedAt: string;
+            updatedBy: string;
             /** Format: int64 */
-            version?: number;
+            version: number;
         };
         GroupSummary: {
-            createdBy?: string;
+            createdBy: string;
             description?: string;
             /** Format: int64 */
-            enabledCount?: number;
+            enabledCount: number;
             /** Format: int64 */
-            flagCount?: number;
+            flagCount: number;
             /** Format: uuid */
-            id?: string;
-            key?: string;
-            name?: string;
+            id: string;
+            key: string;
+            name: string;
             /** Format: date-time */
-            updatedAt?: string;
-            updatedBy?: string;
+            updatedAt: string;
+            updatedBy: string;
             /** Format: int64 */
-            version?: number;
+            version: number;
         };
         LoginRequest: {
             password: string;
@@ -230,29 +230,29 @@ export interface components {
         };
         PageMetadata: {
             /** Format: int64 */
-            number?: number;
+            number: number;
             /** Format: int64 */
-            size?: number;
+            size: number;
             /** Format: int64 */
-            totalElements?: number;
+            totalElements: number;
             /** Format: int64 */
-            totalPages?: number;
+            totalPages: number;
         };
         PagedModelAuditEventView: {
-            content?: components["schemas"]["AuditEventView"][];
-            page?: components["schemas"]["PageMetadata"];
+            content: components["schemas"]["AuditEventView"][];
+            page: components["schemas"]["PageMetadata"];
         };
         ToggleFlagRequest: {
-            enabled?: boolean;
+            enabled: boolean;
         };
         UpdateFlagRequest: {
-            description?: string;
+            description?: string | null;
             enabled?: boolean;
             /** Format: int64 */
             version: number;
         };
         UpdateGroupRequest: {
-            description?: string;
+            description?: string | null;
             name?: string;
             /** Format: int64 */
             version: number;
@@ -269,8 +269,8 @@ export interface operations {
     list_1: {
         parameters: {
             query?: {
-                page?: number;
-                size?: number;
+                page?: string;
+                size?: string;
                 targetKey?: string;
             };
             header?: never;

@@ -41,13 +41,16 @@ public class AuditPurgeJob {
   public long purge() {
     Instant cutoff = clock.instant().minus(retention);
     long total = 0;
-    int removed;
-    do {
-      Integer n = tx.execute(s -> events.deleteOlderThan(cutoff, BATCH));
-      removed = n == null ? 0 : n;
-      total += removed;
-    } while (removed == BATCH);
-    log.info("Audit purge removed {} events older than {}", total, cutoff);
+    try {
+      int removed;
+      do {
+        Integer n = tx.execute(s -> events.deleteOlderThan(cutoff, BATCH));
+        removed = n == null ? 0 : n;
+        total += removed;
+      } while (removed == BATCH);
+    } finally {
+      log.info("Audit purge removed {} events older than {}", total, cutoff);
+    }
     return total;
   }
 }

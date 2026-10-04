@@ -19,6 +19,9 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long> {
           + " order by e.occurredAt desc, e.id desc")
   Page<AuditEvent> findByPrefixNewestFirst(@Param("pattern") String pattern, Pageable page);
 
+  @Query("select count(e) from AuditEvent e where e.targetKey like :pattern escape '\\'")
+  long countByPrefix(@Param("pattern") String pattern);
+
   /** Deletes at most {@code limit} events older than {@code cutoff}; returns how many. */
   @Modifying
   @Query(

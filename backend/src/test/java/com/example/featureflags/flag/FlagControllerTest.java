@@ -79,7 +79,9 @@ class FlagControllerTest {
             patch("/api/v1/admin/flags/" + id(2))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"version\":1}"))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.fullKey").value("orders.k1"))
+        .andExpect(jsonPath("$.version").value(1));
     mvc.perform(delete("/api/v1/admin/flags/" + id(2))).andExpect(status().isNoContent());
     verify(service).delete(id(2));
     FlagService untouched = mock(FlagService.class);

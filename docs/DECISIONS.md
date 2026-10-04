@@ -180,3 +180,16 @@ threshold stays 60 %. Not an exclusion of production code.
   duplicate key before the 500-flag limit. Group creation takes a PostgreSQL advisory lock and
   flag creation locks the group row, so the limits hold under concurrent requests.
 - `ff_admin_writes_total{action}` is incremented in `AuditService.record` (spec 9.3).
+
+## D-022 · 2026-10-04 · 3, 6.1, 6.2 · M4 audit fixes
+
+- The OpenAPI document carries the 6.2 optionality (`OpenApiConfig`): response fields required
+  except `description` and `details`; request fields required as in 6.2; request
+  `description` may be `null` (OpenAPI 3.1 type `["string","null"]`). `schema.d.ts` follows.
+- `GET /audit`: a page far past the end (offset above 2^31) returns 200 with empty `content`
+  (6.1); an empty or non-integer `page` / `size` is 400 `malformed-request` (6.1 "non-numeric").
+- Flag update, toggle and delete lock the group row, then the flag row (same order as flag
+  create and group delete). Concurrent toggles to one value all get 200 with one audit event;
+  a write that races a group delete gets 404, not 409.
+- The audit purge logs the removed count even when a batch fails.
+- D-020 (PIT test set) and D-021's duplicate-before-limit order are raised as ESC-005.

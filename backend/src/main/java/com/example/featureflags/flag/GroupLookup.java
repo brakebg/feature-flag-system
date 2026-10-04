@@ -9,8 +9,6 @@ import java.util.UUID;
  */
 public interface GroupLookup {
 
-  Optional<GroupRef> find(UUID groupId);
-
   /** Finds the group and locks its row until the transaction ends (flag limit, spec 9.2). */
   Optional<GroupRef> lock(UUID groupId);
 }

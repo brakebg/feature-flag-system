@@ -157,6 +157,7 @@ class AdminGroupsIT extends AdminApiTest {
   // ---------------------------------------------------------------- GET /groups
 
   @Test
+  @Tag("AC-GRP-1")
   void listShowsCountsAndOmitsMissingDescription() throws Exception {
     JsonNode g = admin.createGroup("orders", "Orders");
     admin.createFlag(g.get("id").asText(), "new-checkout", true);
@@ -195,6 +196,9 @@ class AdminGroupsIT extends AdminApiTest {
     admin.createGroup("b-key", "alpha");
     admin.createGroup("a-key", "Charlie");
     admin.createGroup("c-key", "bravo");
+    jdbc.update("UPDATE flag_group SET updated_at = '2026-10-01T10:00:00Z' WHERE key = 'b-key'");
+    jdbc.update("UPDATE flag_group SET updated_at = '2026-10-01T11:00:00Z' WHERE key = 'a-key'");
+    jdbc.update("UPDATE flag_group SET updated_at = '2026-10-01T12:00:00Z' WHERE key = 'c-key'");
 
     assertThat(keys(admin.body(admin.get("/groups")))).containsExactly("a-key", "b-key", "c-key");
     assertThat(keys(admin.body(admin.get("/groups?sort=key"))))
@@ -218,6 +222,7 @@ class AdminGroupsIT extends AdminApiTest {
   @Tag("ERR-GET-/admin/groups-400")
   void unknownSortIsValidationError() throws Exception {
     validation(admin.get("/groups?sort=created"), "sort");
+    validation(admin.get("/groups?sort="), "sort");
   }
 
   @Test
@@ -271,6 +276,7 @@ class AdminGroupsIT extends AdminApiTest {
 
   @Test
   @Tag("AC-AUD-1")
+  @Tag("AC-GRP-4")
   void patchUpdatesNameAndDescriptionAndWritesOneAuditEvent() throws Exception {
     String id = admin.createGroup("orders", "Orders").get("id").asText();
 
@@ -309,6 +315,27 @@ class AdminGroupsIT extends AdminApiTest {
         .andExpect(jsonPath("$.name").value("Orders"))
         .andExpect(jsonPath("$.description").doesNotExist())
         .andExpect(jsonPath("$.version").value(1));
+    admin
+        .patchJson("/groups/" + id, "{\"description\":\"e\",\"version\":1}")
+        .andExpect(status().isOk());
+    admin
+        .patchJson("/groups/" + id, "{\"description\":\"\",\"version\":2}")
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.description").doesNotExist())
+        .andExpect(jsonPath("$.version").value(3));
+  }
+
+  @Test
+  void flagChangesDoNotChangeTheGroupVersion() throws Exception {
+    String id = admin.createGroup("orders", "Orders").get("id").asText();
+    String flagId = admin.createFlag(id, "a-flag", false).get("id").asText();
+    admin.postJson("/flags/" + flagId + "/toggle", "{\"enabled\":true}");
+    admin.patchJson("/flags/" + flagId, "{\"description\":\"x\",\"version\":1}");
+    admin.delete("/flags/" + flagId);
+    admin.get("/groups/" + id).andExpect(jsonPath("$.version").value(0));
+    admin
+        .patchJson("/groups/" + id, "{\"name\":\"Shop\",\"version\":0}")
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -389,12 +416,21 @@ class AdminGroupsIT extends AdminApiTest {
   // ---------------------------------------------------------------- DELETE /groups/{id}
 
   @Test
+  @Tag("AC-GRP-5")
+  @Tag("AC-AUD-1")
   void deleteRemovesGroupAndFlagsAndAuditsTheFlagKeys() throws Exception {
     String id = admin.createGroup("orders", "Orders").get("id").asText();
     admin.createFlag(id, "split-payments", false);
     admin.createFlag(id, "new-checkout", true);
+    int before = auditCount();
 
     admin.delete("/groups/" + id).andExpect(status().isNoContent());
+
+    assertThat(auditCount()).isEqualTo(before + 1);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT action FROM audit_event ORDER BY id DESC LIMIT 1", String.class))
+        .isEqualTo("GROUP_DELETED");
 
     problem(admin.get("/groups/" + id), 404, "not-found");
     assertThat(jdbc.queryForObject("SELECT count(*) FROM feature_flag", Integer.class)).isZero();

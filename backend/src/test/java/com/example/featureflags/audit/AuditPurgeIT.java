@@ -37,6 +37,10 @@ class AuditPurgeIT {
   }
 
   @Autowired AuditPurgeJob job;
+
+  @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+  AuditEventRepository repository;
+
   @Autowired JdbcTemplate jdbc;
   @Autowired DatabaseCleaner cleaner;
 
@@ -56,14 +60,17 @@ class AuditPurgeIT {
   @Test
   @Tag("AC-AUD-3")
   void deletesEventsOlderThan365DaysAndKeepsNewerOnes(CapturedOutput output) {
-    insert(12_001, "2026-05-31T03:29:59Z"); // 366 days old
+    insert(12_001, "2026-06-01T03:29:59Z"); // 1 s older than the 365-day cutoff
+    insert(1, "2026-06-01T03:30:00Z"); // exactly at the cutoff: not older, kept
     insert(3, "2026-06-01T03:30:01Z"); // just inside 365 days
     insert(2, "2027-05-31T00:00:00Z");
 
     long removed = job.purge();
 
     assertThat(removed).isEqualTo(12_001);
-    assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event", Integer.class)).isEqualTo(5);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM audit_event", Integer.class)).isEqualTo(6);
+    org.mockito.Mockito.verify(repository, org.mockito.Mockito.times(3))
+        .deleteOlderThan(Instant.parse("2026-06-01T03:30:00Z"), 5_000);
     assertThat(output.getOut()).contains("12001");
   }
 

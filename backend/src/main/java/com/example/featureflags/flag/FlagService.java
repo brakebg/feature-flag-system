@@ -67,8 +67,9 @@ public class FlagService {
   }
 
   public Flag update(UUID flagId, UpdateFlagRequest request) {
-    FeatureFlag flag = load(flagId);
-    GroupRef group = groupOf(flag);
+    Locked locked = lockFlag(flagId);
+    FeatureFlag flag = locked.flag();
+    GroupRef group = locked.group();
     checkVersion(flag, request.version());
     Changes changes = new Changes();
     if (request.description() != null) {
@@ -94,8 +95,9 @@ public class FlagService {
   }
 
   public Flag toggle(UUID flagId, boolean enabled) {
-    FeatureFlag flag = load(flagId);
-    GroupRef group = groupOf(flag);
+    Locked locked = lockFlag(flagId);
+    FeatureFlag flag = locked.flag();
+    GroupRef group = locked.group();
     Changes changes = new Changes();
     if (!changes.add("enabled", flag.isEnabled(), enabled)) {
       return Flag.of(flag, group.key());
@@ -108,8 +110,9 @@ public class FlagService {
   }
 
   public void delete(UUID flagId) {
-    FeatureFlag flag = load(flagId);
-    GroupRef group = groupOf(flag);
+    Locked locked = lockFlag(flagId);
+    FeatureFlag flag = locked.flag();
+    GroupRef group = locked.group();
     flags.delete(flag);
     flags.flush();
     Map<String, Object> details = new LinkedHashMap<>();
@@ -137,14 +140,21 @@ public class FlagService {
     return out;
   }
 
-  private FeatureFlag load(UUID flagId) {
-    return flags.findById(flagId).orElseThrow(() -> new NotFoundException("No flag " + flagId));
-  }
+  private record Locked(FeatureFlag flag, GroupRef group) {}
 
-  private GroupRef groupOf(FeatureFlag flag) {
-    return groups
-        .find(flag.getGroupId())
-        .orElseThrow(() -> new NotFoundException("No group " + flag.getGroupId()));
+  /**
+   * Locks the group row, then the flag row (the same order as group create-flag and group delete),
+   * so concurrent writes to one flag run one after the other: a second toggle sees the first one's
+   * value (no-op, not 409), and a write racing a group delete gets 404.
+   */
+  private Locked lockFlag(UUID flagId) {
+    UUID groupId =
+        flags.findGroupId(flagId).orElseThrow(() -> new NotFoundException("No flag " + flagId));
+    GroupRef group =
+        groups.lock(groupId).orElseThrow(() -> new NotFoundException("No flag " + flagId));
+    FeatureFlag flag =
+        flags.findForUpdate(flagId).orElseThrow(() -> new NotFoundException("No flag " + flagId));
+    return new Locked(flag, group);
   }
 
   private static void checkVersion(FeatureFlag flag, long version) {

@@ -54,6 +54,7 @@ class AdminFlagsIT extends AdminApiTest {
 
   @Test
   @Tag("AC-AUD-1")
+  @Tag("AC-FLAG-1")
   void createReturns201WithLocationFullKeyAndDefaultOff() throws Exception {
     ResultActions r =
         admin
@@ -186,6 +187,24 @@ class AdminFlagsIT extends AdminApiTest {
   }
 
   @Test
+  void emptyOrNullDescriptionClears() throws Exception {
+    String id =
+        admin
+            .body(admin.postJson(flags(), "{\"key\":\"k1\",\"description\":\"d\"}"))
+            .get("id")
+            .asText();
+    admin
+        .patchJson("/flags/" + id, "{\"description\":\"\",\"version\":0}")
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.description").doesNotExist())
+        .andExpect(jsonPath("$.version").value(1));
+    admin.patchJson("/flags/" + id, "{\"description\":\"e\",\"version\":1}");
+    admin
+        .patchJson("/flags/" + id, "{\"description\":null,\"version\":2}")
+        .andExpect(jsonPath("$.description").doesNotExist());
+  }
+
+  @Test
   @Tag("ERR-PATCH-/admin/flags/{flagId}-400")
   void patchValidation() throws Exception {
     String id = admin.createFlag(groupId, "new-checkout", false).get("id").asText();
@@ -238,6 +257,7 @@ class AdminFlagsIT extends AdminApiTest {
 
   @Test
   @Tag("AC-AUD-1")
+  @Tag("AC-FLAG-3")
   void toggleSetsTheValueAndIsIdempotent() throws Exception {
     String id = admin.createFlag(groupId, "new-checkout", false).get("id").asText();
 
@@ -254,6 +274,35 @@ class AdminFlagsIT extends AdminApiTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(1));
     assertThat(auditCount()).isEqualTo(after);
+  }
+
+  @Test
+  void concurrentTogglesToTheSameValueBothSucceedOnce() throws Exception {
+    String id = admin.createFlag(groupId, "new-checkout", false).get("id").asText();
+    int before = auditCount();
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(4);
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    java.util.List<java.util.concurrent.Future<Integer>> results = new java.util.ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+      results.add(
+          pool.submit(
+              () -> {
+                start.await();
+                return admin
+                    .postJson("/flags/" + id + "/toggle", "{\"enabled\":true}")
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
+              }));
+    }
+    start.countDown();
+    for (var r : results) {
+      assertThat(r.get(30, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(200);
+    }
+    pool.shutdown();
+    assertThat(auditCount()).isEqualTo(before + 1);
+    admin.get("/groups/" + groupId).andExpect(jsonPath("$.flags[0].version").value(1));
   }
 
   @Test

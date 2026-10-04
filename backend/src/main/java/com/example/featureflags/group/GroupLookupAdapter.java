@@ -19,12 +19,6 @@ class GroupLookupAdapter implements GroupLookup {
   }
 
   @Override
-  @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-  public Optional<GroupRef> find(UUID groupId) {
-    return groups.findById(groupId).map(g -> new GroupRef(g.getId(), g.getKey()));
-  }
-
-  @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public Optional<GroupRef> lock(UUID groupId) {
     return groups.findForUpdate(groupId).map(g -> new GroupRef(g.getId(), g.getKey()));

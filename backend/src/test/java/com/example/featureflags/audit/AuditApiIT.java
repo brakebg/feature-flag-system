@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 class AuditApiIT extends AdminApiTest {
 
   @Autowired MeterRegistry meters;
+  @Autowired java.time.Clock clock;
 
   private void insertEvent(String at, String target) {
     jdbc.update(
@@ -38,7 +39,18 @@ class AuditApiIT extends AdminApiTest {
   }
 
   private static void problem(ResultActions r, int status, String type) throws Exception {
-    r.andExpect(status().is(status)).andExpect(jsonPath("$.type").value(PROBLEM + type));
+    r.andExpect(status().is(status))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .contentTypeCompatibleWith(
+                    org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.type").value(PROBLEM + type))
+        .andExpect(jsonPath("$.status").value(status));
+  }
+
+  private static void validation(ResultActions r, String field) throws Exception {
+    problem(r, 400, "validation");
+    r.andExpect(jsonPath("$.errors[0].field").value(field));
   }
 
   @Test
@@ -90,15 +102,23 @@ class AuditApiIT extends AdminApiTest {
     JsonNode past = admin.body(admin.get("/audit?size=2&page=9").andExpect(status().isOk()));
     assertThat(past.get("content")).isEmpty();
     admin.get("/audit?size=200").andExpect(status().isOk());
+    JsonNode huge =
+        admin.body(admin.get("/audit?size=200&page=2147483647").andExpect(status().isOk()));
+    assertThat(huge.get("content")).isEmpty();
+    assertThat(huge.get("page").get("totalElements").asInt()).isEqualTo(5);
+    assertThat(huge.get("page").get("number").asInt()).isEqualTo(2147483647);
     admin.get("/audit?size=1&page=0").andExpect(status().isOk());
   }
 
   @Test
   @Tag("ERR-GET-/admin/audit-400")
   void badPagingParameters() throws Exception {
-    problem(admin.get("/audit?size=0"), 400, "validation");
-    admin.get("/audit?size=201").andExpect(jsonPath("$.errors[0].field").value("size"));
-    admin.get("/audit?page=-1").andExpect(jsonPath("$.errors[0].field").value("page"));
+    validation(admin.get("/audit?size=0"), "size");
+    validation(admin.get("/audit?size=201"), "size");
+    validation(admin.get("/audit?page=-1"), "page");
+    problem(admin.get("/audit?page="), 400, "malformed-request");
+    problem(admin.get("/audit?size="), 400, "malformed-request");
+    problem(admin.get("/audit?page=1.5"), 400, "malformed-request");
     problem(admin.get("/audit?page=abc"), 400, "malformed-request");
     problem(admin.get("/audit?size=x"), 400, "malformed-request");
   }
@@ -123,7 +143,7 @@ class AuditApiIT extends AdminApiTest {
     String id = g.get("id").asText();
     String flagId = admin.createFlag(id, "new-checkout", false).get("id").asText();
 
-    Instant now = Instant.now();
+    Instant now = Instant.now(clock);
     String bob =
         Tokens.sign(Tokens.claims("bob", "admin", "feature-flag-admin", now, now.plusSeconds(300)));
     var asBob = admin.as(bob);
@@ -135,8 +155,19 @@ class AuditApiIT extends AdminApiTest {
         .postJson("/flags/" + flagId + "/toggle", "{\"enabled\":true}")
         .andExpect(jsonPath("$.updatedBy").value("bob"))
         .andExpect(jsonPath("$.createdBy").value("admin"));
+    String otherFlag = admin.createFlag(id, "other", false).get("id").asText();
+    asBob
+        .patchJson(
+            "/flags/" + otherFlag,
+            "{\"description\":\"d\",\"version\":0,\"updatedBy\":\"mallory\"}")
+        .andExpect(jsonPath("$.updatedBy").value("bob"))
+        .andExpect(jsonPath("$.createdBy").value("admin"));
+    String third = admin.createFlag(id, "third", false).get("id").asText();
+    asBob
+        .patchJson("/flags/" + third, "{\"enabled\":false,\"version\":0}")
+        .andExpect(jsonPath("$.updatedBy").value("admin"));
     assertThat(jdbc.queryForList("SELECT actor FROM audit_event ORDER BY id", String.class))
-        .containsExactly("admin", "admin", "bob", "bob");
+        .containsExactly("admin", "admin", "bob", "bob", "admin", "bob", "admin");
   }
 
   @Test

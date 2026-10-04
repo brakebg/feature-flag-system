@@ -37,7 +37,9 @@ class InternalErrorIT {
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
         .andExpect(jsonPath("$.type").value("https://featureflags.local/problems/internal"))
         .andExpect(jsonPath("$.status").value(500))
-        .andExpect(jsonPath("$.detail").value(Matchers.containsString("correlation id")))
+        .andExpect(
+            org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .exists("X-Request-Id"))
         .andExpect(content().string(Matchers.not(Matchers.containsString("exploded"))))
         .andExpect(
             content().string(Matchers.not(Matchers.containsString("IllegalStateException"))));

@@ -53,8 +53,8 @@ class FlagServiceTest {
   @BeforeEach
   void setUp() {
     existing = saved(new FeatureFlag(F, G, "new-checkout", null, false), 3);
-    when(flags.findById(F)).thenReturn(Optional.of(existing));
-    when(groups.find(G)).thenReturn(Optional.of(ORDERS));
+    when(flags.findGroupId(F)).thenReturn(Optional.of(G));
+    when(flags.findForUpdate(F)).thenReturn(Optional.of(existing));
     when(groups.lock(G)).thenReturn(Optional.of(ORDERS));
     when(flags.saveAndFlush(any())).thenAnswer(FlagServiceTest::first);
   }
@@ -157,7 +157,9 @@ class FlagServiceTest {
 
     FlagServiceTest other = new FlagServiceTest();
     other.setUp();
-    other.service.toggle(F, false);
+    Flag same = other.service.toggle(F, false);
+    assertThat(same.enabled()).isFalse();
+    assertThat(same.version()).isEqualTo(3);
     verifyNoInteractions(other.audit, other.events);
   }
 
@@ -171,8 +173,15 @@ class FlagServiceTest {
   }
 
   @Test
+  void flagDeletedWhileWaitingForTheLockIsNotFound() {
+    when(flags.findForUpdate(F)).thenReturn(Optional.empty());
+    assertThatThrownBy(() -> service.toggle(F, true)).isInstanceOf(NotFoundException.class);
+    verifyNoInteractions(audit, events);
+  }
+
+  @Test
   void unknownFlagIsNotFound() {
-    when(flags.findById(id(9))).thenReturn(Optional.empty());
+    when(flags.findGroupId(id(9))).thenReturn(Optional.empty());
     assertThatThrownBy(() -> service.toggle(id(9), true)).isInstanceOf(NotFoundException.class);
     assertThatThrownBy(() -> service.delete(id(9))).isInstanceOf(NotFoundException.class);
     assertThatThrownBy(() -> service.update(id(9), new UpdateFlagRequest(null, null, 0L)))
@@ -205,7 +214,7 @@ class FlagServiceTest {
 
   @Test
   void missingGroupOfAnExistingFlagIsNotFound() {
-    when(groups.find(G)).thenReturn(Optional.empty());
+    when(groups.lock(G)).thenReturn(Optional.empty());
     assertThatThrownBy(() -> service.toggle(F, true)).isInstanceOf(NotFoundException.class);
     verify(audit, never()).record(eq(AuditAction.FLAG_TOGGLED), any(), any());
   }
