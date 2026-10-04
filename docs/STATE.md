@@ -24,13 +24,14 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
   `GlobalExceptionHandler` with tests.
 - Entities + repositories + JPA auditing (`JpaAuditingConfig`, Clock-based, micros); `RepositoryIT`
   uses a test `AuditorAware` (the real one, from the JWT `sub`, comes in M3).
+- DTO records (6.2) + `CodePointLength`, `Keys`; PATCH uses `Optional` (omitted = null, JSON null =
+  empty, via `Jdk8Module.configureReadAbsentAsNull`).
 
 ## Next 3 steps
 
 1. Package rule to avoid cycles: common <- audit <- group <- flag <- evaluation; group reads
    flags through a port interface in `group` implemented in `flag`.
-2. M2: DTO records (6.2) with JSON tests (optional fields omitted) and request validation tests
-   (trim name, code-point lengths, key regex; PATCH: Optional fields, null vs omitted).
+2. Batch for an escalation at the M4 boundary: D-011 (PATCH enabled null), D-012 (405 -> 404).
 3. M2 end: `make verify`, audit (spec-auditor, test-auditor, ecc:java-reviewer, ecc:database-reviewer).
 
 ## Open escalations and blockers

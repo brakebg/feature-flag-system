@@ -73,3 +73,20 @@ metric is absent (service gone). Error rate and latency use Spring Boot's
   npm 11, and `npm ci` from npm 10 (shipped with Node 20) rejects it. CI does the same.
 - The nginx stage runs `apk upgrade` and `make up` builds with `--pull`, so the image scan of
   gate 10 sees current OS packages.
+
+## D-011 · 2026-10-04 · 4.2, 6.1 · PATCH with `"enabled": null`
+
+`PATCH /flags/{flagId}` with `"enabled": null` returns 400 `validation` (`field` `enabled`):
+a boolean flag cannot be null, the same rule as `name: null` (6.1). An omitted `enabled`
+stays unchanged. To confirm with the owner at the M4 boundary (touches the API).
+
+## D-012 · 2026-10-04 · 9.1 · Unknown route or method
+
+A request that passes security but matches no endpoint or method (for example `PUT` on an
+admin path) returns 404 `not-found`. Spec 9.1 has no 405 row. To confirm at the M4 boundary.
+
+## D-013 · 2026-10-04 · 9.3 · Exact `/actuator/health` body
+
+Spring Boot also lists the probe groups and the liveness / readiness contributors in the root
+health body. `HealthBodyFilter` keeps only `status` and `components.db`, so the body is
+exactly the 9.3 example. The disk-space, ping and SSL indicators are switched off.

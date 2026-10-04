@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.CoercionAction;
 import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
 import com.fasterxml.jackson.databind.type.LogicalType;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +30,9 @@ public class JacksonConfig {
     mapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, false);
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
+    // PATCH bodies (6.1): an omitted Optional field is null, an explicit null is empty.
+    mapper.configure(MapperFeature.IGNORE_DUPLICATE_MODULE_REGISTRATIONS, false);
+    mapper.registerModule(new Jdk8Module().configureReadAbsentAsNull(true));
     for (LogicalType type :
         new LogicalType[] {LogicalType.Textual, LogicalType.Integer, LogicalType.Boolean}) {
       mapper

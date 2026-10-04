@@ -13,4 +13,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | ac86ad1 | M2 | Flyway V1/V2, MigrationIT, health body (AC-OPS-3), ArchitectureTest | verify-fast PASS |
 | 2026-10-04 | 01f65fc | M2 | common: strict JSON types, UUIDv7, Clock, exceptions, GlobalExceptionHandler (9.1) | verify-fast PASS |
 | 2026-10-04 | a0e498c | M2 | entities (AuditableEntity, FlagGroup, FeatureFlag, AuditEvent), repositories, JPA auditing, RepositoryIT | verify-fast FAIL (gate 1 format of one test file; pushed by mistake, fixed in the next commit) |
-| 2026-10-04 | (next commit) | M2 | format fix for a0e498c | verify-fast PASS |
+| 2026-10-04 | 2b3a6b7 | M2 | format fix for a0e498c | verify-fast PASS |
+| 2026-10-04 | (next commit) | M2 | DTO records (6.2), request validation (4.2), PATCH omitted vs null | verify-fast PASS |
