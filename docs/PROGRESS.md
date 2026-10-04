@@ -27,4 +27,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | a66a808 | M5 | evaluation API, flag cache (Caffeine, warm-up, write-through, reconciliation), ETag/304, metrics; smoke passes | verify-fast PASS |
 | 2026-10-04 | c0c8d20 | M5 | schema.d.ts regenerated (gate 8) | verify FAIL gate 14 (PIT runs in tag log) |
 | 2026-10-04 | 9db854d | M5 | PIT mutant runs kept out of the gate 14 tag log | verify PASS (full) |
-| 2026-10-04 | (next commit) | M5 | audit fixes: reconcile under lock, all-flags race, revision in finally, stale-alert gauge, readiness log + smoke order check, test hardening; ESC-006 | verify-fast PASS |
+| 2026-10-04 | 0a935f3 | M5 | audit fixes: reconcile under lock, all-flags race, revision in finally, stale-alert gauge, readiness log + smoke order check, test hardening; ESC-006 | verify-fast PASS |
+| 2026-10-04 | (next commit) | M5 | M5: complete | verify PASS (full) |

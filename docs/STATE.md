@@ -4,35 +4,33 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M5 Evaluation API — in progress
-- `scripts/current-milestone`: 5
+- Milestone: M6 UI foundation — next (M5 complete)
+- `scripts/current-milestone`: 5 (set to 6 at the start of M6)
 
 ## Last green commit
 
-- a486511 (M4 audit fixes; full `make verify` PASS). `M4: complete` follows it.
+- 0a935f3 (M5 audit fixes; full `make verify` PASS incl. smoke). `M5: complete` follows it.
 
 ## Last full `make verify`
 
-- 2026-10-04 on a486511: PASS. Active and green: 1-8, 10, 14, 15. Inactive: 9 (M6), 11 (M5), 12, 13 (M8).
+- 2026-10-04 on 0a935f3: PASS. Active and green: 1-8, 10, 11, 14, 15. Inactive: 9 (M6), 12, 13 (M8).
 
-## Chunks done in M4
+## Chunks done in M5
 
-- 400b82a Admin API (groups, flags, audit, purge, events, springdoc, openapi.json, schema.d.ts).
-- a486511 audit fixes: OpenAPI optionality, audit paging edge, flag row locks, purge log, tests.
+- a66a808 evaluation cache + API; schema.d.ts regenerated; 9db854d PIT kept out of tag log.
+- 0a935f3 audit fixes: reconcile under lock, all-flags race, revision in finally, gauges, tests.
 
 ## Next 3 steps
 
-1. M5: set `scripts/current-milestone` to 5. Drafts of `FlagCacheService`, `EvaluationQueries`,
-   `EvaluationController`, `CacheReconciliationJob`, `CacheWarmUp` exist only in the old session's
-   scratchpad; rebuild them from spec 7 if missing. Tests first: unit (cache hit/miss/load,
-   negative 30 s with a Clock-based ticker, concurrent miss = one query, write-through per change
-   type, failure -> invalidate, revision), ITs tagged AC-EVAL-3/5/6/7, AC-CACHE-1..8 with a
-   `@MockitoSpyBean` on `EvaluationQueries` counting queries.
-2. M5: `DatabaseCleaner` also calls `FlagCacheService.reloadAll()`; `ff_evaluations_total`, client id
-   in the request log, `ff_readiness_up`, reconcile metrics, `featureflags.cache.reconcile-cron`
-   (`FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`), percentiles histogram for http requests.
-3. M5 end: gate 11 smoke (`scripts/smoke.sh`) must pass; `make verify`; audit (spec, test,
-   security, java reviewers).
+1. M6: set `scripts/current-milestone` to 6. UI foundation per spec 8.1-8.3, 8.5 (toasts), 8.7:
+   `src/api/apiClient.ts` (bearer, ApiError from problem details, 401 -> clear token + /login?expired=1),
+   `src/auth/token.ts` (sessionStorage `ff.accessToken`, decode exp), `RequireAuth`, routes, app shell
+   (top bar, Sign out, footer `v<version>`), login page (8.2 errors incl. 429 Retry-After),
+   components Modal/ConfirmDialog/Toggle/Toast/Button/TextField/EmptyState, tokens.css from designs.
+2. M6 tests (Vitest + RTL + MSW), tagged [AC-AUTH-1..4, 6]: login errors, success -> /groups,
+   no token -> /login, expired -> /login?expired=1, 401 -> redirect, sign out clears token.
+3. M6 end: gate 9 + gate 6 (70 % lines on src/features + src/api), `make verify`, audit (spec, test,
+   ecc:react-reviewer).
 
 ## Notes for M4/M5 (from the M2 audit)
 
