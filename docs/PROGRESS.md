@@ -16,4 +16,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | 2b3a6b7 | M2 | format fix for a0e498c | verify-fast PASS |
 | 2026-10-04 | 2620c39 | M2 | DTO records (6.2), request validation (4.2), PATCH omitted vs null | verify-fast PASS |
 | 2026-10-04 | 7a398b9 | M2 | ESC-001 applied (A), ESC-002 raised | docs only |
-| 2026-10-04 | (next commit) | M2 | M2 audit fixes: SecurityAuditor, RequestIdFilter, handler for framework errors, fixed test ids, profile seed IT, ArchUnit fixtures, git.commit.id in info | verify-fast PASS |
+| 2026-10-04 | ba19b68 | M2 | M2 audit fixes: SecurityAuditor, RequestIdFilter, handler for framework errors, fixed test ids, profile seed IT, ArchUnit fixtures, git.commit.id in info | verify-fast PASS |
+| 2026-10-04 | (next commit) | M2 | M2: complete | verify PASS (full) |
