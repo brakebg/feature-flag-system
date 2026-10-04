@@ -42,6 +42,7 @@ done. Do not rewrite this file; propose changes through an escalation (spec 12.5
 | `CLAUDE.md` | Owner only |
 | `docs/VALIDATION.md` | Owner only. Your work is also checked outside this repo |
 | `decisions/**` | Owner decisions. Not your `docs/DECISIONS.md` |
+| `docs/builder-prompt.md`, `docs/builder-agents.md`, `.claude/agents/**` | Owner only. Your prompts, expert agents and review rules |
 | `docs/acceptance-criteria.md` | Created once in M1 as a verbatim copy, then read-only |
 | Banned-dependency lists (Maven Enforcer, `scripts/check-npm-deps.mjs`) | Spec 11.3 gate 4 |
 | Thresholds: coverage, mutation score, perf, `maxDiffPixelRatio`, retries | Must equal spec values |
@@ -115,8 +116,9 @@ implement with tests → `make verify-fast` → green → update `docs/STATE.md`
   `AC: AC-FLAG-3, AC-FLAG-4` and `Spec: 6.1, 7.2`.
 - Cannot get green before the session must stop → push to `wip/<short-name>`, list it
   in `STATE.md`. Only green chunks go to `feature/feature-flag-service`.
-- Milestone end: full `make verify` green → `STATE.md` → commit `M<n>: complete` →
-  PR comment with summary (built, gate results, decisions, blockers).
+- Milestone end: full `make verify` green → milestone audit (section 6a) → `STATE.md` →
+  commit `M<n>: complete` → PR comment with summary (built, gate results, audit result,
+  decisions, blockers).
 
 On failure: open `build/verify-report.md`, take the first failing gate, read the failing
 test and its AC, fix production code.
@@ -124,6 +126,19 @@ test and its AC, fix production code.
 Stuck rule: same gate, same error, 5 attempts → revert to last green commit, try another
 approach. After 3 approaches → `docs/BLOCKERS.md`, continue with independent work.
 More than 20 failed `make verify` runs in one milestone → Level 3 escalation.
+
+## 6a. Expert agents and final review
+
+Follow `docs/builder-agents.md`. In short:
+
+- Read-only expert agents in `.claude/agents/` review your work with fresh eyes; vendor
+  agents add language checks when the session has them. You write all code and tests
+  yourself; agents only review and search. The spec wins over any agent's advice.
+- Each milestone end: run the milestone audit (that file, section 5). Fix every BLOCKER
+  and CRITICAL finding before `M<n>: complete`.
+- After M8: run the final review (that file, section 6) into
+  `docs/reviews/final-review.md`. Fix every BLOCKER and CRITICAL finding test-first, then
+  re-check. Only then tick spec 12.3 and mark the PR ready.
 
 ## 7. Commands (created in M1)
 

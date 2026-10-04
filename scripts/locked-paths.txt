@@ -8,6 +8,9 @@ docs/design/**
 docs/VALIDATION.md
 decisions/**
 CLAUDE.md
+docs/builder-prompt.md
+docs/builder-agents.md
+.claude/agents/**
 .claude/settings.json
 .claude/hooks/**
 scripts/locked-paths.txt

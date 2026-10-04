@@ -245,6 +245,7 @@ traces. Max 3 rounds per AC, then the owner decides.
 | `scripts/owner-review.sh` | Created and tested on a bad and a clean branch |
 | Edit-block hook | Created: `.claude/hooks/block_locked_files.py`, list in `scripts/locked-paths.txt`. Owner sessions: `FF_OWNER_SESSION=1 claude` |
 | `locked-files-guard.yml` | Created as a non-blocking alert (PR comment). Path comparison tested locally; the comment step runs only on GitHub |
+| Builder prompts, expert agents, final review | `docs/builder-prompt.md`, `docs/builder-agents.md`, `.claude/agents/` |
 | GitHub settings (6.2, 6.3) | Owner to set |
 | Account spend limit | Owner to set |
 

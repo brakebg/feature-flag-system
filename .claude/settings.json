@@ -1,4 +1,15 @@
 {
+  "enabledPlugins": {
+    "learning-output-style@claude-plugins-official": false,
+    "superpowers@claude-plugins-official": false
+  },
+  "env": {
+    "ECC_GATEGUARD": "off"
+  },
+  "claudeMdExcludes": [
+    "**/.claude/CLAUDE.md",
+    "**/.claude/rules/**"
+  ],
   "hooks": {
     "PreToolUse": [
       {
