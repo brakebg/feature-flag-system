@@ -43,7 +43,7 @@ export const gates = [
       {
         name: 'ArchUnit ArchitectureTest',
         cwd: 'backend',
-        cmd: `${mvn} test -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=true -Djacoco.skip=true`,
+        cmd: `${mvn} test -Dtest='Architecture*' -Dsurefire.failIfNoSpecifiedTests=true -Djacoco.skip=true`,
         junit: ['backend/target/surefire-reports'],
       },
     ],

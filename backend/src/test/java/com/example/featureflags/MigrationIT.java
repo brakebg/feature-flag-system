@@ -1,5 +1,6 @@
 package com.example.featureflags;
 
+import static com.example.featureflags.support.Ids.id;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -106,7 +107,7 @@ class MigrationIT {
   @Test
   void deletingAGroupCascadesToItsFlags() {
     JdbcTemplate db = freshDatabase("cascade", PROD);
-    UUID g = UUID.randomUUID();
+    UUID g = id(1);
     insertGroup(db, g, "orders");
     insertFlag(db, g, "new-checkout");
     insertFlag(db, g, "split-payments");
@@ -119,14 +120,14 @@ class MigrationIT {
   @Test
   void groupKeyIsUniqueAndFlagKeyIsUniqueWithinItsGroupOnly() {
     JdbcTemplate db = freshDatabase("uniques", PROD);
-    UUID a = UUID.randomUUID();
-    UUID b = UUID.randomUUID();
+    UUID a = id(1);
+    UUID b = id(2);
     insertGroup(db, a, "orders");
     insertGroup(db, b, "payments");
     insertFlag(db, a, "new-checkout");
     insertFlag(db, b, "new-checkout");
 
-    assertThatThrownBy(() -> insertGroup(db, UUID.randomUUID(), "orders"))
+    assertThatThrownBy(() -> insertGroup(db, id(3), "orders"))
         .isInstanceOf(DataIntegrityViolationException.class);
     assertThatThrownBy(() -> insertFlag(db, a, "new-checkout"))
         .isInstanceOf(DataIntegrityViolationException.class);
@@ -141,6 +142,42 @@ class MigrationIT {
                 + " WHERE table_name = 'audit_event' AND constraint_type = 'FOREIGN KEY'",
             Integer.class);
     assertThat(fks).isZero();
+
+    UUID g = id(1);
+    insertGroup(db, g, "orders");
+    insertFlag(db, g, "new-checkout");
+    db.update(
+        "INSERT INTO audit_event (occurred_at, actor, action, target_key, details)"
+            + " VALUES (now(), 'admin', 'FLAG_CREATED', 'orders.new-checkout',"
+            + " '{\"enabled\":false}'::jsonb)");
+    db.update("DELETE FROM flag_group WHERE id = ?", g);
+    assertThat(db.queryForObject("SELECT count(*) FROM audit_event", Integer.class)).isEqualTo(1);
+  }
+
+  @Test
+  void requiredColumnsAreNotNull() {
+    JdbcTemplate db = freshDatabase("not_null", PROD);
+    List<String> nullable =
+        db.queryForList(
+            "SELECT table_name || '.' || column_name FROM information_schema.columns"
+                + " WHERE table_schema = 'public' AND is_nullable = 'YES'"
+                + " AND table_name IN ('flag_group','feature_flag','audit_event')"
+                + " ORDER BY 1",
+            String.class);
+    assertThat(nullable)
+        .containsExactly(
+            "audit_event.details", "feature_flag.description", "flag_group.description");
+  }
+
+  @Test
+  void specIndexesExist() {
+    JdbcTemplate db = freshDatabase("indexes", PROD);
+    List<String> defs =
+        db.queryForList(
+            "SELECT indexdef FROM pg_indexes WHERE schemaname = 'public'", String.class);
+    assertThat(defs).anyMatch(d -> d.contains("ON public.feature_flag USING btree (group_id)"));
+    assertThat(defs)
+        .anyMatch(d -> d.contains("ON public.audit_event USING btree (occurred_at DESC"));
   }
 
   @Test
@@ -175,7 +212,8 @@ class MigrationIT {
     db.update(
         "INSERT INTO feature_flag (id, group_id, key, created_at, created_by, updated_at,"
             + " updated_by, version) VALUES (?, ?, ?, now(), 'test', now(), 'test', 0)",
-        UUID.randomUUID(),
+        UUID.nameUUIDFromBytes(
+            (group + "/" + key).getBytes(java.nio.charset.StandardCharsets.UTF_8)),
         group,
         key);
   }

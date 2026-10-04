@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -133,7 +134,7 @@ public class GlobalExceptionHandler {
           Problems.of(
               HttpStatus.CONFLICT, "duplicate-key", "Duplicate key", "Key already exists", req));
     }
-    return unexpected(e, req);
+    return internalError(e, req);
   }
 
   @ExceptionHandler({
@@ -168,8 +169,35 @@ public class GlobalExceptionHandler {
             req));
   }
 
+  /**
+   * Framework exceptions that carry their own status ({@code ResponseStatusException}, 406, ...).
+   * 404 stays not-found, 413 payload-too-large, other client errors are malformed requests, the
+   * rest is unexpected.
+   */
+  private ResponseEntity<ProblemDetail> frameworkError(
+      Exception e, ErrorResponse error, HttpServletRequest req) {
+    int status = error.getStatusCode().value();
+    if (status == HttpStatus.NOT_FOUND.value()) {
+      return notFound(e, req);
+    }
+    if (status == HttpStatus.PAYLOAD_TOO_LARGE.value()) {
+      return tooLarge(new PayloadTooLargeException(), req);
+    }
+    if (status >= 400 && status < 500) {
+      return malformed("Request is malformed", req);
+    }
+    return internalError(e, req);
+  }
+
   @ExceptionHandler(Exception.class)
   ResponseEntity<ProblemDetail> unexpected(Exception e, HttpServletRequest req) {
+    if (e instanceof ErrorResponse error) {
+      return frameworkError(e, error, req);
+    }
+    return internalError(e, req);
+  }
+
+  private ResponseEntity<ProblemDetail> internalError(Exception e, HttpServletRequest req) {
     String requestId = MDC.get(RequestIds.MDC_KEY);
     log.error(
         "Unexpected error on {} {} (requestId {})",

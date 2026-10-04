@@ -13,7 +13,9 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  * Clock}, cut to microseconds (the precision of PostgreSQL TIMESTAMPTZ).
  */
 @Configuration(proxyBeanMethods = false)
-@EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")
+@EnableJpaAuditing(
+    auditorAwareRef = "securityAuditor",
+    dateTimeProviderRef = "auditingDateTimeProvider")
 public class JpaAuditingConfig {
 
   @Bean

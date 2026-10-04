@@ -14,7 +14,6 @@ import jakarta.validation.Validator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -45,7 +44,6 @@ class RequestValidationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"Orders", "1abc", "a", "has space", "-ab", "ab_c", "ÿab"})
-  @Tag("AC-GRP-3")
   void keysFailingTheRegexAreRejected(String key) {
     assertThat(invalidFields(new CreateGroupRequest(key, "Name", null))).containsExactly("key");
     assertThat(invalidFields(new CreateFlagRequest(key, null, null))).containsExactly("key");
@@ -121,7 +119,26 @@ class RequestValidationTest {
   }
 
   @Test
+  void patchLengthsCountCodePoints() throws Exception {
+    String emoji = "\uD83D\uDE80";
+    assertThat(invalidFields(new UpdateGroupRequest(Optional.of(repeat(emoji, 100)), null, 0L)))
+        .isEmpty();
+    assertThat(invalidFields(new UpdateGroupRequest(Optional.of(repeat(emoji, 101)), null, 0L)))
+        .containsExactly("name");
+    assertThat(invalidFields(new UpdateGroupRequest(null, Optional.of(repeat(emoji, 500)), 0L)))
+        .isEmpty();
+    assertThat(invalidFields(new UpdateGroupRequest(null, Optional.of(repeat(emoji, 501)), 0L)))
+        .containsExactly("description");
+    assertThat(invalidFields(new UpdateFlagRequest(Optional.of(repeat(emoji, 500)), null, 0L)))
+        .isEmpty();
+    assertThat(invalidFields(new UpdateFlagRequest(Optional.of(repeat(emoji, 501)), null, 0L)))
+        .containsExactly("description");
+  }
+
+  @Test
   void versionIsRequiredAndNotNegative() throws Exception {
+    assertThat(invalidFields(mapper.readValue("{\"version\":-1}", UpdateGroupRequest.class)))
+        .containsExactly("version");
     assertThat(invalidFields(mapper.readValue("{}", UpdateGroupRequest.class)))
         .containsExactly("version");
     assertThat(invalidFields(mapper.readValue("{\"version\":-1}", UpdateFlagRequest.class)))

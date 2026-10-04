@@ -107,3 +107,17 @@ admin path) returns 404 `not-found`. Spec 9.1 has no 405 row. Raised as ESC-002.
 Spring Boot also lists the probe groups and the liveness / readiness contributors in the root
 health body. `HealthBodyFilter` keeps only `status` and `components.db`, so the body is
 exactly the 9.3 example. The disk-space, ping and SSL indicators are switched off.
+
+## D-014 · 2026-10-04 · 4.1, 4.3, 6.1 · Migration folders and one extra index
+
+- V1 lives in `db/migration/common`, V2 in `db/migration/dev`. Flyway scans sub-folders, so
+  V2 cannot sit next to V1 if only `dev` may run it. `application.yml` uses `common`;
+  `application-dev.yml` adds `dev` (spec 4.3 "via `spring.flyway.locations`").
+- Extra index `idx_audit_event_target_key (target_key varchar_pattern_ops)` for the `targetKey`
+  prefix filter of `GET /audit` (6.1, p95 < 300 ms in 9.2). The `occurred_at DESC` index also
+  holds `id DESC`, the tie-break of the 6.1 sort.
+
+## D-015 · 2026-10-04 · 4.1 · Security context before M3
+
+`SecurityAuditor` (the `AuditorAware` of spec 4.1) reads Spring Security's context, so
+`spring-security-core` is a dependency from M2. The web security starters come in M3.

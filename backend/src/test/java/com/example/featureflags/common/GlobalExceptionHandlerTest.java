@@ -1,5 +1,6 @@
 package com.example.featureflags.common;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Spec 9.1: one problem-details shape for every error. */
+@org.junit.jupiter.api.extension.ExtendWith(
+    org.springframework.boot.test.system.OutputCaptureExtension.class)
 class GlobalExceptionHandlerTest {
 
   private static final String BASE = "https://featureflags.local/problems/";
@@ -54,8 +57,18 @@ class GlobalExceptionHandlerTest {
       return "ok";
     }
 
+    @GetMapping("/t/size")
+    String size(@RequestParam @jakarta.validation.constraints.Min(1) int size) {
+      return "ok";
+    }
+
+    @PostMapping("/t/patch")
+    String patch(@Valid @RequestBody com.example.featureflags.group.UpdateGroupRequest body) {
+      return "ok";
+    }
+
     @GetMapping("/t/{what}")
-    String raise(@PathVariable String what) {
+    String raise(@PathVariable String what) throws Exception {
       throw switch (what) {
         case "not-found" -> new NotFoundException("no group 1");
         case "duplicate" -> new DuplicateKeyException("key", "Key already exists");
@@ -63,6 +76,18 @@ class GlobalExceptionHandlerTest {
         case "optimistic" -> new ObjectOptimisticLockingFailureException(Object.class, "1");
         case "unique" ->
             new DataIntegrityViolationException("x", new java.sql.SQLException("dup", "23505"));
+        case "fk" ->
+            new DataIntegrityViolationException("x", new java.sql.SQLException("fk", "23503"));
+        case "too-large-body" ->
+            new org.springframework.http.converter.HttpMessageNotReadableException(
+                "x",
+                new PayloadTooLargeException(),
+                new org.springframework.mock.http.MockHttpInputMessage(new byte[0]));
+        case "status-404" ->
+            new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND);
+        case "not-acceptable" ->
+            new org.springframework.web.HttpMediaTypeNotAcceptableException("application/xml");
         case "limit" -> new LimitReachedException("max 1000 groups");
         case "too-large" -> new PayloadTooLargeException();
         case "malformed" -> new MalformedRequestException("bad body");
@@ -110,6 +135,67 @@ class GlobalExceptionHandlerTest {
     expectProblem("/t/limit", 409, "limit-reached");
     expectProblem("/t/too-large", 413, "payload-too-large");
     expectProblem("/t/malformed", 400, "malformed-request");
+  }
+
+  @Test
+  void otherIntegrityViolationsAreNotDuplicateKeys() throws Exception {
+    expectProblem("/t/fk", 500, "internal");
+  }
+
+  @Test
+  void tooLargeBodyInsideAnUnreadableBodyIs413() throws Exception {
+    expectProblem("/t/too-large-body", 413, "payload-too-large");
+  }
+
+  @Test
+  void frameworkStatusExceptionsKeepTheirMeaning() throws Exception {
+    expectProblem("/t/status-404", 404, "not-found");
+    expectProblem("/t/not-acceptable", 400, "malformed-request");
+  }
+
+  @Test
+  void unsupportedMethodIsNotFound() throws Exception {
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/t/page"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value(BASE + "not-found"));
+  }
+
+  @Test
+  void patchFieldErrorsNameTheJsonProperty() throws Exception {
+    mvc.perform(
+            post("/t/patch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":null,\"version\":0}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value(BASE + "validation"))
+        .andExpect(jsonPath("$.errors[0].field").value("name"));
+    String longDescription = "\uD83D\uDE80".repeat(501);
+    mvc.perform(
+            post("/t/patch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"description\":\"" + longDescription + "\",\"version\":0}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0].field").value("description"));
+  }
+
+  @Test
+  void queryParameterConstraintNamesTheParameter() throws Exception {
+    mvc.perform(get("/t/size?size=0"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.type").value(BASE + "validation"))
+        .andExpect(jsonPath("$.errors[0].field").value("size"));
+  }
+
+  @Test
+  void unexpectedErrorIsLoggedWithTheCorrelationId(
+      org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+    org.slf4j.MDC.put(RequestIds.MDC_KEY, "rid-500");
+    try {
+      mvc.perform(get("/t/boom")).andExpect(status().isInternalServerError());
+    } finally {
+      org.slf4j.MDC.remove(RequestIds.MDC_KEY);
+    }
+    assertThat(output.getOut()).contains("rid-500");
   }
 
   @Test

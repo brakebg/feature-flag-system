@@ -43,6 +43,7 @@ CREATE TABLE audit_event (
     CONSTRAINT pk_audit_event PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_audit_event_occurred_at ON audit_event (occurred_at DESC);
+-- GET /audit sorts by occurred_at DESC, then id DESC (spec 6.1).
+CREATE INDEX idx_audit_event_occurred_at ON audit_event (occurred_at DESC, id DESC);
 -- Prefix filter on targetKey (spec 6.1 GET /audit).
 CREATE INDEX idx_audit_event_target_key ON audit_event (target_key varchar_pattern_ops);

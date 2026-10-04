@@ -38,9 +38,26 @@ class HealthIT {
   }
 
   @Test
-  void infoHasBuildVersion() throws Exception {
+  void infoHasBuildVersionFromVersionFileAndCommitId() throws Exception {
+    String version = java.nio.file.Files.readString(java.nio.file.Path.of("..", "VERSION")).strip();
     mvc.perform(get("/actuator/info"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.build.version").value("1.0.0"));
+        .andExpect(jsonPath("$.build.version").value(version))
+        .andExpect(
+            jsonPath("$.build.version")
+                .value(org.hamcrest.Matchers.matchesPattern("^\\d+\\.\\d+\\.\\d+$")))
+        .andExpect(
+            jsonPath("$.git.commit.id")
+                .value(org.hamcrest.Matchers.matchesPattern("^[0-9a-f]{7,40}$")));
+  }
+
+  @Test
+  void otherJsonResponsesPassTheHealthFilterUnchanged() throws Exception {
+    mvc.perform(get("/no/such/path"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.type").value("https://featureflags.local/problems/not-found"))
+        .andExpect(jsonPath("$.title").isString())
+        .andExpect(jsonPath("$.detail").isString())
+        .andExpect(jsonPath("$.instance").value("/no/such/path"));
   }
 }

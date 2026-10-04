@@ -40,7 +40,12 @@ public class HealthBodyFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
     chain.doFilter(request, wrapper);
-    JsonNode body = mapper.readTree(wrapper.getContentAsByteArray());
+    JsonNode body;
+    try {
+      body = mapper.readTree(wrapper.getContentAsByteArray());
+    } catch (IOException notJson) {
+      body = null;
+    }
     if (body == null || !body.has("status")) {
       wrapper.copyBodyToResponse();
       return;

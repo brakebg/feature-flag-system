@@ -29,9 +29,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. Package rule to avoid cycles: common <- audit <- group <- flag <- evaluation; group reads
+1. M2 end: `make verify`, then `M2: complete` + PR summary (audit done, fixes in).
+2. M3 (auth): security starters, `SecurityConfig`, login, token endpoint, JWT validation,
+   scope/audience rules (5.4), https-required (10.2), CORS. Update `HealthIT` unknown-path test
+   when "everything else" becomes 401 (spec 5.4).
+3. Package rule to avoid cycles: common <- audit <- group <- flag <- evaluation; group reads
    flags through a port interface in `group` implemented in `flag`.
-3. M2 end: `make verify`, audit (spec-auditor, test-auditor, ecc:java-reviewer, ecc:database-reviewer).
 
 ## Open escalations and blockers
 

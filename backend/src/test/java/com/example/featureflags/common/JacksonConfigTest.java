@@ -48,6 +48,18 @@ class JacksonConfigTest {
         .isInstanceOf(JsonProcessingException.class);
   }
 
+  record Primitive(boolean enabled) {}
+
+  @Test
+  void otherWrongTypesAreRejected() {
+    assertThatThrownBy(() -> mapper.readValue("{\"version\":true}", Body.class))
+        .isInstanceOf(JsonProcessingException.class);
+    assertThatThrownBy(() -> mapper.readValue("{\"version\":\"\"}", Body.class))
+        .isInstanceOf(JsonProcessingException.class);
+    assertThatThrownBy(() -> mapper.readValue("{\"enabled\":null}", Primitive.class))
+        .isInstanceOf(JsonProcessingException.class);
+  }
+
   @Test
   void correctTypesAndUnknownFieldsAreAccepted() throws Exception {
     Body b =
