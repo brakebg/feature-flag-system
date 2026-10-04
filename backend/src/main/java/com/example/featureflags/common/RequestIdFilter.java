@@ -25,6 +25,9 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(RequestIdFilter.class);
 
+  /** Set by the Evaluation API to the consumer's client id (JWT sub), logged per request. */
+  public static final String CLIENT_ATTRIBUTE = "ff.client";
+
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -40,13 +43,15 @@ public class RequestIdFilter extends OncePerRequestFilter {
       chain.doFilter(request, response);
     } finally {
       long ms = (System.nanoTime() - start) / 1_000_000;
+      Object client = request.getAttribute(CLIENT_ATTRIBUTE);
       log.info(
-          "{} {} {} {} ms requestId={}",
+          "{} {} {} {} ms requestId={}{}",
           request.getMethod(),
           request.getRequestURI(),
           response.getStatus(),
           ms,
-          id);
+          id,
+          client == null ? "" : " client=" + client);
       MDC.remove(RequestIds.MDC_KEY);
     }
   }

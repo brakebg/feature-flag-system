@@ -58,4 +58,14 @@ class RequestIdFilterTest {
         .containsPattern("\\d+ ms")
         .doesNotContain("secret=1");
   }
+
+  @Test
+  void logsTheEvaluationClientWhenSet(CapturedOutput output) throws Exception {
+    MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/v1/evaluate/flags");
+    filter.doFilter(
+        req,
+        new MockHttpServletResponse(),
+        (rq, rs) -> rq.setAttribute(RequestIdFilter.CLIENT_ATTRIBUTE, "order-service"));
+    assertThat(output.getOut()).contains("client=order-service");
+  }
 }

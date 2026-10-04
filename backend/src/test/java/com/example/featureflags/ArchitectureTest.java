@@ -68,11 +68,7 @@ class ArchitectureTest {
    */
   @ArchTest
   static final ArchRule evaluationReadsDatabaseOnlyInLoadersOrReconciliation =
-      classes()
-          .that()
-          .resideInAPackage("..evaluation..")
-          .should(onlyAccessDatabaseInLoaders())
-          .allowEmptyShould(true);
+      classes().that().resideInAPackage("..evaluation..").should(onlyAccessDatabaseInLoaders());
 
   @ArchTest
   static final ArchRule noPackageCycles =

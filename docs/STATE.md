@@ -4,8 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M5 Evaluation API — next (M4 complete)
-- `scripts/current-milestone`: 4 (set to 5 at the start of M5)
+- Milestone: M5 Evaluation API — in progress
+- `scripts/current-milestone`: 5
 
 ## Last green commit
 

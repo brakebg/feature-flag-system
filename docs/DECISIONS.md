@@ -193,3 +193,19 @@ threshold stays 60 %. Not an exclusion of production code.
   a write that races a group delete gets 404, not 409.
 - The audit purge logs the removed count even when a batch fails.
 - D-020 (PIT test set) and D-021's duplicate-before-limit order are raised as ESC-005.
+
+## D-023 · 2026-10-04 · 7.2, 9.3 · Evaluation cache details
+
+- `EvaluationQueries` (native SQL, one query per cache load) is the only database access of
+  the Evaluation API; it is called only by `FlagCacheService` loaders, `reloadAll` and the
+  reconciliation snapshot (gate 3 rule).
+- Negative entries expire after 30 s by a Caffeine expiry policy whose ticker is the injected
+  `Clock` (testable without sleeping); positive entries never expire.
+- A write for a group that is not cached (or cached as unknown) drops that group entry instead
+  of loading it; the next read loads it once.
+- The listener updates the cache first and then increments the revision, and the controller
+  reads the revision before the data, so a body is never older than its ETag.
+- `If-None-Match` accepts a list and weak tags (RFC 9110).
+- Readiness maps "refusing traffic" to `DOWN` (Spring Boot says `OUT_OF_SERVICE`), so the
+  probe returns 503 `{"status":"DOWN"}` exactly as 9.3 says. `ff_readiness_up` exports it.
+- The request log line gets `client=<sub>` on evaluation requests (9.3).

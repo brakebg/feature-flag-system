@@ -31,6 +31,8 @@ featureflags:
         scopes: [flags:read]
   cors-allowed-origins: ${FF_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   require-https: ${FF_REQUIRE_HTTPS:false}
+  cache:
+    reconcile-cron: ${FF_CACHE_RECONCILE_CRON:0 0 3 * * *}
   audit:
     retention: ${FF_AUDIT_RETENTION:P365D}
     purge-cron: ${FF_AUDIT_PURGE_CRON:0 30 3 * * *}
@@ -77,3 +79,8 @@ management:
   info:
     git:
       mode: simple
+  metrics:
+    distribution:
+      # Histogram buckets for the FFSlowEvaluation alert (p95 of /api/v1/evaluate/**).
+      percentiles-histogram:
+        http.server.requests: true
