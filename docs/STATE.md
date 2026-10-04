@@ -4,8 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M3 Auth — next (M2 complete)
-- `scripts/current-milestone`: 2 (set to 3 at the start of M3)
+- Milestone: M3 Auth — in progress
+- `scripts/current-milestone`: 3
 
 ## Last green commit
 
@@ -54,6 +54,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 ## Open escalations and blockers
 
 - ESC-001 resolved: A (owner comment 5979791924). Due milestones may only move earlier.
+- ESC-003 (open): NimbusJwtEncoder writes one-element aud as string (5.1 vs 5.2); option A (HmacJwtEncoder) in place.
 - ESC-002 (open): D-011 PATCH `enabled: null` -> 400 validation; D-012 unknown method -> 404. Not blocking.
 
 ## wip/ branches

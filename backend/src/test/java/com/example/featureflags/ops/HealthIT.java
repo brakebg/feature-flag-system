@@ -54,8 +54,8 @@ class HealthIT {
   @Test
   void otherJsonResponsesPassTheHealthFilterUnchanged() throws Exception {
     mvc.perform(get("/no/such/path"))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.type").value("https://featureflags.local/problems/not-found"))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.type").value("https://featureflags.local/problems/unauthorized"))
         .andExpect(jsonPath("$.title").isString())
         .andExpect(jsonPath("$.detail").isString())
         .andExpect(jsonPath("$.instance").value("/no/such/path"));

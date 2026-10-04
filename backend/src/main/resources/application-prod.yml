@@ -1,1 +1,3 @@
-# prod profile (spec 9.4).
+# prod profile (spec 9.4): HTTPS required for login and token unless FF_REQUIRE_HTTPS says otherwise.
+featureflags:
+  require-https: ${FF_REQUIRE_HTTPS:true}

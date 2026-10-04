@@ -120,4 +120,28 @@ exactly the 9.3 example. The disk-space, ping and SSL indicators are switched of
 ## D-015 · 2026-10-04 · 4.1 · Security context before M3
 
 `SecurityAuditor` (the `AuditorAware` of spec 4.1) reads Spring Security's context, so
-`spring-security-core` is a dependency from M2. The web security starters come in M3.
+`spring-security-core` was a dependency from M2. Replaced in M3 by the security and
+oauth2-resource-server starters (spec 2).
+
+## D-016 · 2026-10-04 · 9.4, 10.3 · `FF_REQUIRE_HTTPS` in docker-compose
+
+Compose passes `FF_REQUIRE_HTTPS: ${FF_REQUIRE_HTTPS:-false}` exactly as spec 10.3 says
+(9.4 dev default). A compose stack started with `SPRING_PROFILES_ACTIVE=prod` therefore keeps
+`false` unless `FF_REQUIRE_HTTPS` is set. Outside compose the `prod` profile defaults to
+`true` (`application-prod.yml`). Compose is a local dev tool (10.3). (M1 audit SA-11.)
+
+## D-017 · 2026-10-04 · 5.4 · Test change: HealthIT unknown path
+
+AC: none (gate support test `HealthIT.otherJsonResponsesPassTheHealthFilterUnchanged`).
+Old expectation: `GET /no/such/path` returns 404 `not-found`. Spec 5.4 ("Everything else:
+Denied", 401 without a valid token) makes it 401 `unauthorized` once security exists (M3).
+Fix: the test now expects 401 `unauthorized`; it still checks that the health filter leaves
+other problem bodies whole (type, title, detail, instance).
+
+## D-018 · 2026-10-04 · 5.2, 5.5 · Token endpoint details
+
+- Client authentication runs first; then `grant_type`, then `scope`. A body that is not
+  `application/x-www-form-urlencoded` gets `invalid_request` before anything else.
+- Client id and secret from the Basic header are form-url-decoded (RFC 6749 2.3.1).
+- A 401 `invalid_client` carries `WWW-Authenticate: Basic realm="feature-flag-service"`.
+- Login responses also carry `Cache-Control: no-store` (they hold a token).
