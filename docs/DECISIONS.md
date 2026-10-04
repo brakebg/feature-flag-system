@@ -162,3 +162,21 @@ other problem bodies whole (type, title, detail, instance).
   second (5.1 TTL is "1 second or more"; tokens carry whole seconds).
 - `ClientRegistration.toString()` leaves out the secret.
 - `spring-boot-configuration-processor` removed (not in the spec stack).
+
+## D-020 · 2026-10-04 · 11.3 gate 7 · PIT runs the unit tests
+
+PIT mutates the `auth`, `group`, `flag` and `evaluation` packages (spec) and runs the unit
+tests (`targetTests` = `com.example.featureflags.*Test`). The Testcontainers integration tests
+(`*IT`) start a database and a Spring context and would run for hours per mutant. The services
+and controllers have fast unit tests (mocked repositories, standalone MockMvc) for this. The
+threshold stays 60 %. Not an exclusion of production code.
+
+## D-021 · 2026-10-04 · 6.1, 6.2 · Admin API details
+
+- `GET /audit` returns Spring Data's `PagedModel` (the VIA_DTO page shape of 6.2).
+- `GET /groups?sort=` (empty value) is an unknown sort value: 400 `validation`, field `sort`.
+  An omitted `sort` is `key`.
+- POST /groups checks the duplicate key before the 1,000-group limit; POST flags checks the
+  duplicate key before the 500-flag limit. Group creation takes a PostgreSQL advisory lock and
+  flag creation locks the group row, so the limits hold under concurrent requests.
+- `ff_admin_writes_total{action}` is incremented in `AuditService.record` (spec 9.3).

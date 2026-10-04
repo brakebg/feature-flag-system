@@ -48,8 +48,7 @@ class ArchitectureTest {
           .should()
           .dependOnClassesThat()
           .areAssignableTo(Repository.class)
-          .because("controllers never touch repositories (spec 9.5)")
-          .allowEmptyShould(true);
+          .because("controllers never touch repositories (spec 9.5)");
 
   @ArchTest
   static final ArchRule noEntityInControllerSignatures =
@@ -61,8 +60,7 @@ class ArchitectureTest {
           .areDeclaredInClassesThat()
           .areAnnotatedWith(Controller.class)
           .should(notExposeEntities())
-          .because("entities never leave the service layer (spec 9.5)")
-          .allowEmptyShould(true);
+          .because("entities never leave the service layer (spec 9.5)");
 
   /**
    * Evaluation API code reads the database only in the {@code FlagCacheService} loaders (methods
@@ -89,8 +87,7 @@ class ArchitectureTest {
           .beAnnotatedWith(Value.class)
           .orShould()
           .beAnnotatedWith(Resource.class)
-          .because("use constructor injection")
-          .allowEmptyShould(true);
+          .because("use constructor injection");
 
   private static ArchCondition<JavaMethod> notExposeEntities() {
     return new ArchCondition<>("not have an @Entity in its signature") {

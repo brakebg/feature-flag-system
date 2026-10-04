@@ -4,8 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M4 Admin API — next (M3 complete)
-- `scripts/current-milestone`: 3 (set to 4 at the start of M4)
+- Milestone: M4 Admin API — in progress
+- `scripts/current-milestone`: 4
 
 ## Last green commit
 

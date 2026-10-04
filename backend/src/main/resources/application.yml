@@ -31,6 +31,9 @@ featureflags:
         scopes: [flags:read]
   cors-allowed-origins: ${FF_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   require-https: ${FF_REQUIRE_HTTPS:false}
+  audit:
+    retention: ${FF_AUDIT_RETENTION:P365D}
+    purge-cron: ${FF_AUDIT_PURGE_CRON:0 30 3 * * *}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -38,6 +41,11 @@ server:
   tomcat:
     # Spec 9.2: request body max 65,536 bytes (BodySizeLimitFilter answers 413).
     max-http-form-post-size: 64KB
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  writer-with-order-by-keys: true
 
 logging:
   structured:
