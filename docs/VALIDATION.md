@@ -149,7 +149,7 @@ builder's tests and PIT.
 | Item | Where | Why the builder cannot change it |
 | --- | --- | --- |
 | `docs/SPEC.md`, `docs/design/**`, `CLAUDE.md`, this file, `decisions/**` | `main` branch | The builder works on `feature/feature-flag-service`; `main` keeps the owner's copy |
-| Locked paths list, hook, review script | `scripts/locked-paths.txt`, `.claude/hooks/`, `scripts/owner-review.sh` | Hook blocks edits; owner runs the `main` copy |
+| Locked paths list, review script | `scripts/locked-paths.txt`, `scripts/owner-review.sh` | Changes show in the `locked-files-guard` PR comment; owner runs the `main` copy |
 | Black-box acceptance suite | Separate private repo | The builder never sees it |
 
 CI on the builder's branch is NOT trusted: the builder can edit `.github/workflows/ci.yml`
@@ -243,7 +243,7 @@ traces. Max 3 rounds per AC, then the owner decides.
 | Validation model | Decided: `decisions/0001` (single builder + black-box acceptance suite) |
 | Black-box acceptance suite repo `feature-flag-acceptance` | Skeleton created; tests not written yet |
 | `scripts/owner-review.sh` | Created and tested on a bad and a clean branch |
-| Edit-block hook | Created: `.claude/hooks/block_locked_files.py`, list in `scripts/locked-paths.txt`. Owner sessions: `FF_OWNER_SESSION=1 claude` |
+| Edit-block hook | Removed (`decisions/0006`). Locked files are checked only on the PR: `locked-files-guard` comment, then `scripts/owner-review.sh` |
 | `locked-files-guard.yml` | Created as a non-blocking alert (PR comment). Path comparison tested locally; the comment step runs only on GitHub |
 | Builder prompts, expert agents, final review | `docs/builder-prompt.md`, `docs/builder-agents.md`, `.claude/agents/` |
 | GitHub settings (6.2, 6.3) | Owner to set |

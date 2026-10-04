@@ -1,5 +1,5 @@
 # Owner-only paths. The builder agent must never change them.
-# Read by .claude/hooks/block_locked_files.py (blocks edits during a session)
+# Read by .github/workflows/locked-files-guard.yml (PR comment, main's copy)
 # and by scripts/owner-review.sh (checks the branch history from main).
 # One path per line; "/**" = everything below. "create-once" = the agent may create
 # the file once (M1) but never change or delete it afterwards.
@@ -12,7 +12,6 @@ docs/builder-prompt.md
 docs/builder-agents.md
 .claude/agents/**
 .claude/settings.json
-.claude/hooks/**
 scripts/locked-paths.txt
 scripts/owner-review.sh
 .github/workflows/locked-files-guard.yml

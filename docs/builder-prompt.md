@@ -52,7 +52,7 @@ every endpoint). It can also read the private suite. So the builder gets its own
    git clone https://github.com/<you>/feature-flag-system.git ~/dev/ff-build
    ```
 
-5. **Start the session** (do NOT set `FF_OWNER_SESSION`, or the locked-file hook is off):
+5. **Start the session:**
 
    ```bash
    cd ~/dev/ff-build
