@@ -24,4 +24,6 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | 400b82a | M4 | Admin API: groups, flags, audit, purge job, events, springdoc, openapi.json + schema.d.ts, unit tests for PIT | verify-fast PASS |
 | 2026-10-04 | a486511 | M4 | audit fixes: OpenAPI optionality, audit paging edge, flag row locks, purge log, test hardening; ESC-005 | verify-fast PASS |
 | 2026-10-04 | 00620e0 | M4 | M4: complete | verify PASS (full) |
-| 2026-10-04 | (next commit) | M5 | evaluation API, flag cache (Caffeine, warm-up, write-through, reconciliation), ETag/304, metrics; smoke passes | verify-fast PASS |
+| 2026-10-04 | a66a808 | M5 | evaluation API, flag cache (Caffeine, warm-up, write-through, reconciliation), ETag/304, metrics; smoke passes | verify-fast PASS |
+| 2026-10-04 | c0c8d20 | M5 | schema.d.ts regenerated (gate 8) | verify FAIL gate 14 (PIT runs in tag log) |
+| 2026-10-04 | (next commit) | M5 | PIT mutant runs kept out of the gate 14 tag log | verify PASS (full) |

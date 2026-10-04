@@ -23,7 +23,10 @@ public class TagRecordingListener implements TestExecutionListener {
 
   @Override
   public void executionFinished(TestIdentifier id, TestExecutionResult result) {
-    if (!id.isTest() || !(id.getSource().orElse(null) instanceof MethodSource source)) {
+    // PIT runs the tests again against mutants; those results are not test results (gate 14).
+    if (Boolean.getBoolean("ff.tags.off")
+        || !id.isTest()
+        || !(id.getSource().orElse(null) instanceof MethodSource source)) {
       return;
     }
     String tags =

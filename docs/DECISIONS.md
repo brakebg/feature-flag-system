@@ -209,3 +209,9 @@ threshold stays 60 %. Not an exclusion of production code.
 - Readiness maps "refusing traffic" to `DOWN` (Spring Boot says `OUT_OF_SERVICE`), so the
   probe returns 503 `{"status":"DOWN"}` exactly as 9.3 says. `ff_readiness_up` exports it.
 - The request log line gets `client=<sub>` on evaluation requests (9.3).
+
+## D-024 · 2026-10-04 · 11.3 gates 7, 14 · PIT runs are not test results
+
+The JUnit tag listener (gate 14 input) is switched off inside PIT's mutant runs
+(`-Dff.tags.off=true` in the PIT `jvmArgs`); a killed mutant is a failing test run by design and
+must not show as a failing acceptance test. Normal test runs are recorded as before.

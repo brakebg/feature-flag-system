@@ -256,6 +256,10 @@
           </targetTests>
           <threads>4</threads>
           <mutationThreshold>60</mutationThreshold>
+          <!-- Mutant runs must not be recorded as test results for gate 14. -->
+          <jvmArgs>
+            <value>-Dff.tags.off=true</value>
+          </jvmArgs>
           <timestampedReports>false</timestampedReports>
           <outputFormats>
             <param>HTML</param>
