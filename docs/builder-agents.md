@@ -164,7 +164,9 @@ the session ends.
    `AC:` and `Spec:` trailers. Push.
 4. Set the finding to `fixed` with the commit SHA in the report. Update `docs/STATE.md`.
 
-### Step 5: re-check (round 2)
+### Step 5: re-check (rounds 2 to 4)
+
+Round 1 is step 1. Steps 4 and 5 repeat at most 3 times (rounds 2, 3 and 4).
 
 1. `make verify-all` green.
 2. Run again only the agents that reported a BLOCKER or CRITICAL (project or vendor). Give each: the git
@@ -175,16 +177,25 @@ the session ends.
    - `accept rejection`: done.
    - `still holds` on a rejection: status `disputed`. Do not argue further. The owner
      decides at the final review.
-4. At most 2 rounds in total. After round 2, every BLOCKER or CRITICAL that is still not
-   `fixed` goes to `docs/BLOCKERS.md` and the final PR comment.
+4. After round 4 (3 fix attempts), every BLOCKER or CRITICAL that is still not `fixed`
+   gets status `blocked`:
+   - add it to `docs/BLOCKERS.md`;
+   - raise one Level 3 escalation for all `blocked` findings (spec 12.5, trigger 3: the
+     final review is the last step, so all remaining work depends on it);
+   - write the ESC ID in the report row.
+5. When the owner answers, apply the answer. The finding becomes `fixed` (with the commit
+   SHA), or `owner-accepted` if the owner accepts it as it is.
 
 ### Step 6: finish
 
 1. `make verify-all` green. Commit the final `docs/verify-report.md`.
 2. Tick spec 12.3.
-3. The report shows no BLOCKER or CRITICAL with status `open` or `confirmed`.
+3. The report shows no BLOCKER or CRITICAL with status `open`, `confirmed` or `blocked`.
+   While a `blocked` escalation is open, do not mark the PR ready: follow spec 12.5 flow
+   step 6 (post `[WAITING] all remaining work blocked by ESC-<NNN>` and end the session).
 4. Mark the PR ready for review. Post the final PR comment: what was built, gate results,
-   review counts per severity (fixed / rejected / disputed / escalated / open MAJOR),
+   review counts per severity (fixed / rejected / disputed / escalated / owner-accepted /
+   open MAJOR),
    decisions, blockers.
 5. Stop. Never merge.
 
@@ -193,15 +204,15 @@ the session ends.
 ```markdown
 # Final review
 
-Range: main...<sha>   Round: 1 | 2   Date: <ISO date>
+Range: main...<sha>   Round: 1 | 2 | 3 | 4   Date: <ISO date>
 
 ## Summary
-| Severity | Total | Fixed | Rejected | Disputed | Escalated | Open |
-| --- | --- | --- | --- | --- | --- | --- |
-| BLOCKER | | | | | | |
-| CRITICAL | | | | | | |
-| MAJOR | | | | | | |
-| MINOR | | | | | | |
+| Severity | Total | Fixed | Rejected | Disputed | Escalated | Blocked | Owner-accepted | Open |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BLOCKER | | | | | | | | |
+| CRITICAL | | | | | | | | |
+| MAJOR | | | | | | | | |
+| MINOR | | | | | | | | |
 
 ## Findings
 | ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |

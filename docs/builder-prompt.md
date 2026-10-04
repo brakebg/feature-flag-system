@@ -130,8 +130,8 @@ BLOCKER and CRITICAL finding test-first, with the gates green.
 
 You are done when all of these are true:
 - every box in spec 12.3 is ticked;
-- docs/reviews/final-review.md has no BLOCKER or CRITICAL finding that is open
-  or confirmed;
+- docs/reviews/final-review.md has no BLOCKER or CRITICAL finding that is open,
+  confirmed or blocked;
 - make verify-all is green and docs/verify-report.md is committed;
 - the PR is marked ready for review and has the final summary comment.
 Then stop. Never merge a PR and never enable auto-merge.
@@ -159,7 +159,7 @@ docs/builder-prompt.md section 2. Continue autonomously until done.
 ## 4. After the builder stops (owner)
 
 1. Read the final PR comment and `docs/reviews/final-review.md`. Decide each `disputed`
-   and `escalated` finding.
+   and `escalated` finding, and answer each escalation for `blocked` findings.
 2. Clone the suite again next to this repo (`../feature-flag-acceptance`, or set
    `ACCEPTANCE_DIR`). Run `scripts/owner-review.sh` from a clean `main`
    (`docs/VALIDATION.md` section 7).
