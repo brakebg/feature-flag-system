@@ -132,10 +132,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluate/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["all"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluate/flags/{groupKey}/{flagKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["flag"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluate/groups/{groupKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["group"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AllFlags: {
+            flags: {
+                [key: string]: boolean;
+            };
+            /** Format: int64 */
+            revision: number;
+        };
         AuditEventView: {
             action: string;
             actor: string;
@@ -207,6 +262,14 @@ export interface components {
             /** Format: int64 */
             version: number;
         };
+        GroupFlags: {
+            flags: {
+                [key: string]: boolean;
+            };
+            group: string;
+            /** Format: int64 */
+            revision: number;
+        };
         GroupSummary: {
             createdBy: string;
             description?: string;
@@ -227,6 +290,10 @@ export interface components {
         LoginRequest: {
             password: string;
             username: string;
+        };
+        OneFlag: {
+            enabled: boolean;
+            key: string;
         };
         PageMetadata: {
             /** Format: int64 */
@@ -543,6 +610,77 @@ export interface operations {
                 };
                 content: {
                     "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    all: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AllFlags"];
+                };
+            };
+        };
+    };
+    flag: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path: {
+                groupKey: string;
+                flagKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OneFlag"];
+                };
+            };
+        };
+    };
+    group: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path: {
+                groupKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GroupFlags"];
                 };
             };
         };
