@@ -4,38 +4,35 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M4 Admin API — in progress
-- `scripts/current-milestone`: 4
+- Milestone: M5 Evaluation API — next (M4 complete)
+- `scripts/current-milestone`: 4 (set to 5 at the start of M5)
 
 ## Last green commit
 
-- e7dc662 (M3 audit fixes; full `make verify` PASS). `M3: complete` follows it.
+- a486511 (M4 audit fixes; full `make verify` PASS). `M4: complete` follows it.
 
 ## Last full `make verify`
 
-- 2026-10-04 on e7dc662: PASS. Active and green: 1-6, 10, 14, 15. Inactive: 7, 8 (M4), 9 (M6), 11 (M5), 12, 13 (M8).
+- 2026-10-04 on a486511: PASS. Active and green: 1-8, 10, 14, 15. Inactive: 9 (M6), 11 (M5), 12, 13 (M8).
 
-## Chunks done in M3
+## Chunks done in M4
 
-- b0aec95 auth: config + fail-fast, TokenIssuer (HmacJwtEncoder, ESC-003), login, token endpoint,
-  SecurityConfig (5.4), https-required, CORS, admin no-store, prod WARN.
-- e7dc662 audit fixes: decoded-path filters, bearer only on protected paths, 413 body limit,
-  default cache headers elsewhere, blank secret / fractional TTL fail, evaluate rule tests.
+- 400b82a Admin API (groups, flags, audit, purge, events, springdoc, openapi.json, schema.d.ts).
+- a486511 audit fixes: OpenAPI optionality, audit paging edge, flag row locks, purge log, tests.
 
 ## Next 3 steps
 
-1. M4: set `scripts/current-milestone` to 4. Unit tests first (Mockito) for GroupService,
-   FlagService, AuditService (PIT gate 7 needs >= 60 % on auth/group/flag/evaluation; plan:
-   PIT `targetTests` = `*Test` unit tests only, record in DECISIONS). Then MockMvc ITs per 6.1
-   endpoint with every ERR tag (`ERR-<METHOD>-/admin/...-<status>`, list in trace-registry).
-2. M4: services and controllers (6.1, 6.2): groups list (q, sort), create (limit 1000, advisory
-   lock), detail (flags sorted by code point), PATCH (version first, no-op), delete (audit
-   deletedFlags), flags create (limit 500, lock group row), PATCH, toggle, delete; audit events
-   (4.1 details), `GET /audit` (VIA_DTO page, prefix filter escaped LIKE), purge job (AC-AUD-3),
-   `ff_admin_writes_total{action}`, `FlagsChangedEvent` published after each change (M5 listens).
-3. M4: springdoc (dev only; prod 404), `OpenApiExportIT` writes `backend/openapi.json`,
-   `frontend/src/api/schema.d.ts` via openapi-typescript (gate 8). Then `make verify`, audit
-   (spec-auditor, test-auditor, security-reviewer, ecc:java-reviewer).
+1. M5: set `scripts/current-milestone` to 5. Drafts of `FlagCacheService`, `EvaluationQueries`,
+   `EvaluationController`, `CacheReconciliationJob`, `CacheWarmUp` exist only in the old session's
+   scratchpad; rebuild them from spec 7 if missing. Tests first: unit (cache hit/miss/load,
+   negative 30 s with a Clock-based ticker, concurrent miss = one query, write-through per change
+   type, failure -> invalidate, revision), ITs tagged AC-EVAL-3/5/6/7, AC-CACHE-1..8 with a
+   `@MockitoSpyBean` on `EvaluationQueries` counting queries.
+2. M5: `DatabaseCleaner` also calls `FlagCacheService.reloadAll()`; `ff_evaluations_total`, client id
+   in the request log, `ff_readiness_up`, reconcile metrics, `featureflags.cache.reconcile-cron`
+   (`FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`), percentiles histogram for http requests.
+3. M5 end: gate 11 smoke (`scripts/smoke.sh`) must pass; `make verify`; audit (spec, test,
+   security, java reviewers).
 
 ## Notes for M4/M5 (from the M2 audit)
 

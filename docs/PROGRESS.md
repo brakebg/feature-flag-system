@@ -22,4 +22,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | e7dc662 | M3 | audit fixes: decoded-path filters, bearer resolver on protected paths, 413 limit, default cache headers, startup checks, evaluate rule tests; ESC-004 | verify-fast PASS |
 | 2026-10-04 | 227dd7e | M3 | M3: complete | verify PASS (full) |
 | 2026-10-04 | 400b82a | M4 | Admin API: groups, flags, audit, purge job, events, springdoc, openapi.json + schema.d.ts, unit tests for PIT | verify-fast PASS |
-| 2026-10-04 | (next commit) | M4 | audit fixes: OpenAPI optionality, audit paging edge, flag row locks, purge log, test hardening; ESC-005 | verify-fast PASS |
+| 2026-10-04 | a486511 | M4 | audit fixes: OpenAPI optionality, audit paging edge, flag row locks, purge log, test hardening; ESC-005 | verify-fast PASS |
+| 2026-10-04 | (next commit) | M4 | M4: complete | verify PASS (full) |
