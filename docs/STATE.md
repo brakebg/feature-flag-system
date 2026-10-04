@@ -48,6 +48,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Notes for the next session
 
+- Lesson: chain `make verify-fast && git commit` so a red run never gets committed (a0e498c was).
+
 - Java 21 is found by `scripts/lib/java-env.mjs` (here `~/.sdkman/candidates/java/21.0.12-amzn`);
   default `java` is 25 and Maven Enforcer requires 21. For manual Maven runs:
   `JAVA_HOME=$(node scripts/lib/java-env.mjs) ./mvnw ...`.
