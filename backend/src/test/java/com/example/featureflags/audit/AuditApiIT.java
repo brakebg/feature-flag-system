@@ -108,6 +108,13 @@ class AuditApiIT extends AdminApiTest {
     assertThat(huge.get("page").get("totalElements").asInt()).isEqualTo(5);
     assertThat(huge.get("page").get("number").asInt()).isEqualTo(2147483647);
     admin.get("/audit?size=1&page=0").andExpect(status().isOk());
+    // BF-2: a whole number beyond the int range is still a page past the end (6.1).
+    for (String page : new String[] {"2147483648", "99999999999999999999999"}) {
+      JsonNode beyond =
+          admin.body(admin.get("/audit?size=2&page=" + page).andExpect(status().isOk()));
+      assertThat(beyond.get("content")).isEmpty();
+      assertThat(beyond.get("page").get("totalElements").asInt()).isEqualTo(5);
+    }
   }
 
   @Test
@@ -116,6 +123,10 @@ class AuditApiIT extends AdminApiTest {
     validation(admin.get("/audit?size=0"), "size");
     validation(admin.get("/audit?size=201"), "size");
     validation(admin.get("/audit?page=-1"), "page");
+    // BF-2: whole numbers outside the int range are numeric, so 400 validation (6.1).
+    validation(admin.get("/audit?size=99999999999"), "size");
+    validation(admin.get("/audit?size=-99999999999"), "size");
+    validation(admin.get("/audit?page=-99999999999"), "page");
     problem(admin.get("/audit?page="), 400, "malformed-request");
     problem(admin.get("/audit?size="), 400, "malformed-request");
     problem(admin.get("/audit?page=1.5"), 400, "malformed-request");

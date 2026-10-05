@@ -2,6 +2,8 @@ package com.example.featureflags.audit;
 
 import com.example.featureflags.common.FieldValidationException;
 import com.example.featureflags.common.MalformedRequestException;
+import java.math.BigInteger;
+import java.util.regex.Pattern;
 import org.springframework.data.web.PagedModel;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 public class AuditController {
+
+  private static final Pattern WHOLE_NUMBER = Pattern.compile("[+-]?\\d+");
+  private static final BigInteger INT_MIN = BigInteger.valueOf(Integer.MIN_VALUE);
+  private static final BigInteger INT_MAX = BigInteger.valueOf(Integer.MAX_VALUE);
 
   static final int DEFAULT_SIZE = 50;
   static final int MAX_SIZE = 200;
@@ -40,14 +46,19 @@ public class AuditController {
     return new PagedModel<>(audit.page(p, s, targetKey));
   }
 
+  /**
+   * Spec 6.1: a non-numeric value is malformed; any whole number is numeric, also beyond the int
+   * range (BF-2). Values are clamped to the int range: a clamped page is past the end (empty page),
+   * a clamped size or a negative page fails the range check (400 validation).
+   */
   private static int number(String name, String value, int fallback) {
     if (value == null) {
       return fallback;
     }
-    try {
-      return Integer.parseInt(value);
-    } catch (NumberFormatException e) {
+    if (!WHOLE_NUMBER.matcher(value).matches()) {
       throw new MalformedRequestException(name + " must be a whole number");
     }
+    BigInteger n = new BigInteger(value);
+    return n.max(INT_MIN).min(INT_MAX).intValueExact();
   }
 }
