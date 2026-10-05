@@ -35,4 +35,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | ed91f3c | M6 | footer version from VERSION / build arg (no hard-coded fallback) | verify-fast PASS |
 | 2026-10-05 | 9b4a89d | M6 | test audit fixes: lint option reverted, exact text checks, spinner/alert position/Back tests, App wiring test (D-027) | verify-fast PASS |
 | 2026-10-05 | ef7a64b | M6 | M6: complete | verify PASS (full) |
-| 2026-10-05 | (next commit) | M7 | UI features: groups pane, header, flags table, dialogs, toggle, delete confirmations, audit page; fake API tests | verify-fast PASS |
+| 2026-10-05 | 7b44d8a | M7 | UI features: groups pane, header, flags table, dialogs, toggle, delete confirmations, audit page; fake API tests | verify-fast PASS |
+| 2026-10-05 | (next commit) | M7 | Playwright: style checks, 5 screenshot baselines, fixtures (CSP check, cleanup), e2e.sh in Playwright image | verify-fast PASS; e2e 18/18 x2 |

@@ -29,16 +29,19 @@ export default defineConfig({
     },
     {
       name: 'chromium-narrow',
+      testIgnore: /screenshots\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 800, height: 900 } },
     },
     {
       name: 'firefox-desktop',
       grep: /@cross-browser/,
+      testIgnore: /screenshots\.spec\.ts/,
       use: { ...devices['Desktop Firefox'], viewport: desktop },
     },
     {
       name: 'webkit-desktop',
       grep: /@cross-browser/,
+      testIgnore: /screenshots\.spec\.ts/,
       use: { ...devices['Desktop Safari'], viewport: desktop },
     },
   ],

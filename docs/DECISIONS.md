@@ -256,3 +256,12 @@ with the router and the login page, so the old expectation no longer holds. Fix:
 deleted in 7d76ad0 without this entry (found by the M6 test audit, TA-1); it is now re-created with
 tests of the real `<App/>` wiring (`/login` shows the sign-in page, `/groups` without a token goes
 to `/login`). The login page tests cover the "Feature Flags" title.
+
+## D-028 · 2026-10-05 · 11.5, 11.6 · Playwright runs in its Docker image
+
+`scripts/e2e.sh` runs Playwright in `mcr.microsoft.com/playwright:v<same version>-noble`, so
+browsers, fonts and the screenshot baselines (`*-chromium-desktop-linux.png`) are the same on
+every machine and in CI. The browsers reach the stacks through `host.docker.internal`. The
+screenshot stack is seeded once, in a fixed order, by `scripts/lib/seed-shots.sh` (design sample
+data), so the audit-log screen is deterministic. Test keys are `e2e-<test id>-r<repeat>-...`
+(deterministic, no random data).
