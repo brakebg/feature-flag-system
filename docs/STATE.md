@@ -10,11 +10,11 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last green commit
 
-- 2ca0423 (M8 work; `make verify-all` PASS, all 15 gates).
+- e670c3c (`make verify-all` PASS, all 15 gates; report in docs/verify-report.md).
 
 ## Last full `make verify`
 
-- 2026-10-05 `make verify-all` on 2ca0423: PASS, gates 1-15 all active and green.
+- 2026-10-05 `make verify-all` on e670c3c: PASS, gates 1-15 (p95 2.8 ms, hit rate 1.0).
 
 ## Chunks done in M7
 
@@ -24,15 +24,15 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. Done: ESC-002..006 answers applied (D-040); `[RESOLVED]` comments posted.
-2. Then `make verify-all`, copy build/verify-report.md to docs/verify-report.md, commit.
-3. Then mark PR #3 ready for review and post the final summary comment (builder-agents 6 step 6).
+1. Done: ESC-002..006 applied (D-040), main merged + gate 13 report-only (D-041), verify-all PASS.
+2. PR #3 marked ready; final summary posted. Wait for the owner review.
+3. Optional (owner choice): fix the intermittent e2e host-port stall (see Open escalations).
 
 ## Final review status
 
 - docs/reviews/final-review.md, round 3 done. CRITICAL: 8 fixed, 1 rejected (SA-4, accepted by
   the re-check). BLOCKER: SA-1 fixed; SA-2 fixed (D-040). No CRITICAL open.
-- Last `make verify-all`: PASS on e92f5b6 (all 15 gates); copied to docs/verify-report.md.
+- Last `make verify-all`: PASS on e670c3c (all 15 gates); copied to docs/verify-report.md.
 
 ## M8 notes
 
@@ -83,7 +83,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last processed PR comment
 
-- 5994494178 (2026-10-05T12:31:26Z, builder [WAITING]); all owner answers up to it applied.
+- 5995056632 (2026-10-05, builder [RESOLVED ESC-006]); all owner answers up to it applied.
 
 ## Notes for the next session
 

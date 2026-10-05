@@ -48,3 +48,4 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | (this commit) | final | Final review rounds 1-3 done; ESC-007 resolved; docs/verify-report.md committed (verify-all PASS e92f5b6); waiting for ESC-002..006 | verify-all PASS |
 | 2026-10-05 | (this commit) | final | ESC-002..006 answers applied (D-040): env clients appended after yml clients (test-first), escalations closed | verify-fast PASS |
 | 2026-10-05 | (this commit) | final | Merged main (decision 0007); gate 13: p95 report-only, errors/checks/hit rate block, measurements in verify report (D-041) | verify-fast PASS |
+| 2026-10-05 | (this commit) | final | verify-all PASS on e670c3c (all 15 gates); report copied; PR marked ready | verify-all PASS |

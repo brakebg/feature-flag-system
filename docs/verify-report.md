@@ -1,30 +1,41 @@
 # Verify report
 
-Mode: `all` · Milestone: M8 · Commit: e92f5b6 · 2026-10-05T11:48:54.647Z
+Mode: `all` · Milestone: M8 · Commit: e670c3c · 2026-10-05T13:36:59.374Z
 
 **Result: PASS**
 
 | # | Gate | Status | Duration |
 | --- | --- | --- | --- |
-| 1 | Format and lint | pass | 4.1 s |
-| 2 | Compile and types | pass | 3.3 s |
-| 3 | Architecture rules | pass | 3.2 s |
-| 4 | Banned dependencies | pass | 1.2 s |
-| 5 | Backend tests | pass | 50.7 s |
-| 6 | Coverage | pass | 6.4 s |
-| 7 | Mutation testing | pass | 21.6 s |
-| 8 | API contract | pass | 23.9 s |
-| 9 | Frontend tests | pass | 9.0 s |
-| 10 | Secrets | pass | 35.4 s |
-| 11 | Docker smoke test | pass | 21.1 s |
-| 12 | End-to-end | pass | 156.1 s |
-| 13 | Performance | pass | 98.9 s |
+| 1 | Format and lint | pass | 4.7 s |
+| 2 | Compile and types | pass | 3.7 s |
+| 3 | Architecture rules | pass | 3.9 s |
+| 4 | Banned dependencies | pass | 1.1 s |
+| 5 | Backend tests | pass | 67.9 s |
+| 6 | Coverage | pass | 9.8 s |
+| 7 | Mutation testing | pass | 21.1 s |
+| 8 | API contract | pass | 14.2 s |
+| 9 | Frontend tests | pass | 5.9 s |
+| 10 | Secrets | pass | 28.9 s |
+| 11 | Docker smoke test | pass | 79.2 s |
+| 12 | End-to-end | pass | 146.4 s |
+| 13 | Performance | pass | 98.7 s |
 | 14 | Traceability | pass | 0.1 s |
 | 15 | Test integrity | pass | 0.2 s |
 
+## Gate 13 measurements
+
+| Measure | Value | Target | Blocks the gate |
+| --- | --- | --- | --- |
+| Requests | 12001 | 200 req/s for 60 s | - |
+| Error rate | 0 | 0 | yes |
+| Failed checks | 0 | 0 | yes |
+| Cache hit rate | 1.0000 | >= 0.99 | yes |
+| Evaluation p95 | 2.8 ms | < 50 ms (met) | no (decision 0007) |
+
+
 ## Traceability (gate 14)
 
-Milestone M8. Tests read: 509. Problems: 0. Pending (not yet due): 0.
+Milestone M8. Tests read: 513. Problems: 0. Pending (not yet due): 0.
 
 | ID | Status | Tests |
 | --- | --- | --- |
@@ -60,7 +71,7 @@ Milestone M8. Tests read: 509. Problems: 0. Pending (not yet due): 0.
 | AC-CACHE-6 | pass | ✓ junit: EvaluationIT.readinessIsDownUntilWarmUpHasFinished<br>✓ playwright:api: operations (spec 9.3, 10.2) › [AC-CACHE-6] readiness is UP once the stack serves traffic<br>✓ smoke: [AC-CACHE-6] readiness DOWN before warm-up, UP after |
 | AC-CACHE-7 | pass | ✓ junit: FlagCacheServiceTest.reconcileFixesDriftAndMovesTheRevision<br>✓ junit: EvaluationIT.directDatabaseChangeIsFixedByReconciliation |
 | AC-CACHE-8 | pass | ✓ junit: FlagCacheServiceTest.reconcileWithoutDriftChangesNothing<br>✓ junit: EvaluationIT.reconciliationWithoutDifferencesLogsNoWarnAndKeepsTheETag |
-| AC-CACHE-9 | pass | ✓ perf: [AC-CACHE-9] cache hit rate >= 99 % and p95 < 50 ms under 200 req/s |
+| AC-CACHE-9 | pass | ✓ perf: [AC-CACHE-9] cache hit rate >= 99 % and no errors under 200 req/s |
 | AC-AUD-1 | pass | ✓ junit: AdminFlagsIT.patchWritesExactlyOneFlagUpdatedEvent<br>✓ junit: AdminFlagsIT.createReturns201WithLocationFullKeyAndDefaultOff<br>✓ junit: AdminFlagsIT.toggleSetsTheValueAndIsIdempotent<br>✓ junit: AdminGroupsIT.patchUpdatesNameAndDescriptionAndWritesOneAuditEvent<br>✓ junit: AdminGroupsIT.deleteRemovesGroupAndFlagsAndAuditsTheFlagKeys<br>✓ junit: AuditApiIT.ownershipFollowsTheSignedInUserAndBodyFieldsAreIgnored<br>✓ junit: AuditApiIT.everyChangeWritesExactlyOneEventAndNoOpsWriteNone<br>✓ playwright:api: admin API (spec 4.3, 6, 9.2) › [AC-AUD-1] created/updated by the signed-in user, body fields ignored, one audit event per change, none for no-ops |
 | AC-AUD-2 | pass | ✓ junit: AuditApiIT.targetKeyIsACaseSensitiveLiteralPrefix<br>✓ junit: AuditApiIT.newestFirstThenHighestIdAndStablePageFormat<br>✓ vitest: src/features/audit/audit.test.tsx › audit page (spec 8.6) > [AC-AUD-2] lists events newest first with labels, filters by target key, and loads more<br>✓ vitest: src/features/audit/audit.test.tsx › audit page (spec 8.6) > [AC-AUD-2] FF-2: events that move to the next page because of new events are shown once<br>✓ playwright:chromium-desktop: audit log (spec 8.6) › [AC-AUD-2] lists events newest first and filters by target key prefix @cross-browser<br>✓ playwright:chromium-narrow: audit log (spec 8.6) › [AC-AUD-2] lists events newest first and filters by target key prefix @cross-browser<br>✓ playwright:firefox-desktop: audit log (spec 8.6) › [AC-AUD-2] lists events newest first and filters by target key prefix @cross-browser<br>✓ playwright:webkit-desktop: audit log (spec 8.6) › [AC-AUD-2] lists events newest first and filters by target key prefix @cross-browser |
 | AC-AUD-3 | pass | ✓ junit: AuditPurgeIT.nothingToPurge<br>✓ junit: AuditPurgeIT.deletesEventsOlderThan365DaysAndKeepsNewerOnes |
