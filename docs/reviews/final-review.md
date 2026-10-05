@@ -42,11 +42,11 @@ MAJOR
 | SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder (ESC-003 open) | open | Waits for ESC-003 |
 | SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | escalated | ESC-007 |
 | SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | escalated | ESC-007 |
-| FF-1 | MAJOR | frontend | hooks/queries.ts:146-150 | 8.5, AC-FLAG-3 | Refetch after one toggle can flip another in-flight optimistic toggle back | open | |
-| FF-2 | MAJOR | frontend | features/audit/AuditPage.tsx:57 | 8.6 | Load more by offset shows duplicate rows when new events arrive | open | |
-| FF-3 | MAJOR | frontend | components/Modal.tsx:17, GroupDialog, FlagDialog | 8.5 | Closing a dialog while its request runs loses a later field error (no toast) | open | |
-| FF-4, SF-M3 | MAJOR | frontend | hooks/queries.ts (delete hooks), DeleteFlagDialog, DeleteGroupDialog | 8.5 | Delete of an already deleted item: dialog stays, row stays, technical toast | open | |
-| TA-2 | MAJOR | tests | flags.test.tsx:259-268, GroupsPage.test.tsx:341-355 | AC-FLAG-6 | Refetch after 409 is asserted with data that is already on screen | open | |
+| FF-1 | MAJOR | frontend | hooks/queries.ts:146-150 | 8.5, AC-FLAG-3 | Refetch after one toggle can flip another in-flight optimistic toggle back | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
+| FF-2 | MAJOR | frontend | features/audit/AuditPage.tsx:57 | 8.6 | Load more by offset shows duplicate rows when new events arrive | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
+| FF-3 | MAJOR | frontend | components/Modal.tsx:17, GroupDialog, FlagDialog | 8.5 | Closing a dialog while its request runs loses a later field error (no toast) | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
+| FF-4, SF-M3 | MAJOR | frontend | hooks/queries.ts (delete hooks), DeleteFlagDialog, DeleteGroupDialog | 8.5 | Delete of an already deleted item: dialog stays, row stays, technical toast | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
+| TA-2 | MAJOR | tests | flags.test.tsx:259-268, GroupsPage.test.tsx:341-355 | AC-FLAG-6 | Refetch after 409 is asserted with data that is already on screen | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
 | TA-3, PT-3 | MAJOR | tests | evaluation/EvaluationIT.java:338-349 | 7.2 | Failed reconcile: ERROR level, ETag and last-success gauge not asserted | open | |
 | PT-1 | MAJOR | tests | FlagCacheServiceTest.java:229-252, EvaluationIT.java:200-211 | 7.2, AC-CACHE-4 | Deletes not checked to leave other entries in place | open | |
 | PT-2 | MAJOR | tests | FlagCacheServiceTest | 7.2 | No concurrent onChange test for one group | open | |
@@ -82,7 +82,7 @@ MINOR (optional; listed for the owner)
 | RR-3 | frontend | AuditPage.tsx:13 | One request per keystroke; table flickers | open |
 | RR-4 | frontend | LoginPage.tsx:34 | Blank username/password shows "Sign in failed" | open |
 | RR-5 | frontend | FlagTable.tsx:20 | Section and table share the name "Flags" | open |
-| RR-6, FF-5 | frontend | ConfirmDialog.tsx:70-78 | Cancel works while a delete runs | open |
+| RR-6, FF-5 | frontend | ConfirmDialog.tsx:70-78 | Cancel works while a delete runs | fixed |
 | FF-6 | frontend | RequireAuth.tsx:6-11 | Expired redirect does not clear the query cache | open |
 | FF-7 | frontend | queries.ts:63-70 | Extra GET of the deleted group | open |
 | FF-8 | frontend | GroupPanel.tsx and others | Components longer than 50 lines | open |

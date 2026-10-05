@@ -11,7 +11,11 @@ import styles from './AuditPage.module.css';
 export function AuditPage() {
   const [filter, setFilter] = useState('');
   const audit = useAudit(filter);
-  const events = audit.data?.pages.flatMap((p) => p.content) ?? [];
+  // FF-2: pages are offsets, so new events can push an event already shown onto the next page.
+  const seen = new Set<number>();
+  const events = (audit.data?.pages.flatMap((p) => p.content) ?? []).filter(
+    (e) => !seen.has(e.id) && seen.add(e.id),
+  );
 
   return (
     <main className={styles.main}>

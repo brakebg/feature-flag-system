@@ -55,10 +55,8 @@ export function useDeleteGroup() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => groupsApi.remove(id),
-    onSuccess: (_v, id) => {
-      qc.removeQueries({ queryKey: keys.group(id) });
-      return qc.invalidateQueries({ queryKey: keys.groups });
-    },
+    // FF-4: also after an error (for example 404: deleted by someone else) the list is refreshed.
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.groups }),
   });
 }
 
@@ -89,14 +87,14 @@ export function useDeleteFlag(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => flagsApi.remove(id),
-    onSuccess: () => {
+    onSettled: () => {
       void qc.invalidateQueries({ queryKey: keys.groups });
       return qc.invalidateQueries({ queryKey: keys.group(groupId) });
     },
   });
 }
 
-export const toggleKey = (flagId: string) => ['toggle', flagId] as const;
+export const toggleKey = (groupId: string, flagId: string) => ['toggle', groupId, flagId] as const;
 
 /**
  * Spec 8.5: optimistic toggle of one flag. On error only this flag is set back (a newer change of
@@ -129,7 +127,7 @@ export function useToggleFlag(groupId: string, flag: Flag) {
     }
   };
   return useMutation<Flag, Error, boolean>({
-    mutationKey: toggleKey(flag.id),
+    mutationKey: toggleKey(groupId, flag.id),
     mutationFn: (enabled) => flagsApi.toggle(flag.id, enabled),
     onMutate: async (enabled) => {
       await qc.cancelQueries({ queryKey: keys.group(groupId) });
@@ -145,11 +143,15 @@ export function useToggleFlag(groupId: string, flag: Flag) {
         old ? { ...old, flags: old.flags.map((f) => (f.id === updated.id ? updated : f)) } : old,
       );
     },
+    // FF-1: refetch only when this is the last toggle running in the group; an earlier refetch
+    // would overwrite the optimistic value of a toggle that is still in flight.
     onSettled: () =>
-      Promise.all([
-        qc.invalidateQueries({ queryKey: keys.group(groupId) }),
-        qc.invalidateQueries({ queryKey: keys.groups }),
-      ]),
+      qc.isMutating({ mutationKey: ['toggle', groupId] }) > 1
+        ? undefined
+        : Promise.all([
+            qc.invalidateQueries({ queryKey: keys.group(groupId) }),
+            qc.invalidateQueries({ queryKey: keys.groups }),
+          ]),
   });
 }
 

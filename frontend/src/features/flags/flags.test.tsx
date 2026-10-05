@@ -259,10 +259,17 @@ describe('flags (spec 8.4, 8.5)', () => {
     await act(() => client.invalidateQueries({ queryKey: ['group', g.id] }));
     expect(await screen.findByText('Changed elsewhere')).toBeInTheDocument();
     await user.type(within(dialog).getByLabelText('Description (optional)'), 'mine');
+    // TA-2: the refetch after the 409 is a new GET of the group, after the PATCH.
+    const getsBefore = api.calls.filter((c) => c.method === 'GET' && c.path.endsWith(g.id)).length;
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
     expect((await screen.findByRole('alert')).textContent).toBe(
       'This item was changed by someone else',
+    );
+    await waitFor(() =>
+      expect(
+        api.calls.filter((c) => c.method === 'GET' && c.path.endsWith(g.id)).length,
+      ).toBeGreaterThan(getsBefore),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(await screen.findByText('Changed elsewhere')).toBeInTheDocument();

@@ -54,7 +54,7 @@ function FlagRow({
 }) {
   const toggle = useToggleFlag(group.id, flag);
   // Spec 8.5: disabled while its request runs, also after the row is shown again.
-  const pending = useIsMutating({ mutationKey: toggleKey(flag.id) }) > 0;
+  const pending = useIsMutating({ mutationKey: toggleKey(group.id, flag.id) }) > 0;
 
   function change(enabled: boolean) {
     toggle.mutate(enabled);

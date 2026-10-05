@@ -341,10 +341,17 @@ describe('group header and edit (spec 8.4, 8.5)', () => {
     await act(() => client.invalidateQueries({ queryKey: ['group', g.id] }));
     expect(await screen.findByRole('heading', { name: 'Changed elsewhere' })).toBeInTheDocument();
     await user.type(within(screen.getByRole('dialog')).getByLabelText('Name'), '!');
+    // TA-2: the refetch after the 409 is a new GET of the group, after the PATCH.
+    const getsBefore = api.calls.filter((c) => c.method === 'GET' && c.path.endsWith(g.id)).length;
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect((await screen.findByRole('alert')).textContent).toBe(
       'This item was changed by someone else',
+    );
+    await waitFor(() =>
+      expect(
+        api.calls.filter((c) => c.method === 'GET' && c.path.endsWith(g.id)).length,
+      ).toBeGreaterThan(getsBefore),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({

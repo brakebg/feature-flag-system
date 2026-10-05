@@ -159,4 +159,38 @@ describe('audit page (spec 8.6)', () => {
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
     expect(client.getQueryCache().getAll()).toHaveLength(0);
   });
+
+  it('[AC-AUD-2] FF-2: events that move to the next page because of new events are shown once', async () => {
+    let all = Array.from({ length: 60 }, (_, i) =>
+      event(60 - i, 'FLAG_TOGGLED', `orders.f${60 - i}`),
+    );
+    server.use(
+      http.get('/api/v1/admin/audit', ({ request }) => {
+        const url = new URL(request.url);
+        const page = Number(url.searchParams.get('page'));
+        const size = Number(url.searchParams.get('size'));
+        return HttpResponse.json({
+          content: all.slice(page * size, page * size + size),
+          page: {
+            size,
+            number: page,
+            totalElements: all.length,
+            totalPages: Math.ceil(all.length / size),
+          },
+        });
+      }),
+    );
+    renderApp('/audit');
+    const table = await screen.findByRole('table', { name: 'Audit events' });
+    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(51));
+    // Three new events arrive: the old events 13, 12, 11 move from page 0 to page 1.
+    all = [63, 62, 61].map((id) => event(id, 'FLAG_TOGGLED', `orders.f${id}`)).concat(all);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Load more' }));
+    await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(61));
+    const targets = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((r) => r.textContent?.match(/orders\.f\d+/)?.[0]);
+    expect(new Set(targets).size).toBe(60);
+  });
 });

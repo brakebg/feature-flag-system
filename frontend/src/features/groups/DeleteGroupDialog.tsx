@@ -3,7 +3,7 @@ import type { GroupDetail } from '../../api/types';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/toastContext';
 import { useDeleteGroup } from '../../hooks/queries';
-import { errorText } from '../../lib/errors';
+import { errorText, isNotFound } from '../../lib/errors';
 import { flagCount } from '../audit/auditFormat';
 import styles from './DeleteGroupDialog.module.css';
 
@@ -32,6 +32,11 @@ export function DeleteGroupDialog({
       toast.success(`Group ${group.key} and ${flagCount(n)} deleted`);
       onDeleted();
     } catch (e) {
+      if (isNotFound(e)) {
+        toast.error(`Group ${group.key} was already deleted`);
+        onDeleted();
+        return;
+      }
       toast.error(errorText(e, 'Could not delete group'));
     }
   }

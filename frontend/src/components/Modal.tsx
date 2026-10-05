@@ -8,13 +8,21 @@ interface Props {
   children: ReactNode;
   footer: ReactNode;
   onSubmit?: () => void;
+  /** While the request runs the dialog cannot be closed, so its result is never lost (FF-3). */
+  busy?: boolean;
 }
 
-/** Spec 8.4: dialog named by its title, with a Close button; traps focus, Escape closes. */
-export function Modal({ title, onClose, children, footer, onSubmit }: Props) {
+/**
+ * Spec 8.4: dialog named by its title, with a Close button; traps focus, Escape closes (not while
+ * busy).
+ */
+export function Modal({ title, onClose, children, footer, onSubmit, busy = false }: Props) {
   const ref = useRef<HTMLFormElement>(null);
   const titleId = useId();
-  useFocusTrap(ref, onClose);
+  const close = () => {
+    if (!busy) onClose();
+  };
+  useFocusTrap(ref, close);
   return (
     <div className={styles.overlay}>
       <form
@@ -34,7 +42,13 @@ export function Modal({ title, onClose, children, footer, onSubmit }: Props) {
           <h2 id={titleId} className={styles.title}>
             {title}
           </h2>
-          <button type="button" aria-label="Close" className={styles.close} onClick={onClose}>
+          <button
+            type="button"
+            aria-label="Close"
+            className={styles.close}
+            onClick={close}
+            disabled={busy}
+          >
             <svg
               width="18"
               height="18"

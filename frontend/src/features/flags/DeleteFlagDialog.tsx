@@ -2,7 +2,7 @@ import type { Flag } from '../../api/types';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/toastContext';
 import { useDeleteFlag } from '../../hooks/queries';
-import { errorText } from '../../lib/errors';
+import { errorText, isNotFound } from '../../lib/errors';
 
 /** Spec 8.5 delete-flag confirmation. */
 export function DeleteFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => void }) {
@@ -15,6 +15,12 @@ export function DeleteFlagDialog({ flag, onClose }: { flag: Flag; onClose: () =>
       toast.success(`Flag ${flag.fullKey} deleted`);
       onClose();
     } catch (e) {
+      if (isNotFound(e)) {
+        // FF-4: someone else deleted it; the row goes away with the refreshed group.
+        toast.error(`Flag ${flag.fullKey} was already deleted`);
+        onClose();
+        return;
+      }
       toast.error(errorText(e, 'Could not delete flag'));
     }
   }

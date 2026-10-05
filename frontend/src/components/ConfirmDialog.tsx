@@ -68,7 +68,7 @@ export function ConfirmDialog({
         </div>
         {children && <div className={styles.body}>{children}</div>}
         <div className={styles.footer}>
-          <Button onClick={onCancel} data-autofocus>
+          <Button onClick={onCancel} disabled={busy} data-autofocus>
             Cancel
           </Button>
           <Button

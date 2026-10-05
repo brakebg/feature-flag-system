@@ -53,10 +53,13 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
     <Modal
       title={`New flag in ${group.name}`}
       onClose={onClose}
+      busy={create.isPending}
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} disabled={create.isPending}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="primary"
@@ -156,10 +159,13 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
     <Modal
       title="Edit flag"
       onClose={onClose}
+      busy={update.isPending}
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} disabled={update.isPending}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="primary"

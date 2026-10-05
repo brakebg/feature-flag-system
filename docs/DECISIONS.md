@@ -360,3 +360,16 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
 - SF-M1 (known limit, comment fixed): a write that commits while reconciliation loads its
   snapshot, and whose cache update still waits for the lock, shows as one drift WARN; the value
   set is the committed one either way.
+
+## D-035 · 2026-10-05 · 8.5, 8.6 · Final review frontend fixes
+
+- FF-1: after a toggle, the group is refetched only when it was the last toggle running in that
+  group, so an earlier refetch cannot flip a toggle that is still in flight.
+- FF-2: "Load more" skips events already shown (offset pages shift when new events arrive).
+- FF-3, FF-5: a dialog cannot be closed (Close, Cancel, Escape) while its request runs, so a
+  field error or toast is never lost.
+- FF-4: delete refreshes the group list after an error too. A 404 on delete means someone else
+  deleted it: the dialog closes with the error toast `Flag <fullKey> was already deleted` /
+  `Group <key> was already deleted` (spec silent on this text, Level 1); a group delete then goes
+  to `/groups` like a success.
+- TA-2: the AC-FLAG-6 tests now check that a new GET of the group follows the 409.

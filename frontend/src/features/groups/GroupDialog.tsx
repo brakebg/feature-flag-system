@@ -67,10 +67,13 @@ export function NewGroupDialog({
     <Modal
       title="New group"
       onClose={onClose}
+      busy={create.isPending}
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} disabled={create.isPending}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="primary"
@@ -139,10 +142,13 @@ export function EditGroupDialog({ group, onClose }: { group: GroupDetail; onClos
     <Modal
       title="Edit group"
       onClose={onClose}
+      busy={update.isPending}
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} disabled={update.isPending}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="primary"

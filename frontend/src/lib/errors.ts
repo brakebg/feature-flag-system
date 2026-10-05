@@ -45,3 +45,7 @@ export function errorText(error: unknown, fallback: string): string {
 export function loadErrorText(error: unknown, text: string): string {
   return error instanceof ApiError && error.isNetwork ? 'Cannot reach server' : text;
 }
+
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
