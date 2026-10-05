@@ -148,7 +148,7 @@ test.describe('groups (spec 8.4, 8.5)', () => {
       }[]
     ).filter((e) => e.action === 'GROUP_DELETED' && e.targetKey === key);
     expect(deleted).toHaveLength(1);
-    expect([...deleted[0].details.deletedFlags].sort()).toEqual([
+    expect(deleted[0].details.deletedFlags).toEqual([
       `${key}.new-checkout`,
       `${key}.split-payments`,
     ]);

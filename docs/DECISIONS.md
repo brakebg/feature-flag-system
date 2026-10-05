@@ -387,3 +387,13 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
 - IF-6: `make up` / `make build-images` skip the `sha-` tags with a warning outside a git checkout.
 - IF-4, SR-1: README states the ingress rules for `X-Forwarded-*`, that ports 8080/80 are reached
   only through the ingress, and the unprivileged-port sysctl for the UI image on Kubernetes.
+
+## D-037 · 2026-10-05 · 11 · Coverage scope and small review items
+
+- TA-4: spec 11 asks for line coverage >= 80 % "on `service` and `controller` packages". The code
+  is packaged by feature (9.5), so there are no such packages; the JaCoCo check counts classes
+  named `*Service` and `*Controller` (since M1, threshold 0.80 unchanged).
+- FF-6: `RequireAuth` re-checks the token on every navigation; an expired token also clears the
+  cached data, like a 401 and Sign out.
+- DC-2, DC-3: "(optional)" muted in all dialogs; no empty list box for a group with 0 flags.
+- IF-9: gate 8 compares the generated files with HEAD, not with the index.

@@ -98,10 +98,6 @@ public class TokenController {
   }
 
   /**
-   * {@code [clientId, secret]} from {@code Authorization: Basic}, form-url-decoded (RFC 6749
-   * 2.3.1).
-   */
-  /**
    * Checks the credentials as sent, then form-url-decoded (RFC 6749 2.3.1), so both plain and
    * encoded client secrets work.
    */

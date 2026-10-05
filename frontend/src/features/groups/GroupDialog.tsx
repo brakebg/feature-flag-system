@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { GroupDetail } from '../../api/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { OptionalLabel } from '../../components/OptionalLabel';
 import { TextField } from '../../components/TextField';
 import { useToast } from '../../components/toastContext';
 import { useCreateGroup, useUpdateGroup } from '../../hooks/queries';
@@ -94,7 +95,7 @@ export function NewGroupDialog({
       />
       <TextField label="Name" autoComplete="off" {...name} error={formState.errors.name?.message} />
       <TextField
-        label="Description (optional)"
+        label={<OptionalLabel text="Description" />}
         multiline
         {...register('description')}
         error={formState.errors.description?.message}
@@ -168,7 +169,7 @@ export function EditGroupDialog({ group, onClose }: { group: GroupDetail; onClos
         error={formState.errors.name?.message}
       />
       <TextField
-        label="Description (optional)"
+        label={<OptionalLabel text="Description" />}
         multiline
         {...register('description')}
         error={formState.errors.description?.message}

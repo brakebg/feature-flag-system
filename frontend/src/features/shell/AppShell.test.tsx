@@ -58,6 +58,20 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
+  it('[AC-AUTH-4] FF-6: a token that expires during the session also clears the cached data', async () => {
+    sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', 3600));
+    server.use(http.get('/api/v1/admin/groups', () => HttpResponse.json([])));
+    const { client } = renderApp('/groups');
+    await waitFor(() => expect(client.getQueryCache().getAll().length).toBeGreaterThan(0));
+    sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', -10));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('link', { name: 'Audit log' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe('/login?expired=1'),
+    );
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+  });
+
   it('/ redirects to /groups and the shell shows nav, user and version', async () => {
     sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', 3600));
     renderApp('/');

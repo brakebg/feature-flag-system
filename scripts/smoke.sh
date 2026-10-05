@@ -58,7 +58,7 @@ accepting=$(line_of 'Readiness state: ACCEPTING_TRAFFIC')
 order_ok=0
 if [ -n "$refusing" ] && [ -n "$finished" ] && [ -n "$accepting" ] \
   && [ "$refusing" -lt "$finished" ] && [ "$finished" -lt "$accepting" ]; then order_ok=1; fi
-if [ "$order_ok" = 1 ] && { [ "$saw_down" = 1 ] || [ "$ready" = 1 ]; }; then
+if [ "$order_ok" = 1 ]; then  # ready is 1 here (the script stops earlier otherwise)
   [ "$saw_down" = 1 ] && note="503 observed" || note="503 window not observed; state order from the backend"
   echo "readiness: $note"
   record passed "[AC-CACHE-6] readiness DOWN before warm-up, UP after"

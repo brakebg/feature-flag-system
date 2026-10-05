@@ -4,6 +4,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import type { Flag, GroupDetail } from '../../api/types';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
+import { OptionalLabel } from '../../components/OptionalLabel';
 import { TextField } from '../../components/TextField';
 import { Toggle } from '../../components/Toggle';
 import { useToast } from '../../components/toastContext';
@@ -179,7 +180,7 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
     >
       <TextField label="Key" mono readOnly value={flag.fullKey} />
       <TextField
-        label="Description (optional)"
+        label={<OptionalLabel text="Description" />}
         multiline
         {...register('description')}
         error={formState.errors.description?.message}

@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
   -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=true -Djacoco.skip=true)
 (cd frontend && npx openapi-typescript ../backend/openapi.json -o src/api/schema.d.ts)
 status=0
-git diff --exit-code -- backend/openapi.json frontend/src/api/schema.d.ts || status=1
+git diff --exit-code HEAD -- backend/openapi.json frontend/src/api/schema.d.ts || status=1
 untracked=$(git ls-files --others --exclude-standard -- backend/openapi.json frontend/src/api/schema.d.ts)
 if [ -n "$untracked" ]; then echo "not committed: $untracked"; status=1; fi
 (cd frontend && npm run typecheck) || status=1

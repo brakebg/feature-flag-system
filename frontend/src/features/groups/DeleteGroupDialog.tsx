@@ -51,11 +51,13 @@ export function DeleteGroupDialog({
       onConfirm={() => void confirm()}
       onCancel={onClose}
     >
-      <ul aria-label="Flags that will be deleted" className={styles.list}>
-        {group.flags.map((f) => (
-          <li key={f.id}>{f.fullKey}</li>
-        ))}
-      </ul>
+      {n > 0 && (
+        <ul aria-label="Flags that will be deleted" className={styles.list}>
+          {group.flags.map((f) => (
+            <li key={f.id}>{f.fullKey}</li>
+          ))}
+        </ul>
+      )}
       <div className={styles.field}>
         <label htmlFor={inputId} className={styles.label}>
           Type <span className={styles.key}>{group.key}</span> to confirm
