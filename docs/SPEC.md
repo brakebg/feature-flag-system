@@ -579,6 +579,7 @@ Implemented once in a `@RestControllerAdvice` (`GlobalExceptionHandler`). DB uni
 - Admin API: p95 < 300 ms for any call with 1,000 groups × 100 flags.
 - Limits: max 1,000 groups, 500 flags per group (enforced, 409 `limit-reached`). The 1,001st group and the 501st flag in a group are rejected with 409 `limit-reached`; deleting an item frees its slot. Request body max 64 KB (65,536 bytes); a larger body returns 413 `payload-too-large`.
 - Hit rate = Δ`cache_gets_total{result="hit"}` / (Δ`hit` + Δ`miss`), summed over the caches `flagCache`, `groupCache` and `allFlagsCache`, between the start and the end of the 60 s load on a freshly started stack after warm-up. The load calls only existing keys, split equally over the three Evaluation endpoints.
+- How the targets are checked (decision 0007): gate 13 blocks only on errors and on the cache hit rate. It measures the Evaluation API p95 and writes it to the verify report, but a p95 at or above 50 ms does not fail the gate. The p95 targets above (Evaluation and Admin API) are verified in a production-like test environment after the PR is approved, not on a developer machine or in CI.
 
 ### 9.3 Observability
 
@@ -806,7 +807,7 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. The only exception is a vulnerability with no fixed version, listed in .trivyignore with a reason and an expiry date and recorded in docs/DECISIONS.md | M1 |
 | 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present (HSTS only when the request has `X-Forwarded-Proto: https`, 10.2) | M5 |
 | 12 | End-to-end | Playwright, `--repeat-each=2`, retries 0 | Any failure, including a test that passes once and fails once (flaky), or any Content-Security-Policy violation reported in the browser console | M8 |
-| 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | p95 ≥ 50 ms, any error, or cache hit rate < 99 % | M8 |
+| 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | Any error, or cache hit rate < 99 %. The p95 is measured and reported against the 50 ms target but does not fail the gate (9.2, decision 0007) | M8 |
 | 14 | Traceability | `scripts/check-traceability.mjs` (section 11.4) | Any acceptance criterion without a passing test, or a test tagged with an unknown ID | M1 |
 | 15 | Test integrity | `scripts/check-integrity.mjs` | Any `@Disabled`, `assumeTrue(false)`, `.skip(`, `.only(`, `xit(`, `test.fixme`; any `eslint-disable` or `@SuppressWarnings` without a `// reason:` comment; thresholds in config files differing from this spec; coverage, mutation, lint or ArchUnit exclusions not listed in `docs/DECISIONS.md` | M1 |
 
@@ -921,7 +922,7 @@ The agent escalates to the owner only what it cannot safely decide itself, throu
 2. A fix would change a locked item: an acceptance criterion, the API contract (sections 6 and 7), the data model (4), the security model (5), the banned-dependency lists, or a gate or threshold (11).
 3. Critical-path blocker: a Level 2 blocker that all remaining work depends on.
 4. Outside the code: missing access or permission, Docker or a package registry unavailable, a dependency with a license or security problem.
-5. Target unreachable: a performance or cache target still missed after optimisation, with measurements.
+5. Target unreachable: the cache hit-rate target still missed after optimisation, with measurements. A p95 above target is reported, not escalated (9.2, decision 0007).
 6. Budget exceeded: more than 20 failed `make verify` runs within one milestone.
 7. Risky action: force-push, history rewrite, deleting branches, changing repository settings, or anything outside this repository.
 
