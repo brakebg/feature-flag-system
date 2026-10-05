@@ -4,17 +4,16 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M8 Hardening — in progress
+- Milestone: M8 complete; final review (builder-agents 6) next
 - `scripts/current-milestone`: 8
 
 ## Last green commit
 
-- e411091 (M7 audit fixes; full `make verify` PASS). `M7: complete` follows it.
+- 2ca0423 (M8 work; `make verify-all` PASS, all 15 gates).
 
 ## Last full `make verify`
 
-- 2026-10-05 on e411091: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
-  e2e (scripts/e2e.sh, gate 12 from M8) 18/18 x2 on the audit-fix commit.
+- 2026-10-05 `make verify-all` on 2ca0423: PASS, gates 1-15 all active and green.
 
 ## Chunks done in M7
 
@@ -24,11 +23,15 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. M8: e2e suite done (D-031); next: Dockerfiles check (non-root, healthchecks), full `make verify`
-   with gates 12 and 13 active.
-2. M8: README (setup, env vars, single-instance rule, curl, client polling, default false on
-   404/network), CHANGELOG 1.0.0, Dockerfiles final; then the M8 audit.
-3. Final review (builder-agents 6) into docs/reviews/final-review.md; commit docs/verify-report.md.
+1. Final review (builder-agents 6): run the 12 agents on main...HEAD, write
+   docs/reviews/final-review.md, commit it before fixing anything.
+2. Triage and fix every BLOCKER / CRITICAL test-first; re-check rounds (max 3).
+3. `make verify-all`, commit docs/verify-report.md, tick spec 12.3, PR ready + final comment.
+
+## M8 notes
+
+- e2e: D-031 (projects, keys, OPS-1/2 scripts, nginx Host and Zod CSP fixes). Perf: D-032.
+- README and CHANGELOG 1.0.0 written; README curl examples were run against a fresh stack.
 
 ## M7 audit result
 
