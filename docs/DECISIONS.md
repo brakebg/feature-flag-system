@@ -244,5 +244,15 @@ must not show as a failing acceptance test. Normal test runs are recorded as bef
   page body), uses the latest close handler, and dialogs can take focus (`tabIndex=-1`). A
   confirm dialog ignores Escape while its request runs.
 - `RequireAuth` clears an expired token in an effect, not during render (StrictMode safe).
-- ESLint `no-unused-vars` uses `ignoreRestSiblings` (removing props with a rest object). This is a
-  rule option, not an exclusion.
+- (Withdrawn after the M6 test audit: an ESLint `ignoreRestSiblings` option was added and then
+  removed again; `TextField` now picks its own props without unused names. Lint is as strict as
+  before.)
+
+## D-027 · 2026-10-05 · 8.2, 12.2 M6 · Test change: App placeholder test
+
+AC: none (`frontend/src/App.test.tsx`, M1). Old expectation: the app renders an `<h1>Feature
+Flags</h1>` placeholder (M1 "placeholder UI"). Spec 8.1/8.2 and 12.2 M6 replace the placeholder
+with the router and the login page, so the old expectation no longer holds. Fix: the file was
+deleted in 7d76ad0 without this entry (found by the M6 test audit, TA-1); it is now re-created with
+tests of the real `<App/>` wiring (`/login` shows the sign-in page, `/groups` without a token goes
+to `/login`). The login page tests cover the "Feature Flags" title.

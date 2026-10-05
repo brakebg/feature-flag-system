@@ -6,11 +6,16 @@ import { AppRoutes, Providers } from '../App';
 import { ROUTER_FUTURE } from '../routerFuture';
 import { createQueryClient } from '../queryClient';
 
-export function renderApp(path: string, options: { strict?: boolean } = {}) {
+export function renderApp(path: string | string[], options: { strict?: boolean } = {}) {
+  const entries = Array.isArray(path) ? path : [path];
   const client = createQueryClient();
   const tree = (
     <Providers client={client}>
-      <MemoryRouter initialEntries={[path]} future={ROUTER_FUTURE}>
+      <MemoryRouter
+        initialEntries={entries}
+        initialIndex={entries.length - 1}
+        future={ROUTER_FUTURE}
+      >
         <AppRoutes client={client} />
         <LocationProbe />
       </MemoryRouter>

@@ -24,6 +24,13 @@ type AreaProps = Common &
     multiline: true;
   };
 
+/** Props of TextField itself; everything else goes to the input or textarea element. */
+const OWN_KEYS = ['label', 'error', 'help', 'mono', 'multiline', 'className'];
+
+function without<T>(props: object, keys: string[]): T {
+  return Object.fromEntries(Object.entries(props).filter(([k]) => !keys.includes(k))) as T;
+}
+
 /**
  * Spec 8.5: a labelled field; an invalid field gets `aria-invalid="true"` and its error text is
  * linked with `aria-describedby`.
@@ -43,15 +50,7 @@ export function TextField(props: InputProps | AreaProps) {
 
   let control: ReactNode;
   if (props.multiline) {
-    const {
-      label: _l,
-      error: _e,
-      help: _h,
-      mono: _m,
-      multiline: _ml,
-      className: _c,
-      ...rest
-    } = props;
+    const rest: TextareaHTMLAttributes<HTMLTextAreaElement> = without(props, OWN_KEYS);
     control = (
       <textarea
         rows={3}
@@ -61,16 +60,8 @@ export function TextField(props: InputProps | AreaProps) {
       />
     );
   } else {
-    const {
-      label: _l,
-      error: _e,
-      help: _h,
-      mono: _m,
-      multiline: _ml,
-      className: _c,
-      prefix,
-      ...rest
-    } = props;
+    const prefix = props.prefix;
+    const rest: InputHTMLAttributes<HTMLInputElement> = without(props, [...OWN_KEYS, 'prefix']);
     const input = (
       <input
         {...rest}

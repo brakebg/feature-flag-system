@@ -21,23 +21,27 @@ async function signIn(username: string, password: string, submitWithEnter = fals
 
 describe('LoginPage (spec 8.2)', () => {
   it('[AC-AUTH-1] wrong credentials show the generic error and stay on /login', async () => {
+    let calls = 0;
     server.use(
-      http.post(LOGIN, () =>
-        HttpResponse.json(
+      http.post(LOGIN, () => {
+        calls++;
+        return HttpResponse.json(
           {
             type: 'https://featureflags.local/problems/unauthorized',
             status: 401,
-            detail: 'Invalid username or password',
+            detail: 'server text',
           },
           { status: 401 },
-        ),
-      ),
+        );
+      }),
     );
     renderApp('/login');
     await signIn('admin', 'wrong');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password');
-    expect(screen.getByTestId('location')).toHaveTextContent('/login');
+    expect((await screen.findByRole('alert')).textContent).toBe('Invalid username or password');
+    expect(screen.getByTestId('location').textContent).toBe('/login');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(calls).toBe(1);
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
@@ -74,14 +78,17 @@ describe('LoginPage (spec 8.2)', () => {
     const button = screen.getByRole('button', { name: 'Sign in' });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
+    expect(button.querySelector('[data-spinner]')).not.toBeNull();
     await screen.findByRole('alert');
     expect(button).toBeEnabled();
+    expect(button.querySelector('[data-spinner]')).toBeNull();
   });
 
   it.each([
     ['5', 'Too many attempts, try again in 5 seconds'],
     ['1', 'Too many attempts, try again in 1 second'],
     [null, 'Too many attempts, try again later'],
+    ['-5', 'Too many attempts, try again later'],
     ['soon', 'Too many attempts, try again later'],
     ['1.5', 'Too many attempts, try again later'],
   ])('429 with Retry-After %s shows "%s"', async (retryAfter, text) => {
@@ -97,14 +104,25 @@ describe('LoginPage (spec 8.2)', () => {
     );
     renderApp('/login');
     await signIn('admin', 'admin123');
-    expect(await screen.findByRole('alert')).toHaveTextContent(text);
+    expect((await screen.findByRole('alert')).textContent).toBe(text);
   });
 
   it('a network failure shows "Cannot reach server"', async () => {
     server.use(http.post(LOGIN, () => HttpResponse.error()));
     renderApp('/login');
     await signIn('admin', 'admin123');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Cannot reach server');
+    expect((await screen.findByRole('alert')).textContent).toBe('Cannot reach server');
+  });
+
+  it('shows the error between the fields and the Sign in button', async () => {
+    server.use(http.post(LOGIN, () => HttpResponse.json({ status: 401 }, { status: 401 })));
+    renderApp('/login');
+    await signIn('admin', 'x');
+    const alert = await screen.findByRole('alert');
+    const password = screen.getByLabelText('Password');
+    const button = screen.getByRole('button', { name: 'Sign in' });
+    expect(password.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(alert.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('?expired=1 shows the session-expired banner as status', () => {

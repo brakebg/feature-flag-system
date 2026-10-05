@@ -21,7 +21,9 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/login?expired=1'),
     );
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
-    expect(screen.getByRole('status')).toHaveTextContent('Your session expired');
+    expect(screen.getByRole('status').textContent).toBe(
+      'Your session expired. Please sign in again.',
+    );
   });
 
   it('[AC-AUTH-4] the expired banner also shows under StrictMode (render stays pure)', async () => {
@@ -30,7 +32,9 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('/login?expired=1'),
     );
-    expect(screen.getByRole('status')).toHaveTextContent('Your session expired');
+    expect(screen.getByRole('status').textContent).toBe(
+      'Your session expired. Please sign in again.',
+    );
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
@@ -76,7 +80,7 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
         return HttpResponse.json([]);
       }),
     );
-    renderApp('/audit');
+    renderApp(['/login', '/groups', '/audit']);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
@@ -84,8 +88,9 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/login$/));
     expect(screen.queryByRole('status')).toBeNull();
 
+    // Back from /login goes to the protected /groups entry, which must send the user to /login.
     await user.click(screen.getByTestId('history-back'));
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/login$/));
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/login'));
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull();
     expect(adminCalls).toBe(0);

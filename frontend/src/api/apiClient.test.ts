@@ -9,7 +9,6 @@ describe('apiClient (spec 8.7)', () => {
   beforeEach(() => setToken('abc.def.ghi'));
 
   it('sends the bearer token and JSON, and parses the JSON body', async () => {
-    setToken('abc.def.ghi');
     let auth: string | null = null;
     let contentType: string | null = null;
     server.use(
