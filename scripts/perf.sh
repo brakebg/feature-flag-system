@@ -39,6 +39,16 @@ counters() { # prints "hit miss" summed over the three caches
       if ($0 ~ /result="hit"/) h += $NF; else if ($0 ~ /result="miss"/) m += $NF }
     END { printf "%d %d\n", h, m }'
 }
+# The JVM keeps compiling startup code for a while after readiness. On 1 vCPU that work would
+# compete with the measured load, so wait until the backend is idle (CPU < 5 % in 3 samples in a
+# row, at most 60 s). No requests are sent in this time and none are left out of the measurement.
+idle=0
+for _ in $(seq 1 60); do
+  cpu=$(docker stats --no-stream --format '{{.CPUPerc}}' "$PROJECT-backend-1" | tr -d '%')
+  if awk -v c="$cpu" 'BEGIN { exit !(c < 5) }'; then idle=$((idle + 1)); else idle=0; fi
+  [ "$idle" -ge 3 ] && break
+done
+echo "backend idle before the load (last CPU ${cpu}%)"
 read -r h0 m0 < <(counters)
 build/tools/k6 run --quiet -e API_URL="$API" -e CLIENT_TOKEN="$client" -e GROUP_KEY="$group" \
   -e FLAG_KEYS="$(IFS=,; echo "${keys[*]}")" perf/evaluate.js

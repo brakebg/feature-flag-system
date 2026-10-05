@@ -323,3 +323,13 @@ and keeps each stack's backend log in `build/reports/`.
 Known limit: admin writes into one group serialize on its row lock and each waiting request holds
 a database connection (Hikari default pool, 10). Many parallel writes into one group can delay
 other requests until the pool frees up. The 9.2 flag-limit e2e test writes in batches of 4.
+
+## D-032 · 2026-10-05 · 9.2, 11.3 gate 13 · Perf load starts when the backend is idle
+
+One `make verify` run failed gate 13 with p95 130 ms (hit rate 100 %, no errors); standalone runs
+gave p95 3 to 9 ms. A per-request profile showed the slow requests in the first 2 seconds of the
+load and in short bursts: the JVM was still compiling startup code on its single vCPU when the
+load began. `scripts/perf.sh` now waits after readiness until the backend container uses less than
+5 % CPU in 3 samples in a row (at most 60 s) and only then reads the counters and starts k6. No
+requests are sent or skipped in that time; the load, its length, the thresholds and the hit-rate
+window are unchanged. After the change, gate 13 right after gate 12 gave p95 2.8 ms.

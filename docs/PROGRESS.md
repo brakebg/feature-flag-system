@@ -41,4 +41,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | e411091 | M7 | Audit fixes: test audit TA-1..13, design D-030 (weights, icon, backdrop, baselines), 400 fallback toast, slug revalidation | verify-fast PASS; e2e 18/18 x2 |
 | 2026-10-05 | 4348748 | M7 | M7 complete: audit done, all BLOCKER/CRITICAL fixed | make verify PASS on e411091 |
 | 2026-10-05 | b1f2d37 | M8 | Playwright e2e for every 11.2 scenario (api, limits, ui x4 browsers, serial), AC-OPS-1/2 scripts, nginx Host fix, Zod jitless (CSP) | verify-fast PASS; e2e 81/81 x3 runs; perf PASS (p95 3.8 ms, hit rate 1.0) |
-| 2026-10-05 | (next commit) | M8 | README (setup, config, single instance, curl examples tested, polling), CHANGELOG 1.0.0, design-compare gallery, AC-OPS-1 health states | verify-fast PASS |
+| 2026-10-05 | 3379f16 | M8 | README (setup, config, single instance, curl examples tested, polling), CHANGELOG 1.0.0, design-compare gallery, AC-OPS-1 health states | verify-fast PASS |
+| 2026-10-05 | (next commit) | M8 | Gate 13: wait for an idle backend before the load (D-032); one earlier verify failed at gate 13 (p95 130 ms) | verify-fast PASS; perf after e2e p95 2.8 ms |
