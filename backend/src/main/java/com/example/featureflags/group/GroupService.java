@@ -105,7 +105,8 @@ public class GroupService {
   }
 
   public Group update(UUID id, UpdateGroupRequest request) {
-    FlagGroup group = load(id);
+    // BF-4: lock the row like every other write, so a delete that commits first gives 404.
+    FlagGroup group = groups.findForUpdate(id).orElseThrow(() -> notFound(id));
     if (group.getVersion() != request.version().longValue()) {
       throw new VersionConflictException();
     }

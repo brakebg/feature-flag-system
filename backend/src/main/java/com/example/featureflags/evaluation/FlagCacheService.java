@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,12 @@ public class FlagCacheService {
   private final LoadingCache<String, Optional<Map<String, Boolean>>> groupCache;
   private final LoadingCache<String, Map<String, Boolean>> allFlagsCache;
   private final AtomicLong revision = new AtomicLong();
-  private final Object writeLock = new Object();
+
+  /**
+   * Serialises all cache writers. A {@link ReentrantLock}, not a monitor: on virtual threads a
+   * monitor held during JDBC (warm-up, reconciliation) would pin the carrier thread (BF-5).
+   */
+  private final ReentrantLock writeLock = new ReentrantLock();
 
   /**
    * BF-1: the newest change (audit id) applied per key, "g:" + group key and "f:" + full key.
@@ -138,7 +144,8 @@ public class FlagCacheService {
    * The revision starts from {@code max(audit_event.id)}.
    */
   public void reloadAll() {
-    synchronized (writeLock) {
+    writeLock.lock();
+    try {
       Snapshot db = loadSnapshot();
       flagCache.invalidateAll();
       groupCache.invalidateAll();
@@ -150,6 +157,8 @@ public class FlagCacheService {
       revision.set(maxAuditId);
       appliedSeq.clear();
       loadedSeq = maxAuditId;
+    } finally {
+      writeLock.unlock();
     }
   }
 
@@ -163,7 +172,8 @@ public class FlagCacheService {
    */
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void onChange(FlagsChangedEvent event) {
-    synchronized (writeLock) {
+    writeLock.lock();
+    try {
       try {
         if (isLate(event)) {
           log.debug("Change {} arrived after a newer one; invalidating affected entries", event);
@@ -185,6 +195,8 @@ public class FlagCacheService {
         // The change is committed: the ETag must move on even if the cache update failed.
         revision.incrementAndGet();
       }
+    } finally {
+      writeLock.unlock();
     }
   }
 
@@ -294,21 +306,24 @@ public class FlagCacheService {
   // ------------------------------------------------------------------ reconciliation
 
   /**
-   * Spec 7.2: compares the cache with a database snapshot and fixes each difference with the same
-   * copy-on-write updates. Returns the differences found (key, cached, database).
-   */
-  /**
-   * Loads the database snapshot and compares it under the writer lock, so a write that commits
-   * meanwhile is either in both the snapshot and the cache, or applied after the comparison.
+   * Spec 7.2: loads a database snapshot and compares it with the cache under the writer lock,
+   * fixing each difference with the same copy-on-write updates. Returns the differences (key,
+   * cached, database). Known limit (SF-M1): a write that commits while the snapshot loads, but
+   * whose after-commit update still waits for the lock, shows as a difference; it is fixed to the
+   * same committed value the waiting update then applies again.
    */
   List<Difference> reconcileWithDatabase() {
-    synchronized (writeLock) {
+    writeLock.lock();
+    try {
       return reconcile(loadSnapshot());
+    } finally {
+      writeLock.unlock();
     }
   }
 
   List<Difference> reconcile(Snapshot db) {
-    synchronized (writeLock) {
+    writeLock.lock();
+    try {
       List<Difference> diffs = new java.util.ArrayList<>();
       Map<String, Boolean> cachedAll = allFlagsCache.getIfPresent(ALL);
       if (cachedAll != null && !cachedAll.equals(db.all())) {
@@ -342,6 +357,8 @@ public class FlagCacheService {
         revision.incrementAndGet();
       }
       return diffs;
+    } finally {
+      writeLock.unlock();
     }
   }
 

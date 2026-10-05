@@ -34,11 +34,11 @@ MAJOR
 
 | ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BF-3 | MAJOR | backend | common/SecurityConfig.java | 9.1 | Firewall-rejected requests (`//`, `;`, `%2F`) get Boot's error JSON, not a problem detail | open | |
-| BF-4, JR-4 | MAJOR | backend | group/GroupService.java:107-132 | 6.1 | Group PATCH racing a delete gives 409 instead of 404 | open | |
-| BF-5, SF-M2, JR-2 | MAJOR | backend | evaluation/FlagCacheService.java:127-138, 256-260 | 7.2, 9.2 | JDBC inside `synchronized(writeLock)`; pinned virtual threads; listeners wait holding pooled connections | open | |
-| BF-6 | MAJOR | backend | common/GlobalExceptionHandler.java:128-138 | 9.1 | NUL character in name/description gives 500 instead of 400 | open | |
-| SF-M1 | MAJOR | backend | evaluation/FlagCacheService.java:252-260 | 7.2, 9.3 | Reconcile can report false drift for a write committed during the snapshot; comment says it cannot | open | |
+| BF-3 | MAJOR | backend | common/SecurityConfig.java | 9.1 | Firewall-rejected requests (`//`, `;`, `%2F`) get Boot's error JSON, not a problem detail | fixed | commit 'M8 review: fix BF-3, BF-4, BF-6' (FirewallIT) |
+| BF-4, JR-4 | MAJOR | backend | group/GroupService.java:107-132 | 6.1 | Group PATCH racing a delete gives 409 instead of 404 | fixed | commit 'M8 review: fix BF-3, BF-4, BF-6' (race IT) |
+| BF-5, SF-M2, JR-2 | MAJOR | backend | evaluation/FlagCacheService.java:127-138, 256-260 | 7.2, 9.2 | JDBC inside `synchronized(writeLock)`; pinned virtual threads; listeners wait holding pooled connections | open | Part fixed (ReentrantLock, no pinning); pool wait during reconcile left for the owner (D-034) |
+| BF-6 | MAJOR | backend | common/GlobalExceptionHandler.java:128-138 | 9.1 | NUL character in name/description gives 500 instead of 400 | fixed | commit 'M8 review: fix BF-3, BF-4, BF-6' |
+| SF-M1 | MAJOR | backend | evaluation/FlagCacheService.java:252-260 | 7.2, 9.3 | Reconcile can report false drift for a write committed during the snapshot; comment says it cannot | open | Known limit documented in code and D-034; value stays correct |
 | SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder (ESC-003 open) | open | Waits for ESC-003 |
 | SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | escalated | ESC-007 |
 | SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | escalated | ESC-007 |

@@ -344,3 +344,19 @@ later commit has a higher id. The cache keeps the newest applied id per group ke
 flag key; a change older than one already applied (or older than the data loaded by warm-up)
 only invalidates its entries, so the next read loads the committed value. The revision still
 moves on for every committed change. Reconciliation keeps the ids (it fixes values only).
+
+## D-034 · 2026-10-05 · 9.1, 6.1, 7.2 · Final review backend fixes
+
+- BF-3: a request rejected by Spring Security's firewall (`//`, `;` in the path) gets 400
+  `malformed-request` as a problem detail (a `RequestRejectedHandler`).
+- BF-4: group PATCH locks the group row like the other writes; a delete that commits first gives
+  404, not 409.
+- BF-6: a name or description with U+0000 is 400 `validation` ("must not contain the character
+  U+0000"); PostgreSQL cannot store it, so it was a 500.
+- BF-5 (part): the cache writer lock is a `ReentrantLock`, so warm-up and reconciliation JDBC do
+  not pin virtual-thread carriers. Still open (owner): after-commit listeners wait for the lock
+  while their transaction's connection is held; with many parallel admin writes during the
+  nightly reconciliation the pool can run out until the connection timeout.
+- SF-M1 (known limit, comment fixed): a write that commits while reconciliation loads its
+  snapshot, and whose cache update still waits for the lock, shows as one drift WARN; the value
+  set is the committed one either way.

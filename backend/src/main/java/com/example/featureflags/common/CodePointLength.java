@@ -46,6 +46,14 @@ public @interface CodePointLength {
       if (value == null) {
         return true;
       }
+      if (value.indexOf('\u0000') >= 0) {
+        // BF-6: PostgreSQL text cannot hold U+0000; reject it as input, not as a 500.
+        context.disableDefaultConstraintViolation();
+        context
+            .buildConstraintViolationWithTemplate("must not contain the character U+0000")
+            .addConstraintViolation();
+        return false;
+      }
       int n = value.codePointCount(0, value.length());
       return n >= min && n <= max;
     }

@@ -82,6 +82,12 @@ class AdminGroupsIT extends AdminApiTest {
     validation(admin.postJson("/groups", "{\"key\":\"orders\"}"), "name");
     validation(admin.postJson("/groups", "{\"key\":\"orders\",\"name\":\"   \"}"), "name");
     validation(admin.postJson("/groups", "{\"name\":\"N\"}"), "key");
+    // BF-6: PostgreSQL cannot store U+0000; it is a client input error (9.1), not a 500.
+    validation(admin.postJson("/groups", "{\"key\":\"orders\",\"name\":\"a\\u0000b\"}"), "name");
+    validation(
+        admin.postJson(
+            "/groups", "{\"key\":\"orders\",\"name\":\"N\",\"description\":\"x\\u0000\"}"),
+        "description");
     validation(
         admin.postJson(
             "/groups",
@@ -464,5 +470,62 @@ class AdminGroupsIT extends AdminApiTest {
     problem(admin.delete("/groups/0191f0c2-0000-7000-8000-000000000999"), 404, "not-found");
     problem(anonymous.delete("/groups/" + id), 401, "unauthorized");
     problem(client.delete("/groups/" + id), 403, "forbidden");
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired GroupService groupService;
+
+  @org.springframework.beans.factory.annotation.Autowired
+  org.springframework.transaction.support.TransactionTemplate tx;
+
+  @Test
+  @Tag("ERR-PATCH-/admin/groups/{groupId}-404")
+  void patchThatWaitsForADeleteOfTheSameGroupIs404() throws Exception {
+    // BF-4: the delete commits while the PATCH waits; the group is gone, so 404 (6.1), not 409.
+    String id = admin.createGroup("orders-x", "Orders").get("id").asText();
+    java.util.concurrent.CountDownLatch deleted = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.CountDownLatch commit = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(2);
+    java.util.concurrent.Future<?> delete =
+        pool.submit(
+            () -> {
+              var auth =
+                  new org.springframework.security.authentication.TestingAuthenticationToken(
+                      "admin", null, "SCOPE_admin");
+              auth.setAuthenticated(true);
+              org.springframework.security.core.context.SecurityContextHolder.getContext()
+                  .setAuthentication(auth);
+              tx.executeWithoutResult(
+                  status -> {
+                    groupService.delete(java.util.UUID.fromString(id));
+                    deleted.countDown();
+                    try {
+                      commit.await();
+                    } catch (InterruptedException e) {
+                      Thread.currentThread().interrupt();
+                    }
+                  });
+              return null;
+            });
+    deleted.await();
+    java.util.concurrent.Future<Integer> patch =
+        pool.submit(
+            () ->
+                admin
+                    .patchJson("/groups/" + id, "{\"name\":\"Renamed\",\"version\":0}")
+                    .andReturn()
+                    .getResponse()
+                    .getStatus());
+    org.awaitility.Awaitility.await()
+        .atMost(java.time.Duration.ofSeconds(10))
+        .until(
+            () ->
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM pg_locks WHERE NOT granted", Integer.class)
+                    > 0);
+    commit.countDown();
+    delete.get(30, java.util.concurrent.TimeUnit.SECONDS);
+    assertThat(patch.get(30, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(404);
+    pool.shutdown();
   }
 }

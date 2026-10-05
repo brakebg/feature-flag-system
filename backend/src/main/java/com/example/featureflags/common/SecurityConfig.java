@@ -38,6 +38,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -52,6 +53,23 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
   private static final List<String> AUDIENCES = List.of(Audiences.ADMIN, Audiences.SERVICE);
+
+  /**
+   * BF-3, spec 9.1: a request that the security firewall rejects (for example {@code //} or {@code
+   * ;} in the path) gets a 400 {@code malformed-request} problem detail, not the default error
+   * body.
+   */
+  @Bean
+  RequestRejectedHandler requestRejectedHandler(ProblemWriter problems) {
+    return (request, response, e) ->
+        problems.write(
+            request,
+            response,
+            HttpStatus.BAD_REQUEST,
+            "malformed-request",
+            "Malformed request",
+            "The request URL is not allowed");
+  }
 
   @Bean
   SecurityFilterChain securityFilterChain(
