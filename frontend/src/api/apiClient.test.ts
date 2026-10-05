@@ -1,11 +1,13 @@
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setToken, TOKEN_KEY } from '../auth/token';
 import { server } from '../test/server';
 import { ApiError } from './ApiError';
 import { request, setUnauthorizedHandler } from './apiClient';
 
 describe('apiClient (spec 8.7)', () => {
+  beforeEach(() => setToken('abc.def.ghi'));
+
   it('sends the bearer token and JSON, and parses the JSON body', async () => {
     setToken('abc.def.ghi');
     let auth: string | null = null;
@@ -95,6 +97,49 @@ describe('apiClient (spec 8.7)', () => {
     );
     expect(handler).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(TOKEN_KEY)).toBe('t.t.t');
+  });
+
+  it('[AC-AUTH-6] without a token no Admin API request is sent (spec 8.3)', async () => {
+    sessionStorage.clear();
+    let calls = 0;
+    server.use(
+      http.get('/api/v1/admin/groups', () => {
+        calls++;
+        return HttpResponse.json([]);
+      }),
+    );
+    const e = (await request('/v1/admin/groups').catch((x: unknown) => x)) as ApiError;
+    expect(e.status).toBe(401);
+    expect(calls).toBe(0);
+  });
+
+  it('a late 401 of an older session does not clear a newer token', async () => {
+    const handler = vi.fn();
+    setUnauthorizedHandler(handler);
+    let release: (() => void) | null = null;
+    server.use(
+      http.get(
+        '/api/v1/admin/groups',
+        () =>
+          new Promise<Response>((resolve) => {
+            release = () => resolve(HttpResponse.json({ status: 401 }, { status: 401 }));
+          }),
+      ),
+    );
+    const pending = request('/v1/admin/groups').catch(() => undefined);
+    await vi.waitFor(() => expect(release).not.toBeNull());
+    setToken('new.session.token');
+    (release as unknown as () => void)();
+    await pending;
+    expect(sessionStorage.getItem(TOKEN_KEY)).toBe('new.session.token');
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('a 2xx body that is not JSON is an ApiError', async () => {
+    server.use(http.get('/api/v1/admin/groups', () => new HttpResponse('<html>', { status: 200 })));
+    const e = (await request('/v1/admin/groups').catch((x: unknown) => x)) as ApiError;
+    expect(e).toBeInstanceOf(ApiError);
+    expect(e.kind).toBe('malformed-response');
   });
 
   it('a 200 with an empty body resolves to undefined', async () => {

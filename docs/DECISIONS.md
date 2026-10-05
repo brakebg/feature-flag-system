@@ -231,3 +231,18 @@ must not show as a failing acceptance test. Normal test runs are recorded as bef
   sees a 503, or when the backend's own transitions are REFUSING_TRAFFIC → warm-up finished →
   ACCEPTING_TRAFFIC and the probe ends UP; the DOWN window is short (spec 11.4). Raised in ESC-006.
 - The OpenAPI document lists the 304/401/403/404 answers and the ETag / Cache-Control headers.
+
+## D-026 · 2026-10-04 · 8.1, 8.3, 8.7 · M6 review fixes
+
+- The API client sends no Admin API request without a token (spec 8.3); it fails at once with a
+  401 `ApiError`. A late 401 only ends the session whose token it carried. A 2xx body that is not
+  JSON is an `ApiError` (`malformed-response`).
+- Test change (no AC; `apiClient.test.ts`): old expectation "a request without a stored token is
+  sent"; spec 8.3 ("no Admin API request is sent without a token") makes it wrong. Fix: those
+  tests store a token first; a new test proves that no request is sent without one.
+- The focus trap listens on the document (Escape and Tab keep working when focus falls to the
+  page body), uses the latest close handler, and dialogs can take focus (`tabIndex=-1`). A
+  confirm dialog ignores Escape while its request runs.
+- `RequireAuth` clears an expired token in an effect, not during render (StrictMode safe).
+- ESLint `no-unused-vars` uses `ignoreRestSiblings` (removing props with a rest object). This is a
+  rule option, not an exclusion.

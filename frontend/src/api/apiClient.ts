@@ -26,9 +26,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const { method = 'GET', body, auth = true } = options;
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const token = auth ? getToken() : null;
   if (auth) {
-    const token = getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    // Spec 8.3: no Admin API request is sent without a token.
+    if (!token) throw new ApiError(401, 'unauthorized', 'Not signed in');
+    headers.Authorization = `Bearer ${token}`;
   }
   let response: Response;
   try {
@@ -40,7 +42,8 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   } catch {
     throw new ApiError(0, 'network', 'Cannot reach server');
   }
-  if (response.status === 401 && auth) {
+  // A late 401 of an older session must not end a newer one.
+  if (response.status === 401 && auth && getToken() === token) {
     clearToken();
     onUnauthorized();
   }
@@ -49,7 +52,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }
   if (response.status === 204) return undefined as T;
   const text = await response.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(response.status, 'malformed-response', 'Response is not valid JSON');
+  }
 }
 
 async function toApiError(response: Response): Promise<ApiError> {

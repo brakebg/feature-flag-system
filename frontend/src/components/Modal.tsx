@@ -21,6 +21,7 @@ export function Modal({ title, onClose, children, footer, onSubmit }: Props) {
         ref={ref}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={titleId}
         className={styles.dialog}
         noValidate

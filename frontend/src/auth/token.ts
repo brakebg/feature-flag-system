@@ -1,16 +1,29 @@
 // Spec 5.2 step 4: the admin JWT lives in sessionStorage under `ff.accessToken` as the raw string.
 export const TOKEN_KEY = 'ff.accessToken';
 
+// Storage can be blocked (some private modes); then there is simply no session.
 export function getToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY);
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function setToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token);
+  try {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // Not stored: the next protected page sends the user to the login page again.
+  }
 }
 
 export function clearToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY);
+  try {
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // Nothing stored.
+  }
 }
 
 interface Claims {

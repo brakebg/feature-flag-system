@@ -1,20 +1,22 @@
 import { render } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { LocationProbe } from './LocationProbe';
 import { AppRoutes, Providers } from '../App';
 import { ROUTER_FUTURE } from '../routerFuture';
 import { createQueryClient } from '../queryClient';
 
-export function renderApp(path: string) {
+export function renderApp(path: string, options: { strict?: boolean } = {}) {
   const client = createQueryClient();
-  const utils = render(
+  const tree = (
     <Providers client={client}>
       <MemoryRouter initialEntries={[path]} future={ROUTER_FUTURE}>
         <AppRoutes client={client} />
         <LocationProbe />
       </MemoryRouter>
-    </Providers>,
+    </Providers>
   );
+  const utils = render(options.strict ? <StrictMode>{tree}</StrictMode> : tree);
   return { ...utils, client };
 }
 

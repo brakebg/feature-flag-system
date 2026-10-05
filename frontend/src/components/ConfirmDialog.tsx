@@ -28,13 +28,16 @@ export function ConfirmDialog({
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const textId = useId();
-  useFocusTrap(ref, onCancel);
+  useFocusTrap(ref, () => {
+    if (!busy) onCancel();
+  });
   return (
     <div className={styles.overlay}>
       <div
         ref={ref}
         role="alertdialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={titleId}
         aria-describedby={textId}
         className={styles.dialog}

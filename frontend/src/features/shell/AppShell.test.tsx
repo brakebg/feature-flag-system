@@ -24,6 +24,16 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Your session expired');
   });
 
+  it('[AC-AUTH-4] the expired banner also shows under StrictMode (render stays pure)', async () => {
+    sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', -10));
+    renderApp('/groups', { strict: true });
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('/login?expired=1'),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Your session expired');
+    expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
+  });
+
   it('[AC-AUTH-4] any 401 from the Admin API clears the token and leads to /login?expired=1', async () => {
     sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', 3600));
     server.use(

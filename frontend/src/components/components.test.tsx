@@ -42,6 +42,50 @@ describe('Modal (spec 8.4, 8.7)', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps Escape and the Tab trap when focus has fallen to the page body', async () => {
+    const onClose = vi.fn();
+    render(
+      <Modal title="Edit group" onClose={onClose} footer={<Button>Cancel</Button>}>
+        <p>Plain text</p>
+      </Modal>,
+    );
+    (document.activeElement as HTMLElement).blur();
+    expect(document.body).toHaveFocus();
+    const user = userEvent.setup();
+    await user.keyboard('{Tab}');
+    expect(screen.getByRole('dialog', { name: 'Edit group' })).toContainElement(
+      document.activeElement as HTMLElement,
+    );
+    (document.activeElement as HTMLElement).blur();
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape uses the latest close handler', async () => {
+    function Harness() {
+      const [count, setCount] = useState(0);
+      const [closedAt, setClosedAt] = useState<number | null>(null);
+      return (
+        <>
+          <span data-testid="closed">{closedAt ?? 'open'}</span>
+          <Modal
+            title="T"
+            onClose={() => setClosedAt(count)}
+            footer={<Button onClick={() => setCount(count + 1)}>more</Button>}
+          >
+            <p>x</p>
+          </Modal>
+        </>
+      );
+    }
+    render(<Harness />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'more' }));
+    await user.click(screen.getByRole('button', { name: 'more' }));
+    await user.keyboard('{Escape}');
+    expect(screen.getByTestId('closed')).toHaveTextContent('2');
+  });
+
   it('Enter in a field submits the form', async () => {
     const onSubmit = vi.fn();
     render(
@@ -80,6 +124,22 @@ describe('ConfirmDialog (spec 8.5)', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     await user.keyboard('{Escape}');
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape does not cancel while the request runs', async () => {
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog
+        title="T"
+        text="x"
+        confirmLabel="Delete"
+        busy
+        onConfirm={() => {}}
+        onCancel={onCancel}
+      />,
+    );
+    await userEvent.setup().keyboard('{Escape}');
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it('the confirm button can be disabled', () => {
@@ -186,6 +246,23 @@ describe('TextField (spec 8.5)', () => {
   it('without an error the field is not invalid', () => {
     render(<TextField label="Name" />);
     expect(screen.getByLabelText('Name')).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('a multiline field passes its attributes to the textarea', () => {
+    render(
+      <TextField
+        label="Description (optional)"
+        multiline
+        disabled
+        placeholder="Why"
+        maxLength={500}
+      />,
+    );
+    const area = screen.getByLabelText('Description (optional)');
+    expect(area.tagName).toBe('TEXTAREA');
+    expect(area).toBeDisabled();
+    expect(area).toHaveAttribute('placeholder', 'Why');
+    expect(area).toHaveAttribute('maxlength', '500');
   });
 
   it('shows a prefix and a read-only value', () => {
