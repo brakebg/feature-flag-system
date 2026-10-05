@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// Spec 10.2: the CSP has no 'unsafe-eval'. Without this, Zod probes `new Function` once, and
+// browsers report that as a CSP violation (gate 12) even though Zod catches the error.
+z.config({ jitless: true });
+
 // Spec 4.2 validation rules, the same as the backend's Bean Validation (8.5 texts).
 export const KEY_MESSAGE =
   'Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter';

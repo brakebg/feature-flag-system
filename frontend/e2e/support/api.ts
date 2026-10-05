@@ -95,12 +95,27 @@ export async function adminApi(request: APIRequestContext, base = API_URL): Prom
 
 /**
  * Unique, deterministic keys per test (spec 11.5: `e2e-<test-id>-...`; 12.4: no unseeded
- * random data). The test id differs per test and project; the repeat index separates
- * --repeat-each runs.
+ * random data). The test id is the same in every project, so the project and the repeat index
+ * (--repeat-each) are part of the key too.
  */
 export function keyFor(info: TestInfo, name: string): string {
-  return `e2e-${info.testId.slice(0, 8)}-r${info.repeatEachIndex}-${name}`
+  const project = info.project.name
+    .split('-')
+    .map((part) => part[0])
+    .join('');
+  return `e2e-${info.testId.slice(0, 8)}-${project}${info.repeatEachIndex}-${name}`
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '-')
     .slice(0, 50);
+}
+
+export async function clientToken(request: APIRequestContext, base = API_URL): Promise<string> {
+  const res = await request.post(`${base}/api/v1/auth/token`, {
+    headers: {
+      Authorization: `Basic ${Buffer.from('order-service:order-service-dev-secret').toString('base64')}`,
+    },
+    form: { grant_type: 'client_credentials' },
+  });
+  expect(res.status()).toBe(200);
+  return ((await res.json()) as { access_token: string }).access_token;
 }

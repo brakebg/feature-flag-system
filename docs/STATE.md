@@ -4,8 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M8 Hardening — next (M7 complete)
-- `scripts/current-milestone`: 7
+- Milestone: M8 Hardening — in progress
+- `scripts/current-milestone`: 8
 
 ## Last green commit
 
@@ -24,8 +24,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. M8: set `scripts/current-milestone` to 8. Playwright e2e for every 11.2 scenario (gate 12,
-   `--repeat-each=2`, limits stack, cross-browser tag), AC-OPS-1/2 tests, k6 perf (gate 13).
+1. M8: e2e suite done (D-031); next: Dockerfiles check (non-root, healthchecks), full `make verify`
+   with gates 12 and 13 active.
 2. M8: README (setup, env vars, single-instance rule, curl, client polling, default false on
    404/network), CHANGELOG 1.0.0, Dockerfiles final; then the M8 audit.
 3. Final review (builder-agents 6) into docs/reviews/final-review.md; commit docs/verify-report.md.

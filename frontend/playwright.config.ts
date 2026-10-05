@@ -23,26 +23,45 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
+    // API-only tests run once, without a browser (spec 11.6).
+    { name: 'api', testMatch: /e2e\/api\/.*\.spec\.ts/ },
+    // Group limit and FF_REQUIRE_HTTPS run in their own stack with 1 worker (spec 11.5).
+    { name: 'limits', testMatch: /e2e\/limits\/.*\.spec\.ts/, workers: 1 },
     {
       name: 'chromium-desktop',
+      testMatch: /e2e\/(ui\/.*|style|screenshots)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: desktop },
     },
     {
       name: 'chromium-narrow',
-      testIgnore: /screenshots\.spec\.ts/,
+      testMatch: /e2e\/(ui\/.*|style)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 800, height: 900 } },
     },
     {
       name: 'firefox-desktop',
       grep: /@cross-browser/,
-      testIgnore: /screenshots\.spec\.ts/,
+      testMatch: /e2e\/ui\/.*\.spec\.ts/,
       use: { ...devices['Desktop Firefox'], viewport: desktop },
     },
     {
       name: 'webkit-desktop',
       grep: /@cross-browser/,
-      testIgnore: /screenshots\.spec\.ts/,
+      testMatch: /e2e\/ui\/.*\.spec\.ts/,
       use: { ...devices['Desktop Safari'], viewport: desktop },
+    },
+    // Global revision / ETag tests: alone, after all other projects (spec 11.5).
+    {
+      name: 'serial',
+      testMatch: /e2e\/serial\/.*\.spec\.ts/,
+      workers: 1,
+      dependencies: [
+        'api',
+        'limits',
+        'chromium-desktop',
+        'chromium-narrow',
+        'firefox-desktop',
+        'webkit-desktop',
+      ],
     },
   ],
 });

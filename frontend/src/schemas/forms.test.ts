@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import {
   flagCreateSchema,
@@ -55,5 +56,11 @@ describe('form rules = backend rules (spec 4.2)', () => {
     expect(slugify('  Ünïcode & More!! ')).toBe('n-code-more');
     expect(slugify('x'.repeat(60))).toHaveLength(50);
     expect(slugify('--a--')).toBe('a');
+  });
+});
+
+describe('CSP (spec 10.2: script-src without unsafe-eval)', () => {
+  it('Zod runs without its eval-based JIT, so it never probes `new Function`', () => {
+    expect(z.config().jitless).toBe(true);
   });
 });

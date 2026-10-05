@@ -299,3 +299,27 @@ added in 1f8b482 and re-recorded for the fixes above:
 
 `scripts/e2e.sh` takes no arguments, so no caller can change the Playwright settings; baselines
 are recorded only with `FF_UPDATE_BASELINES=1` (test audit TA-12).
+
+## D-031 · 2026-10-05 · 10.2, 11.5, 11.6 · M8 end-to-end suite and two bugs it found
+
+Bugs found by the new e2e suite (fixed, production code):
+- nginx passed `Host: $host` (no port) to the backend. A browser login through the UI on any
+  port other than 80 sent `Origin: http://host:3000` with `Host: host`, so Spring CORS saw a
+  cross-origin request and answered 403. nginx now passes `$http_host` (with the port).
+- Zod 4 probes `new Function("")` once; browsers report this as a CSP violation (`script-src
+  'self'`, no `unsafe-eval`), which fails gate 12. `z.config({ jitless: true })` in
+  `src/schemas/forms.ts` stops the probe.
+
+Suite layout (`frontend/playwright.config.ts`): `api` (no browser, once), `limits` (own stack with
+`FF_REQUIRE_HTTPS=true`, 1 worker: group limit and AC-OPS-4 https-required), the four browser
+projects of 11.6 (`e2e/ui`, style, screenshots), and `serial` (1 worker, after all others: ETag /
+revision, AC-EVAL-6). Keys: `e2e-<test id>-<project><repeat>-<name>` (the test id is the same in
+every project). AC-OPS-1 is measured on the e2e main stack (`docker compose build` first, then
+`up` until the UI answers; host port 33000, not 3000, so a running dev stack does not collide).
+AC-OPS-2 is `scripts/ops-standalone.sh` (10.2 standalone check). Both write script results for
+gate 14 and fail gate 12. `scripts/e2e.sh` warms the backends (30 admin reads) before the tests
+and keeps each stack's backend log in `build/reports/`.
+
+Known limit: admin writes into one group serialize on its row lock and each waiting request holds
+a database connection (Hikari default pool, 10). Many parallel writes into one group can delay
+other requests until the pool frees up. The 9.2 flag-limit e2e test writes in batches of 4.
