@@ -27,8 +27,8 @@ BLOCKER and CRITICAL
 | BF-2 | CRITICAL | backend | audit/AuditController.java:43-52 | 6.1 GET /audit | `page`/`size` outside int range give 400 malformed-request instead of 200 empty page / 400 validation | fixed | commit 'M8 review: fix BF-2' |
 | SF-C1 | CRITICAL | backend | common/BodySizeLimitFilter.java:36-63, auth/TokenController.java:55 | 9.1, 9.2 | Chunked form body > 64 KB to /auth/token gives 400/401 instead of 413 payload-too-large | fixed | commit 'M8 review: fix SF-C1' |
 | TA-1 | CRITICAL | tests | evaluation/EvaluationIT.java:273-289 | AC-CACHE-5, 7.2 | Rollback test cannot tell AFTER_COMMIT from BEFORE_COMMIT; a commit failure is untested | fixed | commit 'M8 review: fix TA-1' (test added; fails with BEFORE_COMMIT, passes with AFTER_COMMIT) |
-| SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | open | |
-| SA-4 | CRITICAL | backend | db/migration/{common,dev}/ (D-014) | 4.3 | Migrations sit in sub-folders, not in `db/migration`; decided at Level 1 | open | |
+| SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | escalated | ESC-007 (5.1 vs 5.2 conflict) |
+| SA-4 | CRITICAL | backend | db/migration/{common,dev}/ (D-014) | 4.3 | Migrations sit in sub-folders, not in `db/migration`; decided at Level 1 | rejected | Files are in backend/src/main/resources/db/migration (sub-folders common/, dev/); V2 runs only in dev via spring.flyway.locations, as 4.3 says. FlywayProfileIT proves it (prod: no seed, dev: seed). Cannot make it fail. |
 
 MAJOR
 
@@ -40,8 +40,8 @@ MAJOR
 | BF-6 | MAJOR | backend | common/GlobalExceptionHandler.java:128-138 | 9.1 | NUL character in name/description gives 500 instead of 400 | open | |
 | SF-M1 | MAJOR | backend | evaluation/FlagCacheService.java:252-260 | 7.2, 9.3 | Reconcile can report false drift for a write committed during the snapshot; comment says it cannot | open | |
 | SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder (ESC-003 open) | open | Waits for ESC-003 |
-| SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | open | |
-| SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | open | |
+| SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | escalated | ESC-007 |
+| SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | escalated | ESC-007 |
 | FF-1 | MAJOR | frontend | hooks/queries.ts:146-150 | 8.5, AC-FLAG-3 | Refetch after one toggle can flip another in-flight optimistic toggle back | open | |
 | FF-2 | MAJOR | frontend | features/audit/AuditPage.tsx:57 | 8.6 | Load more by offset shows duplicate rows when new events arrive | open | |
 | FF-3 | MAJOR | frontend | components/Modal.tsx:17, GroupDialog, FlagDialog | 8.5 | Closing a dialog while its request runs loses a later field error (no toast) | open | |
