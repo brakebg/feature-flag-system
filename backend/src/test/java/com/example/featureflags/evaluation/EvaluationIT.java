@@ -386,9 +386,21 @@ class EvaluationIT extends AdminApiTest {
             })
         .when(queries)
         .findAllRows();
+    String before = etag(evaluate("/flags"));
+    long revision = cache.revision();
     assertThat(reconciliation.reconcile()).isEqualTo(-1);
-    assertThat(output.getOut()).contains("Cache reconciliation failed");
+    // TA-3: 7.2 "A run that fails is logged at ERROR and leaves the cache as it was".
+    String line =
+        output
+            .getOut()
+            .lines()
+            .filter(l -> l.contains("Cache reconciliation failed"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(line).contains("\"level\":\"ERROR\"");
     evaluate("/flags/orders/new-checkout").andExpect(jsonPath("$.enabled").value(true));
+    assertThat(cache.revision()).isEqualTo(revision);
+    assertThat(etag(evaluate("/flags"))).isEqualTo(before);
   }
 
   @Test

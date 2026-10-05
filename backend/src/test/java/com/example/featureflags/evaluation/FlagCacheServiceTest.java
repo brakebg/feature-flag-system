@@ -407,4 +407,72 @@ class FlagCacheServiceTest {
     assertThat(cache.group("orders")).contains(Map.of("x-flag", true));
     assertThat(cache.all()).isEqualTo(Map.of("orders.x-flag", true));
   }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void deletesLeaveEveryOtherEntryInPlace() {
+    // PT-1: a delete removes only its own keys from the group entry and from all-flags.
+    when(queries.findAllRows())
+        .thenReturn(
+            List.of(
+                row("orders", "new-checkout", true),
+                row("orders", "split-payments", false),
+                row("payments", "apple-pay", true)));
+    cache.reloadAll();
+
+    cache.onChange(new FlagsChangedEvent.FlagDeleted("orders", "split-payments", 201));
+    assertThat(cache.group("orders")).contains(Map.of("new-checkout", true));
+    assertThat(cache.all())
+        .isEqualTo(Map.of("orders.new-checkout", true, "payments.apple-pay", true));
+    assertThat(cache.flag("orders", "new-checkout")).contains(true);
+
+    cache.onChange(new FlagsChangedEvent.GroupDeleted("orders", List.of("new-checkout"), 202));
+    assertThat(cache.all()).isEqualTo(Map.of("payments.apple-pay", true));
+    assertThat(cache.group("payments")).contains(Map.of("apple-pay", true));
+    assertThat(cache.flag("payments", "apple-pay")).contains(true);
+    assertThat(cache.group("orders")).isEmpty();
+    verify(queries, times(1)).findAllRows();
+    verify(queries, never()).findGroup(anyString());
+    verify(queries, never()).findEnabled(anyString(), anyString());
+  }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void parallelChangesToOneGroupAreAllKept() throws Exception {
+    // PT-2: writers are serialised; parallel changes to different flags of one group all stay.
+    cache.reloadAll();
+    int threads = 8;
+    int perThread = 25;
+    java.util.concurrent.atomic.AtomicLong seq = new java.util.concurrent.atomic.AtomicLong(1000);
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(threads);
+    List<java.util.concurrent.Future<?>> done = new java.util.ArrayList<>();
+    for (int t = 0; t < threads; t++) {
+      int base = t * perThread;
+      done.add(
+          pool.submit(
+              () -> {
+                start.await();
+                for (int i = 0; i < perThread; i++) {
+                  cache.onChange(
+                      new FlagsChangedEvent.FlagChanged(
+                          "orders", "f-" + (base + i), true, seq.incrementAndGet()));
+                }
+                return null;
+              }));
+    }
+    start.countDown();
+    for (var f : done) {
+      f.get(30, java.util.concurrent.TimeUnit.SECONDS);
+    }
+    pool.shutdown();
+    Map<String, Boolean> group = cache.group("orders").orElseThrow();
+    assertThat(group).hasSize(2 + threads * perThread);
+    assertThat(cache.all()).hasSize(2 + threads * perThread);
+    for (int i = 0; i < threads * perThread; i++) {
+      assertThat(group).containsEntry("f-" + i, true);
+    }
+    verify(queries, times(1)).findAllRows();
+  }
 }

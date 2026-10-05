@@ -528,4 +528,88 @@ class AdminGroupsIT extends AdminApiTest {
     assertThat(patch.get(30, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(404);
     pool.shutdown();
   }
+
+  /** Runs the requests at the same time and returns their status codes and bodies. */
+  private List<org.springframework.mock.web.MockHttpServletResponse> parallel(
+      java.util.concurrent.Callable<ResultActions> a,
+      java.util.concurrent.Callable<ResultActions> b)
+      throws Exception {
+    java.util.concurrent.ExecutorService pool =
+        java.util.concurrent.Executors.newFixedThreadPool(2);
+    java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+    List<java.util.concurrent.Future<org.springframework.mock.web.MockHttpServletResponse>> f =
+        new ArrayList<>();
+    for (var call : List.of(a, b)) {
+      f.add(
+          pool.submit(
+              () -> {
+                start.await();
+                return call.call().andReturn().getResponse();
+              }));
+    }
+    start.countDown();
+    List<org.springframework.mock.web.MockHttpServletResponse> out = new ArrayList<>();
+    for (var r : f) {
+      out.add(r.get(30, java.util.concurrent.TimeUnit.SECONDS));
+    }
+    pool.shutdown();
+    out.sort(
+        java.util.Comparator.comparingInt(
+            org.springframework.mock.web.MockHttpServletResponse::getStatus));
+    return out;
+  }
+
+  private static String type(org.springframework.mock.web.MockHttpServletResponse r)
+      throws Exception {
+    return new com.fasterxml.jackson.databind.ObjectMapper()
+        .readTree(r.getContentAsString())
+        .get("type")
+        .asText();
+  }
+
+  @Test
+  @Tag("ERR-POST-/admin/groups-409")
+  void parallelCreatesAtTheLimitLetExactlyOneThrough() throws Exception {
+    // PT-4 (a): spec 9.2 limit under concurrency (advisory lock), with 999 groups present.
+    jdbc.update(
+        "INSERT INTO flag_group (id, key, name, created_by, updated_at, updated_by, version)"
+            + " SELECT ('0191f0c2-0000-7000-8000-' || lpad(n::text, 12, '0'))::uuid, 'g-' || n,"
+            + " 'G', 'system', now(), 'system', 0 FROM generate_series(1, 999) n");
+    var r =
+        parallel(
+            () -> admin.postJson("/groups", "{\"key\":\"last-a\",\"name\":\"A\"}"),
+            () -> admin.postJson("/groups", "{\"key\":\"last-b\",\"name\":\"B\"}"));
+    assertThat(r.get(0).getStatus()).isEqualTo(201);
+    assertThat(r.get(1).getStatus()).isEqualTo(409);
+    assertThat(type(r.get(1))).isEqualTo("https://featureflags.local/problems/limit-reached");
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM flag_group", Integer.class))
+        .isEqualTo(1000);
+  }
+
+  @Test
+  @Tag("ERR-POST-/admin/groups-409")
+  void parallelCreatesWithTheSameKeyGiveOneDuplicateKey() throws Exception {
+    // PT-4 (c): 9.1 "DB unique violations MUST be mapped to 409", under real concurrency.
+    var r =
+        parallel(
+            () -> admin.postJson("/groups", "{\"key\":\"same\",\"name\":\"A\"}"),
+            () -> admin.postJson("/groups", "{\"key\":\"same\",\"name\":\"B\"}"));
+    assertThat(r.get(0).getStatus()).isEqualTo(201);
+    assertThat(r.get(1).getStatus()).isEqualTo(409);
+    assertThat(type(r.get(1))).isEqualTo("https://featureflags.local/problems/duplicate-key");
+  }
+
+  @Test
+  @Tag("ERR-PATCH-/admin/groups/{groupId}-409")
+  void parallelPatchesWithTheSameVersionGiveOneConflict() throws Exception {
+    // PT-4 (b): the real optimistic-lock path gives 409 version-conflict, never 500.
+    String id = admin.createGroup("orders-p", "Orders").get("id").asText();
+    var r =
+        parallel(
+            () -> admin.patchJson("/groups/" + id, "{\"name\":\"A\",\"version\":0}"),
+            () -> admin.patchJson("/groups/" + id, "{\"name\":\"B\",\"version\":0}"));
+    assertThat(r.get(0).getStatus()).isEqualTo(200);
+    assertThat(r.get(1).getStatus()).isEqualTo(409);
+    assertThat(type(r.get(1))).isEqualTo("https://featureflags.local/problems/version-conflict");
+  }
 }

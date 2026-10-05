@@ -47,10 +47,10 @@ MAJOR
 | FF-3 | MAJOR | frontend | components/Modal.tsx:17, GroupDialog, FlagDialog | 8.5 | Closing a dialog while its request runs loses a later field error (no toast) | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
 | FF-4, SF-M3 | MAJOR | frontend | hooks/queries.ts (delete hooks), DeleteFlagDialog, DeleteGroupDialog | 8.5 | Delete of an already deleted item: dialog stays, row stays, technical toast | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
 | TA-2 | MAJOR | tests | flags.test.tsx:259-268, GroupsPage.test.tsx:341-355 | AC-FLAG-6 | Refetch after 409 is asserted with data that is already on screen | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
-| TA-3, PT-3 | MAJOR | tests | evaluation/EvaluationIT.java:338-349 | 7.2 | Failed reconcile: ERROR level, ETag and last-success gauge not asserted | open | |
-| PT-1 | MAJOR | tests | FlagCacheServiceTest.java:229-252, EvaluationIT.java:200-211 | 7.2, AC-CACHE-4 | Deletes not checked to leave other entries in place | open | |
-| PT-2 | MAJOR | tests | FlagCacheServiceTest | 7.2 | No concurrent onChange test for one group | open | |
-| PT-4 | MAJOR | tests | AdminGroupsIT, GroupServiceTest:94 | 9.1, 9.2 | Group limit, real optimistic-lock 409 and real unique-violation 409 not tested under concurrency | open | |
+| TA-3, PT-3 | MAJOR | tests | evaluation/EvaluationIT.java:338-349 | 7.2 | Failed reconcile: ERROR level, ETag and last-success gauge not asserted | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' (fails if logged at WARN) |
+| PT-1 | MAJOR | tests | FlagCacheServiceTest.java:229-252, EvaluationIT.java:200-211 | 7.2, AC-CACHE-4 | Deletes not checked to leave other entries in place | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' |
+| PT-2 | MAJOR | tests | FlagCacheServiceTest | 7.2 | No concurrent onChange test for one group | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' (fails without the writer lock) |
+| PT-4 | MAJOR | tests | AdminGroupsIT, GroupServiceTest:94 | 9.1, 9.2 | Group limit, real optimistic-lock 409 and real unique-violation 409 not tested under concurrency | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' |
 | IF-1 | MAJOR | infra | frontend/nginx.conf:18 | 10.2 | nginx resolves BACKEND_URL once; a recreated backend gives 502 | open | |
 | IF-2 | MAJOR | infra | frontend/nginx.conf:19 | 10.2 | `Host: $http_host` breaks a BACKEND_URL behind a host-routing ingress; no SNI | open | |
 | IF-3 | MAJOR | infra | frontend/nginx.conf:13 | 9.1, 9.2 | nginx answers bodies > 1 MB with an HTML 413 | open | |

@@ -342,7 +342,9 @@ commits (the row lock is released at the database commit, before the listener ru
 transaction. Writes to one group take its row lock before the audit insert, so for one key a
 later commit has a higher id. The cache keeps the newest applied id per group key and per full
 flag key; a change older than one already applied (or older than the data loaded by warm-up)
-only invalidates its entries, so the next read loads the committed value. The revision still
+only invalidates its entries, so the next read loads the committed value. Per key: the full
+flag key, group create/delete, and any change in the group; changes to different flags of one
+group may apply in any order. The revision still
 moves on for every committed change. Reconciliation keeps the ids (it fixes values only).
 
 ## D-034 · 2026-10-05 · 9.1, 6.1, 7.2 · Final review backend fixes

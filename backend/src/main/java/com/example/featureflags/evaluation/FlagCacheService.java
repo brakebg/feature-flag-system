@@ -57,10 +57,10 @@ public class FlagCacheService {
   private final ReentrantLock writeLock = new ReentrantLock();
 
   /**
-   * BF-1: the newest change (audit id) applied per key, "g:" + group key and "f:" + full key.
-   * After-commit listeners of two writes to one key can run in the opposite order of their commits;
-   * an older change that arrives after a newer one only invalidates the affected entries, so the
-   * next read loads the committed value. Guarded by {@code writeLock}.
+   * BF-1: the newest change (audit id) applied per key (see {@link #isLate}). After-commit
+   * listeners of two writes to one key can run in the opposite order of their commits; an older
+   * change that arrives after a newer one only invalidates the affected entries, so the next read
+   * loads the committed value. Guarded by {@code writeLock}.
    */
   private final Map<String, Long> appliedSeq = new HashMap<>();
 
@@ -200,31 +200,44 @@ public class FlagCacheService {
     }
   }
 
-  /** True if a newer change to one of the keys of {@code event} was already applied (BF-1). */
+  /**
+   * True if a newer change that touches the same entries was already applied (BF-1). Keys: "f:" +
+   * full flag key; "gs:" + group key for group create and delete; "ga:" + group key for any change
+   * in the group. Changes to different flags of one group may apply in any order.
+   */
   private boolean isLate(FlagsChangedEvent event) {
-    List<String> keys = seqKeys(event);
+    List<String> check = new ArrayList<>();
+    List<String> record = new ArrayList<>();
+    switch (event) {
+      case FlagsChangedEvent.FlagChanged c -> flagKeys(c.groupKey(), c.flagKey(), check, record);
+      case FlagsChangedEvent.FlagDeleted d -> flagKeys(d.groupKey(), d.flagKey(), check, record);
+      case FlagsChangedEvent.GroupCreated g -> groupKeys(g.groupKey(), List.of(), check, record);
+      case FlagsChangedEvent.GroupDeleted g -> groupKeys(g.groupKey(), g.flagKeys(), check, record);
+      case FlagsChangedEvent.GroupEdited g -> {
+        // No cache entry changes.
+      }
+    }
     boolean late =
         event.seq() <= loadedSeq
-            || keys.stream().anyMatch(k -> appliedSeq.getOrDefault(k, 0L) > event.seq());
-    keys.forEach(k -> appliedSeq.merge(k, event.seq(), Math::max));
+            || check.stream().anyMatch(k -> appliedSeq.getOrDefault(k, 0L) > event.seq());
+    record.forEach(k -> appliedSeq.merge(k, event.seq(), Math::max));
     return late;
   }
 
-  private static List<String> seqKeys(FlagsChangedEvent event) {
-    return switch (event) {
-      case FlagsChangedEvent.FlagChanged c ->
-          List.of("g:" + c.groupKey(), "f:" + c.groupKey() + "." + c.flagKey());
-      case FlagsChangedEvent.FlagDeleted d ->
-          List.of("g:" + d.groupKey(), "f:" + d.groupKey() + "." + d.flagKey());
-      case FlagsChangedEvent.GroupCreated g -> List.of("g:" + g.groupKey());
-      case FlagsChangedEvent.GroupDeleted g -> {
-        List<String> keys = new ArrayList<>();
-        keys.add("g:" + g.groupKey());
-        g.flagKeys().forEach(k -> keys.add("f:" + g.groupKey() + "." + k));
-        yield keys;
-      }
-      case FlagsChangedEvent.GroupEdited g -> List.of();
-    };
+  private static void flagKeys(String group, String flag, List<String> check, List<String> record) {
+    check.addAll(List.of("f:" + group + "." + flag, "gs:" + group));
+    record.addAll(List.of("f:" + group + "." + flag, "ga:" + group));
+  }
+
+  private static void groupKeys(
+      String group, List<String> flags, List<String> check, List<String> record) {
+    check.addAll(List.of("gs:" + group, "ga:" + group));
+    record.addAll(List.of("gs:" + group, "ga:" + group));
+    flags.forEach(
+        f -> {
+          check.add("f:" + group + "." + f);
+          record.add("f:" + group + "." + f);
+        });
   }
 
   private void apply(FlagsChangedEvent event) {
