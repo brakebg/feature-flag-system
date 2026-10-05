@@ -33,4 +33,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-04 | 553a217 | M6 | component, API client and token tests; fonts never inlined (CSP) | verify-fast PASS |
 | 2026-10-04 | 4b0aee0 | M6 | review fixes: focus trap on document, latest Escape handler, TextField textarea props, pure RequireAuth, no request without token, late 401, guarded storage | verify-fast PASS |
 | 2026-10-05 | ed91f3c | M6 | footer version from VERSION / build arg (no hard-coded fallback) | verify-fast PASS |
-| 2026-10-05 | (next commit) | M6 | test audit fixes: lint option reverted, exact text checks, spinner/alert position/Back tests, App wiring test (D-027) | verify-fast PASS |
+| 2026-10-05 | 9b4a89d | M6 | test audit fixes: lint option reverted, exact text checks, spinner/alert position/Back tests, App wiring test (D-027) | verify-fast PASS |
+| 2026-10-05 | (next commit) | M6 | M6: complete | verify PASS (full) |

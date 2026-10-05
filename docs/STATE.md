@@ -4,33 +4,33 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M6 UI foundation — in progress
-- `scripts/current-milestone`: 6
+- Milestone: M7 UI features — next (M6 complete)
+- `scripts/current-milestone`: 6 (set to 7 at the start of M7)
 
 ## Last green commit
 
-- 0a935f3 (M5 audit fixes; full `make verify` PASS incl. smoke). `M5: complete` follows it.
+- 9b4a89d (M6 test-audit fixes; full `make verify` PASS). `M6: complete` follows it.
 
 ## Last full `make verify`
 
-- 2026-10-04 on 0a935f3: PASS. Active and green: 1-8, 10, 11, 14, 15. Inactive: 9 (M6), 12, 13 (M8).
+- 2026-10-05 on 9b4a89d: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
 
-## Chunks done in M5
+## Chunks done in M6
 
-- a66a808 evaluation cache + API; schema.d.ts regenerated; 9db854d PIT kept out of tag log.
-- 0a935f3 audit fixes: reconcile under lock, all-flags race, revision in finally, gauges, tests.
+- 7d76ad0 UI foundation (API client, token, routes, login, shell, components); tests AC-AUTH-1..4, 6.
+- 4b0aee0 React review fixes; ed91f3c footer version from VERSION; 9b4a89d test audit fixes.
 
 ## Next 3 steps
 
-1. M6: set `scripts/current-milestone` to 6. UI foundation per spec 8.1-8.3, 8.5 (toasts), 8.7:
-   `src/api/apiClient.ts` (bearer, ApiError from problem details, 401 -> clear token + /login?expired=1),
-   `src/auth/token.ts` (sessionStorage `ff.accessToken`, decode exp), `RequireAuth`, routes, app shell
-   (top bar, Sign out, footer `v<version>`), login page (8.2 errors incl. 429 Retry-After),
-   components Modal/ConfirmDialog/Toggle/Toast/Button/TextField/EmptyState, tokens.css from designs.
-2. M6 tests (Vitest + RTL + MSW), tagged [AC-AUTH-1..4, 6]: login errors, success -> /groups,
-   no token -> /login, expired -> /login?expired=1, 401 -> redirect, sign out clears token.
-3. M6 end: gate 9 + gate 6 (70 % lines on src/features + src/api), `make verify`, audit (spec, test,
-   ecc:react-reviewer).
+1. M7: set `scripts/current-milestone` to 7. Build spec 8.4-8.6: `src/api/{groups,flags,audit,types}.ts`,
+   `src/hooks/queries.ts` (keys ['groups'], ['group', id], ['audit', filters]; optimistic toggle),
+   `src/schemas/forms.ts` (Zod = 4.2 rules, 8.5 texts, slugify), groups pane, group header, flags
+   table, New/Edit group and flag dialogs, delete confirmations, audit page with Load more.
+   TextField needs forwardRef for React Hook Form. Drafts exist in the old session scratchpad (m7/).
+2. M7 tests tagged AC-GRP-1..5, AC-FLAG-1..6, AC-AUD-2 (UI parts); check TA-5/TA-10 from the M6
+   test audit (Back after sign out with real data; query cache cleared on sign out / 401).
+3. M7 end: Playwright style checks + screenshot baselines for the 5 screens (spec 11.6), design
+   compare; `make verify`; audit (spec, test, design-checker, ecc:react-reviewer).
 
 ## Notes for M4/M5 (from the M2 audit)
 
