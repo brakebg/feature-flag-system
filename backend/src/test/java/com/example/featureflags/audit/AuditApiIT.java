@@ -127,6 +127,8 @@ class AuditApiIT extends AdminApiTest {
     validation(admin.get("/audit?size=99999999999"), "size");
     validation(admin.get("/audit?size=-99999999999"), "size");
     validation(admin.get("/audit?page=-99999999999"), "page");
+    // FR-8: PostgreSQL cannot hold U+0000, so it is invalid input, not a 500.
+    validation(admin.get("/audit?targetKey=orders%00"), "targetKey");
     problem(admin.get("/audit?page="), 400, "malformed-request");
     problem(admin.get("/audit?size="), 400, "malformed-request");
     problem(admin.get("/audit?page=1.5"), 400, "malformed-request");

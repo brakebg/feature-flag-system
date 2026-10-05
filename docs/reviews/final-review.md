@@ -1,6 +1,6 @@
 # Final review
 
-Range: main...2cee8d6   Round: 1   Date: 2026-10-05
+Range: main...HEAD (round 1 on 2cee8d6, round 2 on e720537...bda0766)   Round: 2   Date: 2026-10-05
 
 Agents (builder-agents 6, step 1): final-reviewer backend (BF), frontend (FF), infra (IF);
 security-reviewer (SR); spec-auditor (SA); test-auditor (TA); design-checker (DC);
@@ -29,6 +29,21 @@ BLOCKER and CRITICAL
 | TA-1 | CRITICAL | tests | evaluation/EvaluationIT.java:273-289 | AC-CACHE-5, 7.2 | Rollback test cannot tell AFTER_COMMIT from BEFORE_COMMIT; a commit failure is untested | fixed | commit 'M8 review: fix TA-1' (test added; fails with BEFORE_COMMIT, passes with AFTER_COMMIT) |
 | SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | escalated | ESC-007 (5.1 vs 5.2 conflict) |
 | SA-4 | CRITICAL | backend | db/migration/{common,dev}/ (D-014) | 4.3 | Migrations sit in sub-folders, not in `db/migration`; decided at Level 1 | rejected | Files are in backend/src/main/resources/db/migration (sub-folders common/, dev/); V2 runs only in dev via spring.flyway.locations, as 4.3 says. FlywayProfileIT proves it (prod: no seed, dev: seed). Cannot make it fail. |
+
+Round 2 (re-check: spec-auditor, final-reviewer backend, silent-failure-hunter, test-auditor)
+
+| ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SF-N1, BF-FR-7 | CRITICAL | backend | common/BodySizeLimitFilter.java (FormBody) | 5.5, 9.1 | SF-C1 fix: a bad percent escape or unknown charset in a chunked form gave 500 | fixed | commit 'M8 review: round 2 fixes' (skips bad pairs, unknown charset gives no parameters, like Tomcat; ChunkedBodyIT compares chunked with Content-Length) |
+| BF-FR-8 | CRITICAL | backend | audit/AuditController.java | 6.1, 9.1 | `targetKey` with U+0000 gave 500 | fixed | commit 'M8 review: round 2 fixes' (400 validation, AuditApiIT) |
+| TA-8 | CRITICAL | tests | FlagCacheServiceTest | AC-CACHE-4, D-033 | No test for a late flag change after a newer group delete | fixed | commit 'M8 review: round 2 fixes' (test added) |
+| BF-FR-9 | MAJOR | backend | evaluation/FlagCacheService.java | 7.2, 9.2 | Per-key ids grew without bound | fixed | commit 'M8 review: round 2 fixes' (cleared after each reconciliation; ids up to the snapshot count as loaded) |
+| TA-9 | MAJOR | tests | FlagCacheServiceTest | D-033 | No test for a change older than the warm-up data | fixed | commit 'M8 review: round 2 fixes' |
+| TA-10 | MINOR | tests | FlagServiceTest, GroupServiceTest | D-033 | Expected seq was the mock default 0 | fixed | commit 'M8 review: round 2 fixes' (audit id 77 stubbed and expected) |
+| SF-N2 | MINOR | backend | BodySizeLimitFilter.java | – | FormBody does not override getReader (nothing calls it) | open | |
+
+Round 2 re-check results: BF-1, BF-2, BF-3, BF-4, BF-6, SF-C1, SF-M2, SF-M3, TA-1, TA-2, TA-3 confirmed
+fixed; SA-4 rejection accepted; SA-3 still holds until ESC-007 is answered; BF-5 still open (owner).
 
 MAJOR
 

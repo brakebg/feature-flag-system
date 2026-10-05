@@ -90,16 +90,28 @@ public class BodySizeLimitFilter extends OncePerRequestFilter {
     FormBody(HttpServletRequest request, byte[] body) {
       super(request);
       this.body = body;
-      Charset charset =
-          request.getCharacterEncoding() == null
-              ? StandardCharsets.UTF_8
-              : Charset.forName(request.getCharacterEncoding());
+      // FR-7: like the container, an unknown charset gives no parameters and a pair with a bad
+      // percent escape is skipped; bad client input never becomes a 500.
+      Charset charset = charset(request.getCharacterEncoding());
       Map<String, List<String>> values = new LinkedHashMap<>();
-      parse(request.getQueryString(), charset, values);
-      parse(new String(body, charset), charset, values);
+      if (charset != null) {
+        parse(request.getQueryString(), charset, values);
+        parse(new String(body, charset), charset, values);
+      }
       Map<String, String[]> map = new LinkedHashMap<>();
       values.forEach((k, v) -> map.put(k, v.toArray(String[]::new)));
       this.parameters = Collections.unmodifiableMap(map);
+    }
+
+    private static Charset charset(String name) {
+      if (name == null) {
+        return StandardCharsets.UTF_8;
+      }
+      try {
+        return Charset.forName(name);
+      } catch (IllegalArgumentException e) {
+        return null;
+      }
     }
 
     private static void parse(String text, Charset charset, Map<String, List<String>> into) {
@@ -111,9 +123,13 @@ public class BodySizeLimitFilter extends OncePerRequestFilter {
           continue;
         }
         int eq = pair.indexOf('=');
-        String name = URLDecoder.decode(eq < 0 ? pair : pair.substring(0, eq), charset);
-        String value = eq < 0 ? "" : URLDecoder.decode(pair.substring(eq + 1), charset);
-        into.computeIfAbsent(name, k -> new ArrayList<>()).add(value);
+        try {
+          String name = URLDecoder.decode(eq < 0 ? pair : pair.substring(0, eq), charset);
+          String value = eq < 0 ? "" : URLDecoder.decode(pair.substring(eq + 1), charset);
+          into.computeIfAbsent(name, k -> new ArrayList<>()).add(value);
+        } catch (IllegalArgumentException e) {
+          // reason: a malformed pair is skipped, as the container's own form parser does (FR-7).
+        }
       }
     }
 

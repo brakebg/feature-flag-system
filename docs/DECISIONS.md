@@ -397,3 +397,11 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
   cached data, like a 401 and Sign out.
 - DC-2, DC-3: "(optional)" muted in all dialogs; no empty list box for a group with 0 flags.
 - IF-9: gate 8 compares the generated files with HEAD, not with the index.
+
+## D-038 · 2026-10-05 · 5.5, 6.1, 7.2 · Final review round 2 fixes
+
+- A chunked form body is parsed like Tomcat parses one with a Content-Length: a pair with a bad
+  percent escape is skipped, an unknown charset gives no parameters (SF-N1).
+- `GET /audit?targetKey=` with U+0000 is 400 `validation`, field `targetKey` (BF-FR-8).
+- After each reconciliation the cache forgets the per-key change ids and treats changes up to the
+  newest audit id seen after its snapshot as already loaded (bounded memory, BF-FR-9).

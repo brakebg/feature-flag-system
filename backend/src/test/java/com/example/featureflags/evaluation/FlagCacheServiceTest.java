@@ -475,4 +475,53 @@ class FlagCacheServiceTest {
     }
     verify(queries, times(1)).findAllRows();
   }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void aLateFlagChangeAfterTheGroupWasDeletedDoesNotBringTheFlagBack() {
+    // TA-8: GroupDeleted (70) applied first, then the listener of an earlier toggle (69).
+    cache.reloadAll();
+    when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.empty());
+    when(queries.findGroup("orders")).thenReturn(List.of());
+    when(queries.findAllRows()).thenReturn(List.of(row("empty", null, null)));
+    cache.onChange(
+        new FlagsChangedEvent.GroupDeleted(
+            "orders", List.of("new-checkout", "split-payments"), 70));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 69));
+
+    assertThat(cache.flag("orders", "new-checkout")).isEmpty();
+    assertThat(cache.group("orders")).isEmpty();
+    assertThat(cache.all()).isEqualTo(Map.of());
+    assertThat(cache.revision()).isEqualTo(44);
+  }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void aChangeAlreadyInTheLoadedDataIsNotAppliedAgain() {
+    // TA-9: warm-up loaded data up to audit id 42; the listener of change 40 runs after it.
+    cache.reloadAll();
+    when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.of(true));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 40));
+
+    assertThat(cache.flag("orders", "new-checkout")).contains(true);
+    assertThat(cache.revision()).isEqualTo(43);
+  }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void reconciliationMovesTheLateChangeLimitForward() {
+    // FR-9: reconciliation forgets the per-key ids (bounded memory) and treats changes up to the
+    // newest audit id at its snapshot as already loaded.
+    cache.reloadAll();
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 50));
+    when(queries.findAllRows())
+        .thenReturn(
+            List.of(row("orders", "new-checkout", false), row("orders", "split-payments", false)));
+    when(queries.loadMaxAuditId()).thenReturn(Optional.of(60L));
+    cache.reconcileWithDatabase();
+    when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.of(false));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 55));
+
+    assertThat(cache.flag("orders", "new-checkout")).contains(false);
+  }
 }

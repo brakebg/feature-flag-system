@@ -43,6 +43,10 @@ public class AuditController {
     if (s < 1 || s > MAX_SIZE) {
       throw new FieldValidationException("size", "must be between 1 and " + MAX_SIZE);
     }
+    if (targetKey != null && targetKey.indexOf('\u0000') >= 0) {
+      // FR-8: PostgreSQL text cannot hold U+0000; invalid input (6.1 400), not a 500.
+      throw new FieldValidationException("targetKey", "must not contain the character U+0000");
+    }
     return new PagedModel<>(audit.page(p, s, targetKey));
   }
 

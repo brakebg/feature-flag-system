@@ -328,7 +328,13 @@ public class FlagCacheService {
   List<Difference> reconcileWithDatabase() {
     writeLock.lock();
     try {
-      return reconcile(loadSnapshot());
+      List<Difference> diffs = reconcile(loadSnapshot());
+      // FR-9: the cache now matches the database up to at least this audit id, so the per-key ids
+      // are not needed any more (keeps the map bounded); older changes count as already loaded.
+      long maxAuditId = loadMaxAuditId();
+      appliedSeq.clear();
+      loadedSeq = Math.max(loadedSeq, maxAuditId);
+      return diffs;
     } finally {
       writeLock.unlock();
     }
@@ -404,6 +410,11 @@ public class FlagCacheService {
   }
 
   /** Everything in the database, built from one query. */
+  /** The newest audit id in the database (part of the reconciliation snapshot). */
+  private long loadMaxAuditId() {
+    return queries.loadMaxAuditId().orElse(0L);
+  }
+
   Snapshot loadSnapshot() {
     return snapshotOf(queries.findAllRows());
   }

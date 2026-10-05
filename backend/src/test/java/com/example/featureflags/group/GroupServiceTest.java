@@ -61,6 +61,8 @@ class GroupServiceTest {
 
   @BeforeEach
   void setUp() {
+    // TA-10: events must carry the id of the audit event written in the same transaction.
+    when(audit.record(any(), any(), any())).thenReturn(77L);
     orders = saved(new FlagGroup(G, "orders", "Orders", null), 2);
     when(groups.findById(G)).thenReturn(Optional.of(orders));
     when(groups.findForUpdate(G)).thenReturn(Optional.of(orders));
@@ -93,7 +95,7 @@ class GroupServiceTest {
     assertThat(g.id().version()).isEqualTo(7);
     verify(jdbc).queryForList("SELECT pg_advisory_xact_lock(?)", GroupService.CREATE_LOCK);
     verify(audit).record(AuditAction.GROUP_CREATED, "payments", Map.of("name", "Payments"));
-    verify(events).publishEvent(new FlagsChangedEvent.GroupCreated("payments", 0L));
+    verify(events).publishEvent(new FlagsChangedEvent.GroupCreated("payments", 77L));
   }
 
   @Test
@@ -158,7 +160,7 @@ class GroupServiceTest {
     details.put("name", change("Orders", "Shop"));
     details.put("description", change(null, "text"));
     verify(audit).record(AuditAction.GROUP_UPDATED, "orders", details);
-    verify(events).publishEvent(new FlagsChangedEvent.GroupEdited("orders", 0L));
+    verify(events).publishEvent(new FlagsChangedEvent.GroupEdited("orders", 77L));
   }
 
   @Test
@@ -198,7 +200,7 @@ class GroupServiceTest {
     verify(events)
         .publishEvent(
             new FlagsChangedEvent.GroupDeleted(
-                "orders", List.of("new-checkout", "split-payments"), 0L));
+                "orders", List.of("new-checkout", "split-payments"), 77L));
   }
 
   @Test

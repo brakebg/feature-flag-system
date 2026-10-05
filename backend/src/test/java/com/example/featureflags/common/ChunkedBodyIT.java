@@ -33,6 +33,10 @@ class ChunkedBodyIT {
   private final HttpClient http = HttpClient.newHttpClient();
 
   private HttpResponse<String> chunkedToken(String body) throws Exception {
+    return token(body, "application/x-www-form-urlencoded", true);
+  }
+
+  private HttpResponse<String> token(String body, String type, boolean chunked) throws Exception {
     byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
     String basic =
         Base64.getEncoder()
@@ -41,9 +45,13 @@ class ChunkedBodyIT {
     HttpRequest request =
         HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/token"))
             .header("Authorization", "Basic " + basic)
-            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Content-Type", type)
             // An input-stream publisher has no known length, so the body is sent chunked.
-            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> new ByteArrayInputStream(bytes)))
+            .POST(
+                chunked
+                    ? HttpRequest.BodyPublishers.ofInputStream(
+                        () -> new ByteArrayInputStream(bytes))
+                    : HttpRequest.BodyPublishers.ofByteArray(bytes))
             .build();
     return http.send(request, HttpResponse.BodyHandlers.ofString());
   }
@@ -63,5 +71,25 @@ class ChunkedBodyIT {
     HttpResponse<String> res = chunkedToken("grant_type=client_credentials&scope=flags:read");
     assertThat(res.statusCode()).isEqualTo(200);
     assertThat(res.body()).contains("\"expires_in\":900");
+  }
+
+  @Test
+  void badFormEncodingIsHandledLikeTheContainerDoes() throws Exception {
+    // FR-7 / N1: a bad percent escape or an unknown charset is client input, never a 500, and a
+    // chunked body gives the same answer as the same body with a Content-Length.
+    String[][] cases = {
+      {"grant_type=client_credentials&scope=%zz", "application/x-www-form-urlencoded"},
+      {"grant_type=client_credentials&x=%", "application/x-www-form-urlencoded"},
+      {"grant_type=client_credentials", "application/x-www-form-urlencoded; charset=bogus"},
+    };
+    for (String[] c : cases) {
+      HttpResponse<String> plain = token(c[0], c[1], false);
+      HttpResponse<String> chunked = token(c[0], c[1], true);
+      assertThat(plain.statusCode()).as(c[0] + " " + c[1]).isLessThan(500);
+      assertThat(chunked.statusCode()).as(c[0] + " " + c[1]).isEqualTo(plain.statusCode());
+      if (plain.statusCode() != 200) {
+        assertThat(chunked.body()).as(c[0] + " " + c[1]).isEqualTo(plain.body());
+      }
+    }
   }
 }

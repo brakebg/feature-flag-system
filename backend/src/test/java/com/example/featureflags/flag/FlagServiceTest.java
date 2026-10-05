@@ -52,6 +52,8 @@ class FlagServiceTest {
 
   @BeforeEach
   void setUp() {
+    // TA-10: events must carry the id of the audit event written in the same transaction.
+    when(audit.record(any(), any(), any())).thenReturn(77L);
     existing = saved(new FeatureFlag(F, G, "new-checkout", null, false), 3);
     when(flags.findGroupId(F)).thenReturn(Optional.of(G));
     when(flags.findForUpdate(F)).thenReturn(Optional.of(existing));
@@ -82,7 +84,7 @@ class FlagServiceTest {
     verify(audit)
         .record(AuditAction.FLAG_CREATED, "orders.split-payments", Map.of("enabled", true));
     verify(events)
-        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "split-payments", true, 0L));
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "split-payments", true, 77L));
   }
 
   @Test
@@ -114,7 +116,7 @@ class FlagServiceTest {
     details.put("enabled", change(false, true));
     verify(audit).record(AuditAction.FLAG_UPDATED, "orders.new-checkout", details);
     verify(events)
-        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 0L));
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 77L));
   }
 
   @Test
@@ -126,7 +128,7 @@ class FlagServiceTest {
             "orders.new-checkout",
             Map.of("description", change(null, "text")));
     verify(events)
-        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 0L));
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 77L));
   }
 
   @Test
@@ -156,7 +158,7 @@ class FlagServiceTest {
             "orders.new-checkout",
             Map.of("enabled", change(false, true)));
     verify(events)
-        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 0L));
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 77L));
 
     FlagServiceTest other = new FlagServiceTest();
     other.setUp();
@@ -172,7 +174,7 @@ class FlagServiceTest {
     service.delete(F);
     verify(flags).delete(existing);
     verify(audit).record(AuditAction.FLAG_DELETED, "orders.new-checkout", Map.of("enabled", true));
-    verify(events).publishEvent(new FlagsChangedEvent.FlagDeleted("orders", "new-checkout", 0L));
+    verify(events).publishEvent(new FlagsChangedEvent.FlagDeleted("orders", "new-checkout", 77L));
   }
 
   @Test
@@ -187,7 +189,7 @@ class FlagServiceTest {
     when(flags.findGroupId(id(9))).thenReturn(Optional.empty());
     assertThatThrownBy(() -> service.toggle(id(9), true)).isInstanceOf(NotFoundException.class);
     assertThatThrownBy(() -> service.delete(id(9))).isInstanceOf(NotFoundException.class);
-    assertThatThrownBy(() -> service.update(id(9), new UpdateFlagRequest(null, null, 0L)))
+    assertThatThrownBy(() -> service.update(id(9), new UpdateFlagRequest(null, null, 77L)))
         .isInstanceOf(NotFoundException.class);
   }
 
