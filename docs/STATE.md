@@ -4,7 +4,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M8 complete; final review (builder-agents 6) next
+- Milestone: M8 complete; final review done (round 3); waiting for ESC-002..006
 - `scripts/current-milestone`: 8
 
 ## Last green commit
@@ -23,13 +23,16 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. Final review round 2 (re-check) running: spec-auditor, final-reviewer backend,
-   silent-failure-hunter, test-auditor on e720537...HEAD. Then update the summary table in
-   docs/reviews/final-review.md.
-2. Round 1 status: CRITICAL BF-1, BF-2, SF-C1, TA-1 fixed; SA-3 escalated (ESC-007); SA-4
-   rejected. BLOCKER SA-1 (last step), SA-2 (owner answers ESC-002..007).
-3. Finish (builder-agents 6 step 6): verify-all, commit docs/verify-report.md. While escalations
-   are open the PR cannot be marked ready (12.3 "No escalation is open").
+1. WAITING for owner answers to ESC-002, ESC-003, ESC-004, ESC-005, ESC-006 (all other work is
+   done). Apply each answer test-first, record it in DECISIONS.md, post `[RESOLVED ESC-NNN]`.
+2. Then `make verify-all`, copy build/verify-report.md to docs/verify-report.md, commit.
+3. Then mark PR #3 ready for review and post the final summary comment (builder-agents 6 step 6).
+
+## Final review status
+
+- docs/reviews/final-review.md, round 3 done. CRITICAL: 8 fixed, 1 rejected (SA-4, accepted by
+  the re-check). BLOCKER: SA-1 fixed; SA-2 open (ESC-002..006). No CRITICAL open.
+- Last `make verify-all`: PASS on e92f5b6 (all 15 gates); copied to docs/verify-report.md.
 
 ## M8 notes
 

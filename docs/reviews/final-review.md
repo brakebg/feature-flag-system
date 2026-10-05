@@ -10,10 +10,10 @@ pr-review-toolkit:silent-failure-hunter (SF); pr-review-toolkit:pr-test-analyzer
 ## Summary
 | Severity | Total | Fixed | Rejected | Disputed | Escalated | Blocked | Owner-accepted | Open |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| BLOCKER | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 2 |
-| CRITICAL | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 6 |
-| MAJOR | 30 | 0 | 0 | 0 | 0 | 0 | 0 | 30 |
-| MINOR | 45 | 0 | 0 | 0 | 0 | 0 | 0 | 45 |
+| BLOCKER | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+| CRITICAL | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
+| MAJOR | 28 | 19 | 0 | 0 | 1 | 0 | 2 | 6 |
+| MINOR | 47 | 13 | 0 | 0 | 0 | 0 | 0 | 34 |
 
 ## Findings
 
@@ -21,7 +21,7 @@ BLOCKER and CRITICAL
 
 | ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| SA-1 | BLOCKER | docs | docs/verify-report.md | 12.3 | Final verify report and this review not committed yet | open | Last step of the review (builder-agents 6 step 6) |
+| SA-1 | BLOCKER | docs | docs/verify-report.md | 12.3 | Final verify report and this review not committed yet | fixed | docs/verify-report.md committed (verify-all PASS on e92f5b6) with this report |
 | SA-2 | BLOCKER | process | docs/escalations/ESC-002..006 | 12.3, 12.5 | Five escalations are still open | open | Needs owner answers |
 | BF-1, JR-1 | CRITICAL | backend | evaluation/FlagCacheService.java:148-199 | 7.2, AC-CACHE-4 | AFTER_COMMIT listeners of two writes to the same key can apply in reverse commit order; cache keeps the older value | fixed | commit 'M8 review: fix BF-1' (D-033) |
 | BF-2 | CRITICAL | backend | audit/AuditController.java:43-52 | 6.1 GET /audit | `page`/`size` outside int range give 400 malformed-request instead of 200 empty page / 400 validation | fixed | commit 'M8 review: fix BF-2' |
@@ -133,8 +133,8 @@ MINOR (optional; listed for the owner)
 | IF-17 | infra | ci.yml, install-tools.sh | Actions pinned by tag, not SHA | open |
 
 ## Ignored suggestions
-- none yet
+- none (no agent asked to weaken a test, gate or threshold)
 
 ## Not checked by any agent
-- Fresh-clone `git clean -xfd` + `make verify-all` (12.3 item 1): to be run in step 6.
+- Fresh-clone `git clean -xfd` + `make verify-all` (12.3 item 1): not run in this session (the working tree keeps build tools and node_modules); `make verify-all` PASS on e92f5b6 in the working tree.
 - Firefox / WebKit and narrow-width screenshots: only chromium-desktop baselines exist (spec 11.6 asks only for those).
