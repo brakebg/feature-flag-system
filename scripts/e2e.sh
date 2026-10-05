@@ -21,22 +21,26 @@ ID=$(run_id)
 mkdir -p build/reports/script-results
 # AC-OPS-1: build the images first, then time `up` until the UI answers (90 s limit, 3 containers).
 OPS1=build/reports/script-results/ops-up.json
-ops1() { printf '[{"title":"[AC-OPS-1] compose up starts all three containers; UI reachable within 90 s","status":"%s"}]\n' "$1" > "$OPS1"; }
+ops1() { printf '[{"title":"[AC-OPS-1] compose up: three services running, postgres and backend healthy, UI 200 text/html within 90 s","status":"%s"}]\n' "$1" > "$OPS1"; }
 ops1 failed
 (env FF_VERSION="$(cat VERSION)" GIT_COMMIT="$(git rev-parse HEAD)" docker compose build --quiet) || exit 1
 t0=$(date +%s)
 stack_up "ff-e2e-$ID" 38080 33000 || exit 1
+# 10.3: postgres, backend and frontend running, postgres and backend healthy, GET / 200 text/html.
+ops1_ok() {
+  local states type
+  states=$(docker compose -p "ff-e2e-$ID" ps --format '{{.Service}}={{.State}}/{{.Health}}' | sort | tr '\n' ' ')
+  type=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' http://localhost:33000/)
+  [[ "$states" == "backend=running/healthy frontend=running/"*" postgres=running/healthy " ]] \
+    && [[ "$type" == "200 text/html"* ]]
+}
+up_secs=-1
 for _ in $(seq 1 180); do
-  [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33000/)" = 200 ] && break
+  if ops1_ok; then up_secs=$(( $(date +%s) - t0 )); break; fi
   sleep 0.5
 done
-up_secs=$(( $(date +%s) - t0 ))
-running=$(docker compose -p "ff-e2e-$ID" ps --status running --format '{{.Service}}' | sort | tr '\n' ' ')
-echo "AC-OPS-1: UI reachable after ${up_secs}s; running: $running"
-if [ "$up_secs" -le 90 ] && [ "$running" = "backend frontend postgres " ] \
-  && [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:33000/)" = 200 ]; then
-  ops1 passed
-fi
+echo "AC-OPS-1: stack ready after ${up_secs}s (limit 90 s)"
+if [ "$up_secs" -ge 0 ] && [ "$up_secs" -le 90 ]; then ops1 passed; fi
 ops_status=0
 grep -q '"passed"' "$OPS1" || ops_status=1
 bash scripts/ops-standalone.sh || ops_status=1
