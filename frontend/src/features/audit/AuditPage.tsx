@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
 import { useAudit } from '../../hooks/queries';
+import { loadErrorText } from '../../lib/errors';
 import { localTime, relativeTime } from '../../lib/time';
 import { SearchIcon } from '../groups/GroupList';
 import { ACTION_LABELS, actionTone, auditDetails } from './auditFormat';
 import styles from './AuditPage.module.css';
 
-/** Spec 8.6 audit log: newest first, filter by target key prefix, Load more (50 per page). */
+/** Spec 8.6 audit log: newest first, filter on target key, Load more (50 per page). */
 export function AuditPage() {
   const [filter, setFilter] = useState('');
   const audit = useAudit(filter);
@@ -35,8 +35,8 @@ export function AuditPage() {
           <SearchIcon />
         </div>
       </div>
-      <section aria-label="Audit events" className={styles.card}>
-        <div role="table" aria-label="Audit events">
+      <section className={styles.card}>
+        <div role="table" aria-label="Audit events" aria-busy={audit.isPending}>
           <div role="rowgroup">
             <div role="row" className={`${styles.row} ${styles.head}`}>
               <div role="columnheader" className={styles.hideSm}>
@@ -75,7 +75,11 @@ export function AuditPage() {
             ))}
           </div>
         </div>
-        {audit.isSuccess && events.length === 0 && <EmptyState text="No audit events" />}
+        {audit.isError && (
+          <p role="alert" className={styles.error}>
+            {loadErrorText(audit.error, 'Could not load audit events')}
+          </p>
+        )}
         {audit.hasNextPage && (
           <div className={styles.more}>
             <Button

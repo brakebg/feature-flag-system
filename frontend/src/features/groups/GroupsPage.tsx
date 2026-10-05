@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/ApiError';
 import { EmptyState } from '../../components/EmptyState';
 import { useGroup, useGroups } from '../../hooks/queries';
+import { loadErrorText } from '../../lib/errors';
 import { NewGroupDialog } from './GroupDialog';
 import { GroupList } from './GroupList';
 import { GroupPanel } from './GroupPanel';
@@ -25,6 +26,14 @@ export function GroupsPage() {
     );
   } else if (groupId && group.isPending) {
     right = <main className={styles.placeholder} aria-busy="true" />;
+  } else if (groupId && group.isError && !unknown) {
+    right = (
+      <main className={styles.placeholder}>
+        <p role="alert" className={styles.error}>
+          {loadErrorText(group.error, 'Could not load the group')}
+        </p>
+      </main>
+    );
   } else {
     right = (
       <main className={styles.placeholder}>
@@ -36,7 +45,8 @@ export function GroupsPage() {
   return (
     <div className={styles.grid}>
       <GroupList
-        groups={groups.data ?? []}
+        groups={groups.data}
+        error={groups.isError ? loadErrorText(groups.error, 'Could not load groups') : undefined}
         selectedId={groupId}
         onSelect={(id) => navigate(`/groups/${id}`)}
         onNew={() => setCreating(true)}

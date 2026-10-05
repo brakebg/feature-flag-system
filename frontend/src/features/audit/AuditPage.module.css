@@ -125,3 +125,10 @@
     display: none !important;
   }
 }
+
+.error {
+  margin: 0;
+  padding: 16px;
+  color: var(--color-danger);
+  font-size: 14px;
+}

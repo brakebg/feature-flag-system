@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useIsMutating } from '@tanstack/react-query';
 import type { Flag, GroupDetail } from '../../api/types';
 import { Toggle } from '../../components/Toggle';
-import { useToast } from '../../components/toastContext';
-import { useToggleFlag } from '../../hooks/queries';
+import { toggleKey, useToggleFlag } from '../../hooks/queries';
 import { relativeTime } from '../../lib/time';
 import styles from './FlagTable.module.css';
 
@@ -53,19 +52,12 @@ function FlagRow({
   onEdit: (flag: Flag) => void;
   onDelete: (flag: Flag) => void;
 }) {
-  const toast = useToast();
-  const toggle = useToggleFlag(group.id);
-  const [pending, setPending] = useState(false);
+  const toggle = useToggleFlag(group.id, flag);
+  // Spec 8.5: disabled while its request runs, also after the row is shown again.
+  const pending = useIsMutating({ mutationKey: toggleKey(flag.id) }) > 0;
 
   function change(enabled: boolean) {
-    setPending(true);
-    toggle.mutate(
-      { flag, enabled },
-      {
-        onError: () => toast.error(`Could not update flag ${flag.fullKey}`),
-        onSettled: () => setPending(false),
-      },
-    );
+    toggle.mutate(enabled);
   }
 
   return (

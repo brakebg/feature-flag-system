@@ -28,3 +28,8 @@ export function errorText(error: unknown, fallback: string): string {
   }
   return fallback;
 }
+
+/** D-029: a failed read shows a fixed text; a network failure says so (spec 8.2 text). */
+export function loadErrorText(error: unknown, text: string): string {
+  return error instanceof ApiError && error.isNetwork ? 'Cannot reach server' : text;
+}

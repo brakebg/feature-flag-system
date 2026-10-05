@@ -23,16 +23,18 @@ export function PlusIcon() {
 }
 
 interface Props {
-  groups: GroupSummary[];
+  /** `undefined` while the list loads or when it failed (no empty state then). */
+  groups: GroupSummary[] | undefined;
+  error?: string;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
   onNew: () => void;
 }
 
 /** Spec 8.4 left pane: search, the group list (`nav` "Flag groups") and New group. */
-export function GroupList({ groups, selectedId, onSelect, onNew }: Props) {
+export function GroupList({ groups, error, selectedId, onSelect, onNew }: Props) {
   const [search, setSearch] = useState('');
-  const shown = filterGroups(groups, search);
+  const shown = filterGroups(groups ?? [], search);
   return (
     <aside aria-label="Groups" className={styles.pane}>
       <div className={styles.header}>
@@ -55,7 +57,13 @@ export function GroupList({ groups, selectedId, onSelect, onNew }: Props) {
         />
         <SearchIcon />
       </div>
-      {groups.length === 0 ? (
+      {error ? (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      ) : !groups ? (
+        <div aria-busy="true" />
+      ) : groups.length === 0 ? (
         <EmptyState
           text="No groups yet"
           action={

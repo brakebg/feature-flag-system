@@ -265,3 +265,13 @@ every machine and in CI. The browsers reach the stacks through `host.docker.inte
 screenshot stack is seeded once, in a fixed order, by `scripts/lib/seed-shots.sh` (design sample
 data), so the audit-log screen is deterministic. Test keys are `e2e-<test id>-r<repeat>-...`
 (deterministic, no random data).
+
+## D-029 · 2026-10-05 · 8.4, 8.6 · Load and error states of the data screens
+
+Spec is silent on loading and failed reads. Level 1, simplest option: while a list loads, no
+empty state is shown ("No groups yet" only after `200 []`). A failed read shows one line with
+`role="alert"`: `Could not load groups`, `Could not load the group`, `Could not load audit
+events`; a network failure shows `Cannot reach server` (the 8.2 text). Only 404/400 on a group
+id show the "Select a group or create one" placeholder. The audit page has no "No audit events"
+text (removed, not in the spec). The copy-key button shows the error toast `Could not copy the
+group key` when the browser refuses clipboard access (spec silent; a silent failure would hide it).

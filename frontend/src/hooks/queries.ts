@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '../components/toastContext';
 import { auditApi } from '../api/audit';
 import { flagsApi } from '../api/flags';
 import { groupsApi } from '../api/groups';
@@ -95,47 +96,60 @@ export function useDeleteFlag(groupId: string) {
   });
 }
 
-interface ToggleContext {
-  detail?: GroupDetail;
-  list?: GroupSummary[];
-}
+export const toggleKey = (flagId: string) => ['toggle', flagId] as const;
 
-/** Spec 8.5: optimistic toggle; on error the switch reverts (the caller shows the toast). */
-export function useToggleFlag(groupId: string) {
+/**
+ * Spec 8.5: optimistic toggle of one flag. On error only this flag is set back (a newer change of
+ * another flag stays) and the toast shows. Both run at mutation level, so they also run when the
+ * row is gone before the request ends. The group is refetched after every toggle.
+ */
+export function useToggleFlag(groupId: string, flag: Flag) {
   const qc = useQueryClient();
-  return useMutation<Flag, Error, { flag: Flag; enabled: boolean }, ToggleContext>({
-    mutationFn: ({ flag, enabled }) => flagsApi.toggle(flag.id, enabled),
-    onMutate: async ({ flag, enabled }) => {
+  const toast = useToast();
+  const setEnabled = (enabled: boolean) => {
+    let changed = false;
+    qc.setQueryData<GroupDetail>(keys.group(groupId), (old) =>
+      old
+        ? {
+            ...old,
+            flags: old.flags.map((f) => {
+              if (f.id !== flag.id) return f;
+              changed = f.enabled !== enabled;
+              return { ...f, enabled };
+            }),
+          }
+        : old,
+    );
+    if (changed) {
+      qc.setQueryData<GroupSummary[]>(keys.groups, (list) =>
+        list?.map((g) =>
+          g.id === groupId ? { ...g, enabledCount: g.enabledCount + (enabled ? 1 : -1) } : g,
+        ),
+      );
+    }
+  };
+  return useMutation<Flag, Error, boolean>({
+    mutationKey: toggleKey(flag.id),
+    mutationFn: (enabled) => flagsApi.toggle(flag.id, enabled),
+    onMutate: async (enabled) => {
       await qc.cancelQueries({ queryKey: keys.group(groupId) });
       await qc.cancelQueries({ queryKey: keys.groups });
-      const detail = qc.getQueryData<GroupDetail>(keys.group(groupId));
-      const list = qc.getQueryData<GroupSummary[]>(keys.groups);
-      if (detail) {
-        qc.setQueryData<GroupDetail>(keys.group(groupId), {
-          ...detail,
-          flags: detail.flags.map((f) => (f.id === flag.id ? { ...f, enabled } : f)),
-        });
-      }
-      if (list && flag.enabled !== enabled) {
-        qc.setQueryData<GroupSummary[]>(
-          keys.groups,
-          list.map((g) =>
-            g.id === groupId ? { ...g, enabledCount: g.enabledCount + (enabled ? 1 : -1) } : g,
-          ),
-        );
-      }
-      return { detail, list };
+      setEnabled(enabled);
     },
-    onError: (_e, _v, context) => {
-      if (context?.detail) qc.setQueryData(keys.group(groupId), context.detail);
-      if (context?.list) qc.setQueryData(keys.groups, context.list);
+    onError: (_e, enabled) => {
+      setEnabled(!enabled);
+      toast.error(`Could not update flag ${flag.fullKey}`);
     },
     onSuccess: (updated) => {
       qc.setQueryData<GroupDetail>(keys.group(groupId), (old) =>
         old ? { ...old, flags: old.flags.map((f) => (f.id === updated.id ? updated : f)) } : old,
       );
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: keys.groups }),
+    onSettled: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.group(groupId) }),
+        qc.invalidateQueries({ queryKey: keys.groups }),
+      ]),
   });
 }
 
