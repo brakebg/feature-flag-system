@@ -93,7 +93,7 @@ class GroupServiceTest {
     assertThat(g.id().version()).isEqualTo(7);
     verify(jdbc).queryForList("SELECT pg_advisory_xact_lock(?)", GroupService.CREATE_LOCK);
     verify(audit).record(AuditAction.GROUP_CREATED, "payments", Map.of("name", "Payments"));
-    verify(events).publishEvent(new FlagsChangedEvent.GroupCreated("payments"));
+    verify(events).publishEvent(new FlagsChangedEvent.GroupCreated("payments", 0L));
   }
 
   @Test
@@ -158,7 +158,7 @@ class GroupServiceTest {
     details.put("name", change("Orders", "Shop"));
     details.put("description", change(null, "text"));
     verify(audit).record(AuditAction.GROUP_UPDATED, "orders", details);
-    verify(events).publishEvent(new FlagsChangedEvent.GroupEdited("orders"));
+    verify(events).publishEvent(new FlagsChangedEvent.GroupEdited("orders", 0L));
   }
 
   @Test
@@ -198,7 +198,7 @@ class GroupServiceTest {
     verify(events)
         .publishEvent(
             new FlagsChangedEvent.GroupDeleted(
-                "orders", List.of("new-checkout", "split-payments")));
+                "orders", List.of("new-checkout", "split-payments"), 0L));
   }
 
   @Test

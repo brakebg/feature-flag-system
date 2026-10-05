@@ -333,3 +333,14 @@ load began. `scripts/perf.sh` now waits after readiness until the backend contai
 5 % CPU in 3 samples in a row (at most 60 s) and only then reads the counters and starts k6. No
 requests are sent or skipped in that time; the load, its length, the thresholds and the hit-rate
 window are unchanged. After the change, gate 13 right after gate 12 gave p95 2.8 ms.
+
+## D-033 · 2026-10-05 · 7.2 · Cache changes carry the audit id (final review BF-1, JR-1)
+
+After-commit listeners of two writes to the same key can run in the opposite order of their
+commits (the row lock is released at the database commit, before the listener runs). Each
+`FlagsChangedEvent` now carries `seq`, the id of the audit event written in the same
+transaction. Writes to one group take its row lock before the audit insert, so for one key a
+later commit has a higher id. The cache keeps the newest applied id per group key and per full
+flag key; a change older than one already applied (or older than the data loaded by warm-up)
+only invalidates its entries, so the next read loads the committed value. The revision still
+moves on for every committed change. Reconciliation keeps the ids (it fixes values only).

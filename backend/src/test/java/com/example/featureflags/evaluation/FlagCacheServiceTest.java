@@ -216,8 +216,8 @@ class FlagCacheServiceTest {
   @Tag("AC-CACHE-4")
   void flagWritesUpdateAllThreeCachesWithoutQueries() {
     cache.reloadAll();
-    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false));
-    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "brand-new", true));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 101));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "brand-new", true, 102));
     assertThat(cache.flag("orders", "new-checkout")).contains(false);
     assertThat(cache.flag("orders", "brand-new")).contains(true);
     assertThat(cache.group("orders"))
@@ -226,7 +226,7 @@ class FlagCacheServiceTest {
         .containsEntry("orders.new-checkout", false)
         .containsEntry("orders.brand-new", true);
 
-    cache.onChange(new FlagsChangedEvent.FlagDeleted("orders", "split-payments"));
+    cache.onChange(new FlagsChangedEvent.FlagDeleted("orders", "split-payments", 103));
     assertThat(cache.flag("orders", "split-payments")).isEmpty();
     assertThat(cache.group("orders").orElseThrow()).doesNotContainKey("split-payments");
     assertThat(cache.all()).doesNotContainKey("orders.split-payments");
@@ -241,18 +241,19 @@ class FlagCacheServiceTest {
   @Tag("AC-CACHE-4")
   void groupWritesUpdateTheCaches() {
     cache.reloadAll();
-    cache.onChange(new FlagsChangedEvent.GroupCreated("payments"));
+    cache.onChange(new FlagsChangedEvent.GroupCreated("payments", 104));
     assertThat(cache.group("payments")).contains(Map.of());
 
     cache.onChange(
-        new FlagsChangedEvent.GroupDeleted("orders", List.of("new-checkout", "split-payments")));
+        new FlagsChangedEvent.GroupDeleted(
+            "orders", List.of("new-checkout", "split-payments"), 105));
     assertThat(cache.group("orders")).isEmpty();
     assertThat(cache.flag("orders", "new-checkout")).isEmpty();
     assertThat(cache.flag("orders", "split-payments")).isEmpty();
     assertThat(cache.all()).isEmpty();
 
     long before = cache.revision();
-    cache.onChange(new FlagsChangedEvent.GroupEdited("payments"));
+    cache.onChange(new FlagsChangedEvent.GroupEdited("payments", 106));
     assertThat(cache.revision()).isEqualTo(before + 1);
     assertThat(cache.group("payments")).contains(Map.of());
     verify(queries, never()).findGroup(anyString());
@@ -262,7 +263,7 @@ class FlagCacheServiceTest {
   @Test
   void writeToAGroupThatIsNotCachedDropsTheEntry() {
     when(queries.findGroup("orders")).thenReturn(List.of(row("orders", "x1", true)));
-    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "x1", true));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "x1", true, 107));
     assertThat(cache.group("orders")).contains(Map.of("x1", true));
     verify(queries, times(1)).findGroup("orders");
   }
@@ -271,7 +272,7 @@ class FlagCacheServiceTest {
   void failedUpdateInvalidatesAndStillMovesTheRevision(CapturedOutput output) {
     cache.reloadAll();
     long before = cache.revision();
-    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", null, true));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", null, true, 108));
     assertThat(cache.revision()).isEqualTo(before + 1);
     assertThat(output.getOut()).contains("WARN").contains("Cache update failed");
     cache.all();
@@ -349,7 +350,7 @@ class FlagCacheServiceTest {
 
   @Test
   void writeWhileAllFlagsIsNotCachedDropsAnyInFlightLoad() {
-    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "x1", true));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "x1", true, 109));
     cache.all();
     verify(queries, times(1)).findAllRows();
   }
@@ -359,5 +360,51 @@ class FlagCacheServiceTest {
     when(queries.loadMaxAuditId()).thenReturn(Optional.empty());
     cache.reloadAll();
     assertThat(cache.revision()).isZero();
+  }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void aChangeAppliedAfterANewerOneDoesNotOverwriteIt() {
+    // BF-1: two writes to one key commit in order 1, 2, but their after-commit listeners run 2, 1.
+    cache.reloadAll();
+    when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.of(false));
+    when(queries.findAllRows())
+        .thenReturn(
+            List.of(row("orders", "new-checkout", false), row("orders", "split-payments", false)));
+    when(queries.findGroup("orders"))
+        .thenReturn(
+            List.of(row("orders", "new-checkout", false), row("orders", "split-payments", false)));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 51));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 50));
+
+    assertThat(cache.flag("orders", "new-checkout")).contains(false);
+    assertThat(cache.group("orders"))
+        .contains(Map.of("new-checkout", false, "split-payments", false));
+    assertThat(cache.all())
+        .isEqualTo(Map.of("orders.new-checkout", false, "orders.split-payments", false));
+    // Both changes are committed, so the ETag moved on twice.
+    assertThat(cache.revision()).isEqualTo(44);
+  }
+
+  @Test
+  @Tag("AC-CACHE-4")
+  void aLateGroupDeleteOrCreateDoesNotUndoANewerChange() {
+    cache.reloadAll();
+    // Group "orders" deleted (60), then created again with flag "x-flag" on (61, 62); listeners
+    // late.
+    when(queries.findEnabled("orders", "x-flag")).thenReturn(Optional.of(true));
+    when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.empty());
+    when(queries.findGroup("orders")).thenReturn(List.of(row("orders", "x-flag", true)));
+    when(queries.findAllRows()).thenReturn(List.of(row("orders", "x-flag", true)));
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "x-flag", true, 62));
+    cache.onChange(new FlagsChangedEvent.GroupCreated("orders", 61));
+    cache.onChange(
+        new FlagsChangedEvent.GroupDeleted(
+            "orders", List.of("new-checkout", "split-payments"), 60));
+
+    assertThat(cache.flag("orders", "x-flag")).contains(true);
+    assertThat(cache.flag("orders", "new-checkout")).isEmpty();
+    assertThat(cache.group("orders")).contains(Map.of("x-flag", true));
+    assertThat(cache.all()).isEqualTo(Map.of("orders.x-flag", true));
   }
 }

@@ -34,17 +34,19 @@ public class AuditService {
     this.meters = meters;
   }
 
-  /** Must run inside the transaction of the change (spec 9.5). */
+  /** Must run inside the transaction of the change (spec 9.5). Returns the event id. */
   @Transactional(propagation = Propagation.MANDATORY)
-  public void record(AuditAction action, String targetKey, Map<String, Object> details) {
+  public long record(AuditAction action, String targetKey, Map<String, Object> details) {
     String actor =
         auditor
             .getCurrentAuditor()
             .orElseThrow(() -> new IllegalStateException("audit write without a signed-in user"));
-    events.save(
-        new AuditEvent(
-            clock.instant().truncatedTo(ChronoUnit.MICROS), actor, action, targetKey, details));
+    AuditEvent saved =
+        events.save(
+            new AuditEvent(
+                clock.instant().truncatedTo(ChronoUnit.MICROS), actor, action, targetKey, details));
     meters.counter("ff_admin_writes_total", "action", action.name()).increment();
+    return saved.getId();
   }
 
   @Transactional(readOnly = true)

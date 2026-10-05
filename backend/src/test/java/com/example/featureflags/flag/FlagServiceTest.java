@@ -82,7 +82,7 @@ class FlagServiceTest {
     verify(audit)
         .record(AuditAction.FLAG_CREATED, "orders.split-payments", Map.of("enabled", true));
     verify(events)
-        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "split-payments", true));
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "split-payments", true, 0L));
   }
 
   @Test
@@ -113,7 +113,8 @@ class FlagServiceTest {
     details.put("description", change(null, "text"));
     details.put("enabled", change(false, true));
     verify(audit).record(AuditAction.FLAG_UPDATED, "orders.new-checkout", details);
-    verify(events).publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true));
+    verify(events)
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 0L));
   }
 
   @Test
@@ -124,7 +125,8 @@ class FlagServiceTest {
             AuditAction.FLAG_UPDATED,
             "orders.new-checkout",
             Map.of("description", change(null, "text")));
-    verify(events).publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false));
+    verify(events)
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 0L));
   }
 
   @Test
@@ -153,7 +155,8 @@ class FlagServiceTest {
             AuditAction.FLAG_TOGGLED,
             "orders.new-checkout",
             Map.of("enabled", change(false, true)));
-    verify(events).publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true));
+    verify(events)
+        .publishEvent(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", true, 0L));
 
     FlagServiceTest other = new FlagServiceTest();
     other.setUp();
@@ -169,7 +172,7 @@ class FlagServiceTest {
     service.delete(F);
     verify(flags).delete(existing);
     verify(audit).record(AuditAction.FLAG_DELETED, "orders.new-checkout", Map.of("enabled", true));
-    verify(events).publishEvent(new FlagsChangedEvent.FlagDeleted("orders", "new-checkout"));
+    verify(events).publishEvent(new FlagsChangedEvent.FlagDeleted("orders", "new-checkout", 0L));
   }
 
   @Test

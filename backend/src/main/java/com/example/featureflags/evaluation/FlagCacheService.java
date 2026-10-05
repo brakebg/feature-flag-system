@@ -9,6 +9,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +49,17 @@ public class FlagCacheService {
   private final LoadingCache<String, Map<String, Boolean>> allFlagsCache;
   private final AtomicLong revision = new AtomicLong();
   private final Object writeLock = new Object();
+
+  /**
+   * BF-1: the newest change (audit id) applied per key, "g:" + group key and "f:" + full key.
+   * After-commit listeners of two writes to one key can run in the opposite order of their commits;
+   * an older change that arrives after a newer one only invalidates the affected entries, so the
+   * next read loads the committed value. Guarded by {@code writeLock}.
+   */
+  private final Map<String, Long> appliedSeq = new HashMap<>();
+
+  /** Changes up to this audit id are already in the data loaded by {@link #reloadAll()}. */
+  private long loadedSeq;
 
   public FlagCacheService(EvaluationQueries queries, Clock clock, MeterRegistry meters) {
     this.queries = queries;
@@ -133,7 +146,10 @@ public class FlagCacheService {
       db.all().forEach((k, v) -> flagCache.put(k, Optional.of(v)));
       db.groups().forEach((k, v) -> groupCache.put(k, Optional.of(v)));
       allFlagsCache.put(ALL, db.all());
-      revision.set(queries.loadMaxAuditId().orElse(0L));
+      long maxAuditId = queries.loadMaxAuditId().orElse(0L);
+      revision.set(maxAuditId);
+      appliedSeq.clear();
+      loadedSeq = maxAuditId;
     }
   }
 
@@ -149,7 +165,12 @@ public class FlagCacheService {
   public void onChange(FlagsChangedEvent event) {
     synchronized (writeLock) {
       try {
-        apply(event);
+        if (isLate(event)) {
+          log.debug("Change {} arrived after a newer one; invalidating affected entries", event);
+          invalidate(event);
+        } else {
+          apply(event);
+        }
       } catch (RuntimeException e) {
         log.warn("Cache update failed for {}; invalidating affected entries", event, e);
         try {
@@ -165,6 +186,33 @@ public class FlagCacheService {
         revision.incrementAndGet();
       }
     }
+  }
+
+  /** True if a newer change to one of the keys of {@code event} was already applied (BF-1). */
+  private boolean isLate(FlagsChangedEvent event) {
+    List<String> keys = seqKeys(event);
+    boolean late =
+        event.seq() <= loadedSeq
+            || keys.stream().anyMatch(k -> appliedSeq.getOrDefault(k, 0L) > event.seq());
+    keys.forEach(k -> appliedSeq.merge(k, event.seq(), Math::max));
+    return late;
+  }
+
+  private static List<String> seqKeys(FlagsChangedEvent event) {
+    return switch (event) {
+      case FlagsChangedEvent.FlagChanged c ->
+          List.of("g:" + c.groupKey(), "f:" + c.groupKey() + "." + c.flagKey());
+      case FlagsChangedEvent.FlagDeleted d ->
+          List.of("g:" + d.groupKey(), "f:" + d.groupKey() + "." + d.flagKey());
+      case FlagsChangedEvent.GroupCreated g -> List.of("g:" + g.groupKey());
+      case FlagsChangedEvent.GroupDeleted g -> {
+        List<String> keys = new ArrayList<>();
+        keys.add("g:" + g.groupKey());
+        g.flagKeys().forEach(k -> keys.add("f:" + g.groupKey() + "." + k));
+        yield keys;
+      }
+      case FlagsChangedEvent.GroupEdited g -> List.of();
+    };
   }
 
   private void apply(FlagsChangedEvent event) {

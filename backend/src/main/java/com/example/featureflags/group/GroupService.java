@@ -82,8 +82,8 @@ public class GroupService {
             new FlagGroup(ids.next(), request.key(), request.name(), request.description()));
     Map<String, Object> details = new LinkedHashMap<>();
     details.put("name", group.getName());
-    audit.record(AuditAction.GROUP_CREATED, group.getKey(), details);
-    events.publishEvent(new FlagsChangedEvent.GroupCreated(group.getKey()));
+    long seq = audit.record(AuditAction.GROUP_CREATED, group.getKey(), details);
+    events.publishEvent(new FlagsChangedEvent.GroupCreated(group.getKey(), seq));
     return Group.of(group);
   }
 
@@ -126,8 +126,8 @@ public class GroupService {
       return Group.of(group);
     }
     groups.saveAndFlush(group);
-    audit.record(AuditAction.GROUP_UPDATED, group.getKey(), changes.details());
-    events.publishEvent(new FlagsChangedEvent.GroupEdited(group.getKey()));
+    long seq = audit.record(AuditAction.GROUP_UPDATED, group.getKey(), changes.details());
+    events.publishEvent(new FlagsChangedEvent.GroupEdited(group.getKey(), seq));
     return Group.of(group);
   }
 
@@ -138,8 +138,8 @@ public class GroupService {
     groups.flush();
     Map<String, Object> details = new LinkedHashMap<>();
     details.put("deletedFlags", flagKeys.stream().map(k -> group.getKey() + "." + k).toList());
-    audit.record(AuditAction.GROUP_DELETED, group.getKey(), details);
-    events.publishEvent(new FlagsChangedEvent.GroupDeleted(group.getKey(), flagKeys));
+    long seq = audit.record(AuditAction.GROUP_DELETED, group.getKey(), details);
+    events.publishEvent(new FlagsChangedEvent.GroupDeleted(group.getKey(), flagKeys, seq));
   }
 
   private FlagGroup load(UUID id) {

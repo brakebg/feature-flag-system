@@ -60,9 +60,9 @@ public class FlagService {
                 ids.next(), groupId, request.key(), request.description(), request.enabled()));
     Map<String, Object> details = new LinkedHashMap<>();
     details.put("enabled", flag.isEnabled());
-    audit.record(AuditAction.FLAG_CREATED, fullKey(group, flag), details);
+    long seq = audit.record(AuditAction.FLAG_CREATED, fullKey(group, flag), details);
     events.publishEvent(
-        new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), flag.isEnabled()));
+        new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), flag.isEnabled(), seq));
     return Flag.of(flag, group.key());
   }
 
@@ -88,9 +88,9 @@ public class FlagService {
       return Flag.of(flag, group.key());
     }
     flags.saveAndFlush(flag);
-    audit.record(AuditAction.FLAG_UPDATED, fullKey(group, flag), changes.details());
+    long seq = audit.record(AuditAction.FLAG_UPDATED, fullKey(group, flag), changes.details());
     events.publishEvent(
-        new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), flag.isEnabled()));
+        new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), flag.isEnabled(), seq));
     return Flag.of(flag, group.key());
   }
 
@@ -104,8 +104,9 @@ public class FlagService {
     }
     flag.setEnabled(enabled);
     flags.saveAndFlush(flag);
-    audit.record(AuditAction.FLAG_TOGGLED, fullKey(group, flag), changes.details());
-    events.publishEvent(new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), enabled));
+    long seq = audit.record(AuditAction.FLAG_TOGGLED, fullKey(group, flag), changes.details());
+    events.publishEvent(
+        new FlagsChangedEvent.FlagChanged(group.key(), flag.getKey(), enabled, seq));
     return Flag.of(flag, group.key());
   }
 
@@ -117,8 +118,8 @@ public class FlagService {
     flags.flush();
     Map<String, Object> details = new LinkedHashMap<>();
     details.put("enabled", flag.isEnabled());
-    audit.record(AuditAction.FLAG_DELETED, fullKey(group, flag), details);
-    events.publishEvent(new FlagsChangedEvent.FlagDeleted(group.key(), flag.getKey()));
+    long seq = audit.record(AuditAction.FLAG_DELETED, fullKey(group, flag), details);
+    events.publishEvent(new FlagsChangedEvent.FlagDeleted(group.key(), flag.getKey(), seq));
   }
 
   /** The flags of a group, sorted by key in code-point order (spec 6.2). */
