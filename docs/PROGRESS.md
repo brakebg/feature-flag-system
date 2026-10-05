@@ -38,4 +38,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | 7b44d8a | M7 | UI features: groups pane, header, flags table, dialogs, toggle, delete confirmations, audit page; fake API tests | verify-fast PASS |
 | 2026-10-05 | 1f8b482 | M7 | Playwright: style checks, 5 screenshot baselines, fixtures (CSP check, cleanup), e2e.sh in Playwright image | verify-fast PASS; e2e 18/18 x2 |
 | 2026-10-05 | c6b3d3f | M7 | Audit fixes: load/error states (D-029), toggle toast at mutation level, per-flag rollback | verify-fast PASS |
-| 2026-10-05 | (next commit) | M7 | Audit fixes: test audit TA-1..13, design D-030 (weights, icon, backdrop, baselines), 400 fallback toast, slug revalidation | verify-fast PASS; e2e 18/18 x2 |
+| 2026-10-05 | e411091 | M7 | Audit fixes: test audit TA-1..13, design D-030 (weights, icon, backdrop, baselines), 400 fallback toast, slug revalidation | verify-fast PASS; e2e 18/18 x2 |
+| 2026-10-05 | (next commit) | M7 | M7 complete: audit done, all BLOCKER/CRITICAL fixed | make verify PASS on e411091 |

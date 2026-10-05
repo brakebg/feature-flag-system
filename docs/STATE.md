@@ -4,16 +4,16 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M7 UI features — audit fixes done, `M7: complete` next
+- Milestone: M8 Hardening — next (M7 complete)
 - `scripts/current-milestone`: 7
 
 ## Last green commit
 
-- (see `git log`; M7 audit fixes, verify-fast PASS). Full `make verify` PASS on 1f8b482.
+- e411091 (M7 audit fixes; full `make verify` PASS). `M7: complete` follows it.
 
 ## Last full `make verify`
 
-- 2026-10-05 on 1f8b482: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
+- 2026-10-05 on e411091: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
   e2e (scripts/e2e.sh, gate 12 from M8) 18/18 x2 on the audit-fix commit.
 
 ## Chunks done in M7
@@ -24,11 +24,11 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. M7 end: full `make verify`, commit `M7: complete`, PR comment (audit result below).
-2. M8: set `scripts/current-milestone` to 8. Playwright e2e for every 11.2 scenario (gate 12,
+1. M8: set `scripts/current-milestone` to 8. Playwright e2e for every 11.2 scenario (gate 12,
    `--repeat-each=2`, limits stack, cross-browser tag), AC-OPS-1/2 tests, k6 perf (gate 13).
-3. M8: README (setup, env vars, single-instance rule, curl, client polling, default false on
-   404/network), CHANGELOG 1.0.0, Dockerfiles final; then the final review (builder-agents 6).
+2. M8: README (setup, env vars, single-instance rule, curl, client polling, default false on
+   404/network), CHANGELOG 1.0.0, Dockerfiles final; then the M8 audit.
+3. Final review (builder-agents 6) into docs/reviews/final-review.md; commit docs/verify-report.md.
 
 ## M7 audit result
 
