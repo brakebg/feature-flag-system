@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -85,7 +85,7 @@ describe('groups pane (spec 8.4)', () => {
     },
   );
 
-  it('name is required and at most 100 characters; description at most 500', async () => {
+  it('name is required and at most 100 characters', async () => {
     start();
     renderApp('/groups');
     const { user, dialog } = await openNewGroup();
@@ -102,6 +102,41 @@ describe('groups pane (spec 8.4)', () => {
       ),
     );
     expect(api.calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  it('a 400 naming a field the form does not have shows the error toast', async () => {
+    start();
+    server.use(
+      http.post('/api/v1/admin/groups', () =>
+        HttpResponse.json(
+          {
+            type: 'https://featureflags.local/problems/validation',
+            status: 400,
+            detail: 'Request body is invalid',
+            errors: [{ field: 'version', message: 'must not be null' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderApp('/groups');
+    const { user, dialog } = await openNewGroup();
+    await user.type(within(dialog).getByLabelText('Name'), 'Valid');
+    await user.click(within(dialog).getByRole('button', { name: 'Create group' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('Request body is invalid');
+  });
+
+  it('after a failed submit, a slug filled from the name clears the Key error', async () => {
+    start();
+    renderApp('/groups');
+    const { user, dialog } = await openNewGroup();
+    await user.click(within(dialog).getByRole('button', { name: 'Create group' }));
+    const key = within(dialog).getByLabelText('Key');
+    await waitFor(() => expect(key).toHaveAttribute('aria-invalid', 'true'));
+    await user.type(within(dialog).getByLabelText('Name'), 'Orders');
+    expect(key).toHaveValue('orders');
+    await waitFor(() => expect(key).not.toHaveAttribute('aria-invalid'));
+    expect(key).not.toHaveAccessibleDescription(/Use 2 to 50/);
   });
 
   it('the slug follows the name until the key is edited, then stops', async () => {
@@ -164,8 +199,87 @@ describe('groups pane (spec 8.4)', () => {
     start();
     const g = api?.groups[0];
     renderApp(`/groups/${g?.id ?? ''}`);
-    expect(await screen.findByRole('button', { name: 'New group' })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'New flag' })).toBeInTheDocument();
+    for (const name of ['New group', 'New flag']) {
+      const button = await screen.findByRole('button', { name });
+      expect(button.textContent?.trim()).toBe(name);
+      expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    }
+  });
+
+  it('a description over 500 characters is rejected in New group without a request', async () => {
+    start();
+    renderApp('/groups');
+    const { user, dialog } = await openNewGroup();
+    await user.type(within(dialog).getByLabelText('Name'), 'Valid');
+    await user.click(within(dialog).getByLabelText('Description (optional)'));
+    await user.paste('x'.repeat(501));
+    await user.click(within(dialog).getByRole('button', { name: 'Create group' }));
+    const description = within(dialog).getByLabelText('Description (optional)');
+    await waitFor(() => expect(description).toHaveAttribute('aria-invalid', 'true'));
+    expect(description).toHaveAccessibleDescription('Description must be at most 500 characters');
+    expect(api.calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  it('server 400 description errors are shown on the Description field of Edit group', async () => {
+    const g = makeGroup('orders', 'Orders');
+    start([g]);
+    server.use(
+      http.patch('/api/v1/admin/groups/:id', () =>
+        HttpResponse.json(
+          {
+            type: 'https://featureflags.local/problems/validation',
+            status: 400,
+            errors: [{ field: 'description', message: 'server says no' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderApp(`/groups/${g.id}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Edit group' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit group' });
+    await user.type(within(dialog).getByLabelText('Description (optional)'), 'x');
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Description (optional)')).toHaveAccessibleDescription(
+        'server says no',
+      ),
+    );
+  });
+
+  it('clicking a group selects it: URL, aria-current and heading', async () => {
+    const orders = makeGroup('orders', 'Orders');
+    const pmt = makeGroup('pmt', 'Payments');
+    start([orders, pmt]);
+    renderApp('/groups');
+    const user = userEvent.setup();
+    await user.click(await waitFor(() => groupButton(/Payments/)));
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe(`/groups/${pmt.id}`),
+    );
+    expect(groupButton(/Payments/)).toHaveAttribute('aria-current', 'true');
+    expect(groupButton(/Orders/)).not.toHaveAttribute('aria-current');
+    expect(await screen.findByRole('heading', { name: 'Payments' })).toBeInTheDocument();
+  });
+
+  it('group search matches the key or the name, in any case', async () => {
+    start([makeGroup('pmt', 'Payments'), makeGroup('orders', 'Shop')]);
+    renderApp('/groups');
+    const user = userEvent.setup();
+    const search = await screen.findByLabelText('Search groups');
+    await waitFor(() => groupButton(/Payments/));
+    await user.type(search, 'PmT');
+    expect(groupButton(/Payments/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'Flag groups' })).queryByText('Shop'),
+    ).toBeNull();
+    await user.clear(search);
+    await user.type(search, 'sHoP');
+    expect(groupButton(/Shop/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('navigation', { name: 'Flag groups' })).queryByText('Payments'),
+    ).toBeNull();
   });
 });
 
@@ -195,11 +309,14 @@ describe('group header and edit (spec 8.4, 8.5)', () => {
     const key = within(dialog).getByLabelText('Key');
     expect(key).toHaveAttribute('readonly');
     expect(key).toHaveValue('orders');
+    expect(within(dialog).getByLabelText('Name')).toHaveValue('Orders');
+    expect(within(dialog).getByLabelText('Description (optional)')).toHaveValue('Checkout');
     await user.clear(within(dialog).getByLabelText('Name'));
     await user.type(within(dialog).getByLabelText('Name'), 'Shop');
     await user.clear(within(dialog).getByLabelText('Description (optional)'));
     await user.type(within(dialog).getByLabelText('Description (optional)'), 'All orders');
-    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+    // Spec 8.5: Enter submits.
+    await user.type(within(dialog).getByLabelText('Name'), '{Enter}');
 
     expect(await screen.findByRole('heading', { name: 'Shop' })).toBeInTheDocument();
     expect(screen.getByText('All orders · 1 of 2 flags on')).toBeInTheDocument();
@@ -214,12 +331,15 @@ describe('group header and edit (spec 8.4, 8.5)', () => {
   it('[AC-FLAG-6] a stale group version closes the dialog, shows the error toast and refetches', async () => {
     const g = makeGroup('orders', 'Orders');
     start([g]);
-    renderApp(`/groups/${g.id}`);
+    const { client } = renderApp(`/groups/${g.id}`);
     await screen.findByRole('heading', { name: 'Orders' });
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Edit group' }));
     g.name = 'Changed elsewhere';
     g.version = 3;
+    // Newer data arrives while the dialog is open; the dialog must still send version 0 (8.5).
+    await act(() => client.invalidateQueries({ queryKey: ['group', g.id] }));
+    expect(await screen.findByRole('heading', { name: 'Changed elsewhere' })).toBeInTheDocument();
     await user.type(within(screen.getByRole('dialog')).getByLabelText('Name'), '!');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -227,7 +347,12 @@ describe('group header and edit (spec 8.4, 8.5)', () => {
       'This item was changed by someone else',
     );
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Changed elsewhere' })).toBeInTheDocument();
+    expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
+      name: 'Orders!',
+      description: null,
+      version: 0,
+    });
+    expect(screen.getByRole('heading', { name: 'Changed elsewhere' })).toBeInTheDocument();
   });
 });
 

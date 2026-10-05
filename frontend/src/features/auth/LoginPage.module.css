@@ -105,7 +105,6 @@
   background: var(--color-primary);
   color: #ffffff;
   font: inherit;
-  font-weight: 600;
   cursor: pointer;
 }
 .submit:disabled {

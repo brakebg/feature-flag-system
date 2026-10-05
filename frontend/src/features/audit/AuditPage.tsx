@@ -83,6 +83,8 @@ export function AuditPage() {
         {audit.hasNextPage && (
           <div className={styles.more}>
             <Button
+              medium
+              className={styles.moreButton}
               busy={audit.isFetchingNextPage}
               disabled={audit.isFetchingNextPage}
               onClick={() => void audit.fetchNextPage()}

@@ -275,3 +275,27 @@ events`; a network failure shows `Cannot reach server` (the 8.2 text). Only 404/
 id show the "Select a group or create one" placeholder. The audit page has no "No audit events"
 text (removed, not in the spec). The copy-key button shows the error toast `Could not copy the
 group key` when the browser refuses clipboard access (spec silent; a silent failure would hide it).
+
+## D-030 · 2026-10-05 · 11.6 · Design fixes and the screenshot baselines
+
+Design check (M7 audit) fixes, appearance only:
+- Button font weights follow what the design renders. In the design HTML, a `font-weight` set
+  before `font: inherit` is reset to 400. So primary, Cancel, Delete group (outline), Sign in and
+  Sign out are 400; Edit group and Load more are 500; New group and the delete confirm button are 600.
+- Delete group dialog icon: the trash icon of the design (stroke 1.8).
+- Dialog backdrop `rgba(59, 66, 76, 0.75)`: blends to about #6B717A over #F4F5F7.
+- Load more button padding `0 20px`.
+- New flag dialog: the Initial state help text follows the switch (Level 1; the design shows only
+  the Off text): `On: services read true as soon as the flag is created.`
+
+Screenshot baselines (chromium-desktop, `frontend/e2e/screenshots.spec.ts-snapshots/`), first
+added in 1f8b482 and re-recorded for the fixes above:
+- `1-sign-in-chromium-desktop-linux.png` (screen 1 Sign in: button weight)
+- `2-flags-workspace-chromium-desktop-linux.png` (screen 2 Flags workspace: button weights)
+- `3-new-flag-dialog-chromium-desktop-linux.png` (screen 3 New flag dialog: weights, backdrop)
+- `4-delete-group-confirmation-chromium-desktop-linux.png` (screen 4 Delete group confirmation:
+  icon, weights, backdrop)
+- `5-audit-log-chromium-desktop-linux.png` (screen 5 Audit log: Load more weight and padding)
+
+`scripts/e2e.sh` takes no arguments, so no caller can change the Playwright settings; baselines
+are recorded only with `FF_UPDATE_BASELINES=1` (test audit TA-12).

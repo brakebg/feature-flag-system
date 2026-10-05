@@ -16,6 +16,18 @@ export function serverFieldErrors(error: unknown): Record<string, string> {
   return {};
 }
 
+/**
+ * Server field errors limited to the fields the form has. Empty when none of them is named, so the
+ * caller shows a toast instead and the error never stays hidden.
+ */
+export function formFieldErrors<F extends string>(
+  error: unknown,
+  formFields: readonly F[],
+): [F, string][] {
+  const all = serverFieldErrors(error);
+  return formFields.filter((f) => f in all).map((f) => [f, all[f]] as [F, string]);
+}
+
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && error.kind === 'version-conflict';
 }

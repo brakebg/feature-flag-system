@@ -4,33 +4,41 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M7 UI features — in progress
+- Milestone: M7 UI features — audit fixes done, `M7: complete` next
 - `scripts/current-milestone`: 7
 
 ## Last green commit
 
-- 9b4a89d (M6 test-audit fixes; full `make verify` PASS). `M6: complete` follows it.
+- (see `git log`; M7 audit fixes, verify-fast PASS). Full `make verify` PASS on 1f8b482.
 
 ## Last full `make verify`
 
-- 2026-10-05 on 9b4a89d: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
+- 2026-10-05 on 1f8b482: PASS. Active and green: 1-11, 14, 15. Inactive: 12, 13 (M8).
+  e2e (scripts/e2e.sh, gate 12 from M8) 18/18 x2 on the audit-fix commit.
 
-## Chunks done in M6
+## Chunks done in M7
 
-- 7d76ad0 UI foundation (API client, token, routes, login, shell, components); tests AC-AUTH-1..4, 6.
-- 4b0aee0 React review fixes; ed91f3c footer version from VERSION; 9b4a89d test audit fixes.
+- 7b44d8a UI features; 1f8b482 Playwright style checks + 5 baselines (D-028).
+- c6b3d3f load/error states (D-029), toggle rollback/toast at mutation level.
+- Audit fixes: tests (TA-1..13), design (D-030, baselines re-recorded), 400 fallback toast.
 
 ## Next 3 steps
 
-1. M7: set `scripts/current-milestone` to 7. Build spec 8.4-8.6: `src/api/{groups,flags,audit,types}.ts`,
-   `src/hooks/queries.ts` (keys ['groups'], ['group', id], ['audit', filters]; optimistic toggle),
-   `src/schemas/forms.ts` (Zod = 4.2 rules, 8.5 texts, slugify), groups pane, group header, flags
-   table, New/Edit group and flag dialogs, delete confirmations, audit page with Load more.
-   TextField needs forwardRef for React Hook Form. Drafts exist in the old session scratchpad (m7/).
-2. M7 tests tagged AC-GRP-1..5, AC-FLAG-1..6, AC-AUD-2 (UI parts); check TA-5/TA-10 from the M6
-   test audit (Back after sign out with real data; query cache cleared on sign out / 401).
-3. M7 end: Playwright style checks + screenshot baselines for the 5 screens (spec 11.6), design
-   compare; `make verify`; audit (spec, test, design-checker, ecc:react-reviewer).
+1. M7 end: full `make verify`, commit `M7: complete`, PR comment (audit result below).
+2. M8: set `scripts/current-milestone` to 8. Playwright e2e for every 11.2 scenario (gate 12,
+   `--repeat-each=2`, limits stack, cross-browser tag), AC-OPS-1/2 tests, k6 perf (gate 13).
+3. M8: README (setup, env vars, single-instance rule, curl, client polling, default false on
+   404/network), CHANGELOG 1.0.0, Dockerfiles final; then the final review (builder-agents 6).
+
+## M7 audit result
+
+- spec-auditor: no BLOCKER/CRITICAL; SA-1 (baselines listed, D-030), SA-2/3 (D-029), SA-5 fixed.
+  SA-4: tests for 8.5 texts with no AC stay untagged (no AC exists for them).
+- test-auditor: TA-1 BLOCKER, TA-2/TA-3 CRITICAL and all MAJOR/MINOR fixed; planted bugs now fail.
+- design-checker: DC-1 CRITICAL fixed (D-029); DC-2..8 fixed (D-030); DC-9 (one live region per
+  toast) and DC-10 (footer under the left pane) left as they are: spec 8.5 roles are met, 9.6 footer.
+- react-reviewer: 3 MAJOR fixed; MINOR 4, 5 fixed; 6 (focus after disabled switch), 7 (Escape while
+  a dialog request runs), 8 (audit filter per keystroke) left: spec allows them.
 
 ## Notes for M4/M5 (from the M2 audit)
 

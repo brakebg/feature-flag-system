@@ -71,7 +71,6 @@
   border-radius: var(--radius);
   color: #ffffff;
   font: inherit;
-  font-weight: 500;
   background: transparent;
   cursor: pointer;
 }

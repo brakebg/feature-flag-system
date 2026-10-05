@@ -1,4 +1,5 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 import { adminApi, type AdminApi } from './support/api';
 
 // Spec 11.6 "Matching the design" 2: baselines for the five design screens on chromium-desktop,

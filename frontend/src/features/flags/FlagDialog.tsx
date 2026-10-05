@@ -8,7 +8,7 @@ import { TextField } from '../../components/TextField';
 import { Toggle } from '../../components/Toggle';
 import { useToast } from '../../components/toastContext';
 import { useCreateFlag, useUpdateFlag } from '../../hooks/queries';
-import { errorText, isVersionConflict, serverFieldErrors } from '../../lib/errors';
+import { errorText, isVersionConflict, formFieldErrors } from '../../lib/errors';
 import {
   flagCreateSchema,
   flagEditSchema,
@@ -28,6 +28,7 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
   });
   const { register, handleSubmit, formState, setError, control } = form;
   const description = useWatch({ control, name: 'description' });
+  const enabled = useWatch({ control, name: 'enabled' });
 
   const submit = handleSubmit(async (values) => {
     try {
@@ -39,12 +40,9 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
       toast.success(`Flag ${flag.fullKey} created`);
       onClose();
     } catch (e) {
-      const fields = serverFieldErrors(e);
-      if (Object.keys(fields).length > 0) {
-        for (const [field, message] of Object.entries(fields)) {
-          if (field === 'key' || field === 'description')
-            setError(field, { message }, { shouldFocus: true });
-        }
+      const fields = formFieldErrors(e, ['key', 'description'] as const);
+      if (fields.length > 0) {
+        for (const [field, message] of fields) setError(field, { message }, { shouldFocus: true });
       } else {
         toast.error(errorText(e, 'Could not create flag'));
       }
@@ -97,7 +95,11 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
           <span id={stateId} className={styles.initialLabel}>
             Initial state
           </span>
-          <span className={styles.initialHelp}>Off: services read false until you turn it on.</span>
+          <span className={styles.initialHelp}>
+            {enabled
+              ? 'On: services read true as soon as the flag is created.'
+              : 'Off: services read false until you turn it on.'}
+          </span>
         </div>
         <Controller
           control={control}
@@ -141,9 +143,9 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
         toast.error('This item was changed by someone else');
         return;
       }
-      const fields = serverFieldErrors(e);
-      if (fields.description) {
-        setError('description', { message: fields.description }, { shouldFocus: true });
+      const fields = formFieldErrors(e, ['description'] as const);
+      if (fields.length > 0) {
+        for (const [field, message] of fields) setError(field, { message }, { shouldFocus: true });
       } else {
         toast.error(errorText(e, 'Could not update flag'));
       }

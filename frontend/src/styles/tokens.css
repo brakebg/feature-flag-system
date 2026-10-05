@@ -23,7 +23,7 @@
   --color-danger-disabled: #e6b9b4;
   --color-switch-off: #aab2bd;
   --color-badge: #eef0f3;
-  --color-overlay: rgba(21, 24, 29, 0.55);
+  --color-overlay: rgba(59, 66, 76, 0.75); /* blends to about #6B717A over #F4F5F7 (design) */
   --label-created-bg: #e7eefc;
   --label-created-fg: #1a3d9c;
   --label-updated-bg: #eef0f3;

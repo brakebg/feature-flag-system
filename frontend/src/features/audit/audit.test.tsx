@@ -20,7 +20,7 @@ function event(
 ): AuditEvent {
   return {
     id,
-    occurredAt: `2026-10-01T10:00:${String(id % 60).padStart(2, '0')}Z`,
+    occurredAt: new Date(Date.UTC(2026, 9, 1, 10, 0, 0) + id * 60_000).toISOString(),
     actor: 'admin',
     action,
     targetKey,

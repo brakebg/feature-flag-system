@@ -1,8 +1,9 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TOKEN_KEY } from '../../auth/token';
-import { fakeApi, makeGroup, type FakeApi } from '../../test/fakeApi';
+import { fakeApi, makeFlag, makeGroup, type FakeApi } from '../../test/fakeApi';
 import { fakeToken, renderApp } from '../../test/render';
 import { server } from '../../test/server';
 
@@ -36,6 +37,14 @@ describe('flags (spec 8.4, 8.5)', () => {
     expect(within(dialog).getByText('orders.')).toBeInTheDocument();
     const initial = within(dialog).getByRole('switch', { name: 'Initial state' });
     expect(initial).toHaveAttribute('aria-checked', 'false');
+    expect(
+      within(dialog).getByText('Off: services read false until you turn it on.'),
+    ).toBeInTheDocument();
+    await user.click(initial);
+    expect(
+      within(dialog).getByText('On: services read true as soon as the flag is created.'),
+    ).toBeInTheDocument();
+    await user.click(initial);
     await user.type(within(dialog).getByLabelText('Key'), 'new-checkout');
     await user.type(
       within(dialog).getByLabelText('Description (optional)'),
@@ -81,9 +90,93 @@ describe('flags (spec 8.4, 8.5)', () => {
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText('Key'), 'new-checkout');
     await user.click(within(dialog).getByRole('button', { name: 'Create flag' }));
+    const key = within(dialog).getByLabelText('Key');
+    await waitFor(() => expect(key).toHaveAttribute('aria-invalid', 'true'));
+    // The error text, then the help text of the Key field (both linked by aria-describedby).
+    expect(key).toHaveAccessibleDescription(
+      'Key already exists Lowercase letters, digits and hyphens, 2 to 50 characters. Cannot be changed later.',
+    );
+    expect(screen.getByRole('dialog', { name: 'New flag in Orders' })).toBeInTheDocument();
+  });
+
+  it.each(['Orders', '1abc', 'a', 'has space'])(
+    '[AC-GRP-3] flag key %s is rejected in the New flag dialog without a request',
+    async (bad) => {
+      const g = makeGroup('orders', 'Orders');
+      start([g]);
+      renderApp(`/groups/${g.id}`);
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole('button', { name: 'New flag' }));
+      const dialog = screen.getByRole('dialog', { name: 'New flag in Orders' });
+      const key = within(dialog).getByLabelText('Key');
+      await user.type(key, bad);
+      await user.click(within(dialog).getByRole('button', { name: 'Create flag' }));
+      await waitFor(() => expect(key).toHaveAttribute('aria-invalid', 'true'));
+      expect(key).toHaveAccessibleDescription(
+        'Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter Lowercase letters, digits and hyphens, 2 to 50 characters. Cannot be changed later.',
+      );
+      expect(key).toHaveValue(bad);
+      expect(api.calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+    },
+  );
+
+  it('a description over 500 characters is rejected in New flag and Edit flag without a request', async () => {
+    const g = makeGroup('orders', 'Orders', [['new-checkout', false]]);
+    start([g]);
+    renderApp(`/groups/${g.id}`);
+    const user = userEvent.setup();
+    const long = 'x'.repeat(501);
+
+    await user.click(await screen.findByRole('button', { name: 'New flag' }));
+    let dialog = screen.getByRole('dialog', { name: 'New flag in Orders' });
+    await user.type(within(dialog).getByLabelText('Key'), 'other');
+    await user.click(within(dialog).getByLabelText('Description (optional)'));
+    await user.paste(long);
+    await user.click(within(dialog).getByRole('button', { name: 'Create flag' }));
+    const created = within(dialog).getByLabelText('Description (optional)');
+    await waitFor(() => expect(created).toHaveAttribute('aria-invalid', 'true'));
+    expect(
+      within(dialog).getByText('Description must be at most 500 characters'),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    await user.click(screen.getByRole('button', { name: 'Edit orders.new-checkout' }));
+    dialog = screen.getByRole('dialog', { name: 'Edit flag' });
+    await user.click(within(dialog).getByLabelText('Description (optional)'));
+    await user.paste(long);
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
+    const edited = within(dialog).getByLabelText('Description (optional)');
+    await waitFor(() => expect(edited).toHaveAttribute('aria-invalid', 'true'));
+    expect(
+      within(dialog).getByText('Description must be at most 500 characters'),
+    ).toBeInTheDocument();
+    expect(api.calls.filter((c) => c.method !== 'GET')).toHaveLength(0);
+  });
+
+  it('server 400 description errors are shown on the Description field of Edit flag', async () => {
+    const g = makeGroup('orders', 'Orders', [['new-checkout', false]]);
+    start([g]);
+    server.use(
+      http.patch('/api/v1/admin/flags/:id', () =>
+        HttpResponse.json(
+          {
+            type: 'https://featureflags.local/problems/validation',
+            status: 400,
+            errors: [{ field: 'description', message: 'server says no' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderApp(`/groups/${g.id}`);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Edit orders.new-checkout' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit flag' });
+    await user.type(within(dialog).getByLabelText('Description (optional)'), 'x');
+    await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
-      expect(within(dialog).getByLabelText('Key')).toHaveAccessibleDescription(
-        /^Key already exists/,
+      expect(within(dialog).getByLabelText('Description (optional)')).toHaveAccessibleDescription(
+        'server says no',
       ),
     );
   });
@@ -153,7 +246,7 @@ describe('flags (spec 8.4, 8.5)', () => {
   it('[AC-FLAG-6] editing with a stale version gives 409: dialog closes, toast, and the group is refetched', async () => {
     const g = makeGroup('orders', 'Orders', [['new-checkout', false]]);
     start([g]);
-    renderApp(`/groups/${g.id}`);
+    const { client } = renderApp(`/groups/${g.id}`);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Edit orders.new-checkout' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit flag' });
@@ -162,6 +255,9 @@ describe('flags (spec 8.4, 8.5)', () => {
     const flag = g.flags[0];
     flag.description = 'Changed elsewhere';
     flag.version = 4;
+    // Newer data arrives while the dialog is open; the dialog must still send version 0 (8.5).
+    await act(() => client.invalidateQueries({ queryKey: ['group', g.id] }));
+    expect(await screen.findByText('Changed elsewhere')).toBeInTheDocument();
     await user.type(within(dialog).getByLabelText('Description (optional)'), 'mine');
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
@@ -218,6 +314,37 @@ describe('flags (spec 8.4, 8.5)', () => {
     expect(screen.queryByText('orders.split-payments')).toBeNull();
     await user.click(within(filter).getByRole('button', { name: 'Off' }));
     expect(screen.getByText('No flags match this filter.')).toBeInTheDocument();
+  });
+
+  it('search matches the description (any case) and the On chip shows only enabled flags', async () => {
+    const g = makeGroup('orders', 'Orders');
+    g.flags = [
+      makeFlag(g, 'alpha', true, 'Shiny Banner'),
+      makeFlag(g, 'beta', false, 'plain text'),
+      makeFlag(g, 'gamma', false, 'another BANNER'),
+    ];
+    start([g]);
+    renderApp(`/groups/${g.id}`);
+    const user = userEvent.setup();
+    await screen.findByText('orders.alpha');
+    const filter = screen.getByRole('group', { name: 'Filter by status' });
+    await user.click(within(filter).getByRole('button', { name: 'On' }));
+    expect(within(filter).getByRole('button', { name: 'On' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(within(filter).getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByText('orders.alpha')).toBeInTheDocument();
+    expect(screen.queryByText('orders.beta')).toBeNull();
+    expect(screen.queryByText('orders.gamma')).toBeNull();
+    await user.click(within(filter).getByRole('button', { name: 'All' }));
+    await user.type(screen.getByLabelText('Search flags'), 'bAnNeR');
+    expect(screen.getByText('orders.alpha')).toBeInTheDocument();
+    expect(screen.getByText('orders.gamma')).toBeInTheDocument();
+    expect(screen.queryByText('orders.beta')).toBeNull();
   });
 
   it('the table has the spec column headers', async () => {

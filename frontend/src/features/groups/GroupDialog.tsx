@@ -7,7 +7,7 @@ import { Modal } from '../../components/Modal';
 import { TextField } from '../../components/TextField';
 import { useToast } from '../../components/toastContext';
 import { useCreateGroup, useUpdateGroup } from '../../hooks/queries';
-import { errorText, isVersionConflict, serverFieldErrors } from '../../lib/errors';
+import { errorText, isVersionConflict, formFieldErrors } from '../../lib/errors';
 import {
   groupCreateSchema,
   groupEditSchema,
@@ -43,13 +43,9 @@ export function NewGroupDialog({
       toast.success(`Group ${group.key} created`);
       onCreated(group.id);
     } catch (e) {
-      const fields = serverFieldErrors(e);
-      if (Object.keys(fields).length > 0) {
-        for (const [field, message] of Object.entries(fields)) {
-          if (field === 'key' || field === 'name' || field === 'description') {
-            setError(field, { message }, { shouldFocus: true });
-          }
-        }
+      const fields = formFieldErrors(e, ['key', 'name', 'description'] as const);
+      if (fields.length > 0) {
+        for (const [field, message] of fields) setError(field, { message }, { shouldFocus: true });
       } else {
         toast.error(errorText(e, 'Could not create group'));
       }
@@ -58,7 +54,11 @@ export function NewGroupDialog({
 
   const name = register('name', {
     onChange: (event: { target: { value: string } }) => {
-      if (!keyTouched) setValue('key', slugify(event.target.value));
+      if (!keyTouched) {
+        setValue('key', slugify(event.target.value), {
+          shouldValidate: formState.isSubmitted,
+        });
+      }
     },
   });
   const key = register('key', { onChange: () => setKeyTouched(true) });
@@ -126,12 +126,9 @@ export function EditGroupDialog({ group, onClose }: { group: GroupDetail; onClos
         toast.error('This item was changed by someone else');
         return;
       }
-      const fields = serverFieldErrors(e);
-      if (Object.keys(fields).length > 0) {
-        for (const [field, message] of Object.entries(fields)) {
-          if (field === 'name' || field === 'description')
-            setError(field, { message }, { shouldFocus: true });
-        }
+      const fields = formFieldErrors(e, ['name', 'description'] as const);
+      if (fields.length > 0) {
+        for (const [field, message] of fields) setError(field, { message }, { shouldFocus: true });
       } else {
         toast.error(errorText(e, 'Could not update group'));
       }

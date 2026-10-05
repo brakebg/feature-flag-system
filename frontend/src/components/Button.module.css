@@ -8,8 +8,11 @@
   padding: 0 16px;
   border-radius: var(--radius);
   font: inherit;
-  font-weight: 500;
   cursor: pointer;
+}
+/* D-030: weights as the design renders them (400 unless the design sets one after `font`). */
+.medium {
+  font-weight: 500;
 }
 .button:disabled {
   cursor: not-allowed;
@@ -18,7 +21,6 @@
   border: 0;
   background: var(--color-primary);
   color: #ffffff;
-  font-weight: 600;
 }
 .secondary {
   border: 1px solid var(--color-border-strong);

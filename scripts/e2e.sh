@@ -4,10 +4,17 @@
 # and fails once fails the gate. Report: build/reports/playwright.json (read by gate 14).
 # Playwright runs in its official image, so browsers, fonts and screenshot baselines are the
 # same on every machine (spec 11.6 baselines are compared pixel by pixel).
-#   scripts/e2e.sh [extra playwright args]   e.g. --update-snapshots, a file filter
+#   scripts/e2e.sh                          (FF_UPDATE_BASELINES=1 records new baselines)
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib/stack.sh
+
+# Gate 12 settings live in playwright.config.ts (retries 0); the script takes no extra arguments,
+# so no caller can change them. New screenshot baselines need FF_UPDATE_BASELINES=1 (and a
+# docs/DECISIONS.md entry, spec 11.6).
+if [ "$#" -gt 0 ]; then echo "e2e.sh: no arguments allowed" >&2; exit 2; fi
+EXTRA=()
+if [ "${FF_UPDATE_BASELINES:-}" = 1 ]; then EXTRA=(--update-snapshots); fi
 
 PW_IMAGE="mcr.microsoft.com/playwright:v$(node -p "require('./frontend/node_modules/@playwright/test/package.json').version")-noble"
 ID=$(run_id)
@@ -25,4 +32,4 @@ docker run --rm --ipc=host --add-host=host.docker.internal:host-gateway \
   -e UI_URL="http://$HOST:33000" -e API_URL="http://$HOST:38080" \
   -e LIMITS_UI_URL="http://$HOST:33100" -e LIMITS_API_URL="http://$HOST:38180" \
   -e SHOTS_UI_URL="http://$HOST:33200" -e SHOTS_API_URL="http://$HOST:38280" \
-  "$PW_IMAGE" npx playwright test --repeat-each=2 "$@"
+  "$PW_IMAGE" npx playwright test --repeat-each=2 ${EXTRA[@]+"${EXTRA[@]}"}

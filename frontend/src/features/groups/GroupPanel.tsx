@@ -87,7 +87,9 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
           </p>
         </div>
         <div className={styles.headerActions}>
-          <Button onClick={() => setDialog({ kind: 'edit-group' })}>Edit group</Button>
+          <Button medium onClick={() => setDialog({ kind: 'edit-group' })}>
+            Edit group
+          </Button>
           <Button variant="danger-outline" onClick={() => setDialog({ kind: 'delete-group' })}>
             Delete group
           </Button>

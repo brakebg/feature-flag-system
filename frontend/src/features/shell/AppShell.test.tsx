@@ -95,6 +95,11 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
         adminCalls++;
         return HttpResponse.json([]);
       }),
+      // Any other Admin API request counts too (spec 8.3: none without a token).
+      http.all('/api/v1/admin/*', () => {
+        adminCalls++;
+        return HttpResponse.json({ status: 401 }, { status: 401 });
+      }),
     );
     renderApp(['/login', '/audit', '/audit']);
     const user = userEvent.setup();
