@@ -2,6 +2,7 @@ package com.example.featureflags.evaluation;
 
 import static com.example.featureflags.support.AdminClient.PROBLEM;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -36,12 +37,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Spec 7: Evaluation API, cache behaviour and ETags, through the real stack. */
@@ -286,6 +290,45 @@ class EvaluationIT extends AdminApiTest {
 
     evaluate("/flags/orders/new-checkout").andExpect(jsonPath("$.enabled").value(true));
     assertThat(cache.revision()).isEqualTo(revision);
+  }
+
+  @Test
+  @Tag("AC-CACHE-5")
+  void writeWhoseCommitFailsLeavesTheCacheUnchanged() throws Exception {
+    // TA-1: the rollback comes from the commit itself, after every before-commit step has run, so
+    // a cache update applied before the commit would show here (7.2: only after commit).
+    long revision = cache.revision();
+    TestingAuthenticationToken auth = new TestingAuthenticationToken("admin", null, "SCOPE_admin");
+    auth.setAuthenticated(true);
+    SecurityContextHolder.getContext().setAuthentication(auth);
+
+    assertThatThrownBy(
+            () ->
+                tx.executeWithoutResult(
+                    status -> {
+                      flagService.toggle(UUID.fromString(flagId), false);
+                      TransactionSynchronizationManager.registerSynchronization(
+                          new TransactionSynchronization() {
+                            @Override
+                            public int getOrder() {
+                              return Ordered.LOWEST_PRECEDENCE;
+                            }
+
+                            @Override
+                            public void beforeCommit(boolean readOnly) {
+                              throw new IllegalStateException("commit fails");
+                            }
+                          });
+                    }))
+        .hasMessage("commit fails");
+
+    evaluate("/flags/orders/new-checkout").andExpect(jsonPath("$.enabled").value(true));
+    evaluate("/groups/orders").andExpect(jsonPath("$.flags.new-checkout").value(true));
+    assertThat(cache.revision()).isEqualTo(revision);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT enabled FROM feature_flag WHERE key = 'new-checkout'", Boolean.class))
+        .isTrue();
   }
 
   @Test

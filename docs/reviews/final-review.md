@@ -26,7 +26,7 @@ BLOCKER and CRITICAL
 | BF-1, JR-1 | CRITICAL | backend | evaluation/FlagCacheService.java:148-199 | 7.2, AC-CACHE-4 | AFTER_COMMIT listeners of two writes to the same key can apply in reverse commit order; cache keeps the older value | open | |
 | BF-2 | CRITICAL | backend | audit/AuditController.java:43-52 | 6.1 GET /audit | `page`/`size` outside int range give 400 malformed-request instead of 200 empty page / 400 validation | fixed | commit 'M8 review: fix BF-2' |
 | SF-C1 | CRITICAL | backend | common/BodySizeLimitFilter.java:36-63, auth/TokenController.java:55 | 9.1, 9.2 | Chunked form body > 64 KB to /auth/token gives 400/401 instead of 413 payload-too-large | fixed | commit 'M8 review: fix SF-C1' |
-| TA-1 | CRITICAL | tests | evaluation/EvaluationIT.java:273-289 | AC-CACHE-5, 7.2 | Rollback test cannot tell AFTER_COMMIT from BEFORE_COMMIT; a commit failure is untested | open | |
+| TA-1 | CRITICAL | tests | evaluation/EvaluationIT.java:273-289 | AC-CACHE-5, 7.2 | Rollback test cannot tell AFTER_COMMIT from BEFORE_COMMIT; a commit failure is untested | fixed | commit 'M8 review: fix TA-1' (test added; fails with BEFORE_COMMIT, passes with AFTER_COMMIT) |
 | SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | open | |
 | SA-4 | CRITICAL | backend | db/migration/{common,dev}/ (D-014) | 4.3 | Migrations sit in sub-folders, not in `db/migration`; decided at Level 1 | open | |
 
