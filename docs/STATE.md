@@ -4,7 +4,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M8 complete; final review done (round 3); waiting for ESC-002..006
+- Milestone: M8 complete; final review done (round 3); ESC-002..006 answers applied (D-040)
 - `scripts/current-milestone`: 8
 
 ## Last green commit
@@ -23,15 +23,14 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. WAITING for owner answers to ESC-002, ESC-003, ESC-004, ESC-005, ESC-006 (all other work is
-   done). Apply each answer test-first, record it in DECISIONS.md, post `[RESOLVED ESC-NNN]`.
+1. Done: ESC-002..006 answers applied (D-040); `[RESOLVED]` comments posted.
 2. Then `make verify-all`, copy build/verify-report.md to docs/verify-report.md, commit.
 3. Then mark PR #3 ready for review and post the final summary comment (builder-agents 6 step 6).
 
 ## Final review status
 
 - docs/reviews/final-review.md, round 3 done. CRITICAL: 8 fixed, 1 rejected (SA-4, accepted by
-  the re-check). BLOCKER: SA-1 fixed; SA-2 open (ESC-002..006). No CRITICAL open.
+  the re-check). BLOCKER: SA-1 fixed; SA-2 fixed (D-040). No CRITICAL open.
 - Last `make verify-all`: PASS on e92f5b6 (all 15 gates); copied to docs/verify-report.md.
 
 ## M8 notes
@@ -67,11 +66,9 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 - ESC-001 resolved: A (owner comment 5979791924). Due milestones may only move earlier.
 - ESC-007 resolved: A (owner comment 5992802206), applied in D-039.
-- ESC-006 (open): PIT runs kept out of the tag log (D-024); smoke readiness step (D-025).
-- ESC-005 (open): PIT unit tests only (D-020); duplicate-key before limit-reached (D-021).
-- ESC-004 (open): token endpoint error order (D-018); FF_AUTH_CLIENTS_n replace the yml list.
-- ESC-003 (open): NimbusJwtEncoder writes one-element aud as string (5.1 vs 5.2); option A (HmacJwtEncoder) in place.
-- ESC-002 (open): D-011 PATCH `enabled: null` -> 400 validation; D-012 unknown method -> 404. Not blocking.
+- ESC-002..006 resolved (owner comments 5980536047, 5980536322, 5980648922, 5989504944,
+  5989505154; D-040). ESC-004 item 2 changed the code: env clients are appended after yml ones.
+- Open escalations: none. Blockers: none.
 
 ## wip/ branches
 
@@ -79,11 +76,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last processed PR comment
 
-- 5979791924 (2026-10-04T12:12:17Z, owner: ESC-001: A).
+- 5994494178 (2026-10-05T12:31:26Z, builder [WAITING]); all owner answers up to it applied.
 
 ## Notes for the next session
 
 - Owner and builder share the GitHub login `brakebg`. Owner answers look like `ESC-NNN: X`.
+  Read ALL comments after the last processed id; answers to ESC-002..006 were missed once.
 - Commit only after `make verify-fast > build/last.log 2>&1 && git commit ...` (a0e498c went in red).
 - Java 21 via `scripts/lib/java-env.mjs` (default java here is 25; Enforcer requires 21).
   Manual: `JAVA_HOME=$(node scripts/lib/java-env.mjs) ./mvnw ...` in `backend/`.

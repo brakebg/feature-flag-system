@@ -1,12 +1,10 @@
 package com.example.featureflags.auth;
 
 import static com.example.featureflags.support.SecurityTestSupport.basic;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.featureflags.support.IntegrationTest;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,9 +13,9 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * Spec 5.5 / D-018: a secret with special characters works sent plain or form-encoded. The client
- * comes from {@code FF_AUTH_CLIENTS_0_*}, the same properties as {@link EnvClientsIT}, so both
- * share one Spring context (one database pool).
+ * Spec 5.1 / ESC-004 item 2: a client from {@code FF_AUTH_CLIENTS_0_*} is added to the clients from
+ * {@code application.yml}; both get tokens. Same properties as {@link TokenSecretEncodingIT}, so
+ * both share one Spring context (one database pool).
  */
 @IntegrationTest
 @TestPropertySource(
@@ -26,14 +24,14 @@ import org.springframework.test.web.servlet.MockMvc;
       "FF_AUTH_CLIENTS_0_CLIENT_SECRET=a+b%c d",
       "FF_AUTH_CLIENTS_0_SCOPES=flags:read"
     })
-class TokenSecretEncodingIT {
+class EnvClientsIT {
 
   @Autowired MockMvc mvc;
 
-  private int status(String authorization) throws Exception {
+  private int status(String clientId, String secret) throws Exception {
     return mvc.perform(
             post("/api/v1/auth/token")
-                .header(HttpHeaders.AUTHORIZATION, authorization)
+                .header(HttpHeaders.AUTHORIZATION, basic(clientId, secret))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .content("grant_type=client_credentials"))
         .andReturn()
@@ -42,11 +40,8 @@ class TokenSecretEncodingIT {
   }
 
   @Test
-  void plainAndFormEncodedSecretsBothWork() throws Exception {
-    org.assertj.core.api.Assertions.assertThat(status(basic("billing", "a+b%c d"))).isEqualTo(200);
-    org.assertj.core.api.Assertions.assertThat(
-            status(basic("billing", URLEncoder.encode("a+b%c d", StandardCharsets.UTF_8))))
-        .isEqualTo(200);
-    org.assertj.core.api.Assertions.assertThat(status(basic("billing", "a b%c d"))).isEqualTo(401);
+  void envClientAndConfiguredClientBothGetTokens() throws Exception {
+    assertThat(status("billing", "a+b%c d")).isEqualTo(200);
+    assertThat(status("order-service", "order-service-dev-secret")).isEqualTo(200);
   }
 }

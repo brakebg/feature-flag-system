@@ -118,17 +118,69 @@ class AuthPropertiesTest {
   }
 
   @Test
-  void clientsCanComeFromFfAuthClientsEnvironmentVariables() {
+  void envClientsAreAddedAfterTheConfiguredClients() {
+    // ESC-004 item 2 (5.1): env clients are appended; order-service from the config stays.
     runner
         .withSystemProperties(
             "FF_AUTH_CLIENTS_0_CLIENT_ID=billing",
             "FF_AUTH_CLIENTS_0_CLIENT_SECRET=billing-secret",
-            "FF_AUTH_CLIENTS_0_SCOPES=flags:read, other")
+            "FF_AUTH_CLIENTS_0_SCOPES=flags:read, other",
+            "FF_AUTH_CLIENTS_1_CLIENT_ID=shipping",
+            "FF_AUTH_CLIENTS_1_CLIENT_SECRET=shipping-secret",
+            "FF_AUTH_CLIENTS_1_SCOPES=flags:read")
         .run(
             ctx ->
                 assertThat(ctx.getBean(ClientRegistrationProperties.class).clients())
                     .containsExactly(
                         new ClientRegistration(
-                            "billing", "billing-secret", List.of("flags:read", "other"))));
+                            "order-service", "order-service-dev-secret", List.of("flags:read")),
+                        new ClientRegistration(
+                            "billing", "billing-secret", List.of("flags:read", "other")),
+                        new ClientRegistration(
+                            "shipping", "shipping-secret", List.of("flags:read"))));
+  }
+
+  @Test
+  void envClientsWithoutConfiguredClientsStartAtIndexZero() {
+    new ApplicationContextRunner()
+        .withUserConfiguration(Config.class)
+        .withInitializer(
+            ctx -> new ClientEnvironment().postProcessEnvironment(ctx.getEnvironment(), null))
+        .withPropertyValues(
+            "featureflags.auth.admin-password=admin123",
+            "featureflags.auth.jwt-secret=change-me-to-a-32-byte-minimum-secret!!",
+            "featureflags.auth.admin-token-ttl=PT8H",
+            "featureflags.auth.client-token-ttl=PT15M")
+        .withSystemProperties(
+            "FF_AUTH_CLIENTS_0_CLIENT_ID=billing",
+            "FF_AUTH_CLIENTS_0_CLIENT_SECRET=billing-secret",
+            "FF_AUTH_CLIENTS_0_SCOPES=flags:read")
+        .run(
+            ctx ->
+                assertThat(ctx.getBean(ClientRegistrationProperties.class).clients())
+                    .containsExactly(
+                        new ClientRegistration(
+                            "billing", "billing-secret", List.of("flags:read"))));
+  }
+
+  @Test
+  void envClientWithAConfiguredClientIdFailsStartup() {
+    // ESC-004 item 2: the fail-fast rules apply to the merged list.
+    runner
+        .withSystemProperties(
+            "FF_AUTH_CLIENTS_0_CLIENT_ID=order-service",
+            "FF_AUTH_CLIENTS_0_CLIENT_SECRET=other-secret",
+            "FF_AUTH_CLIENTS_0_SCOPES=flags:read")
+        .run(ctx -> failedWith(ctx, "client-id"));
+  }
+
+  @Test
+  void envClientWithABlankSecretFailsStartup() {
+    runner
+        .withSystemProperties(
+            "FF_AUTH_CLIENTS_0_CLIENT_ID=billing",
+            "FF_AUTH_CLIENTS_0_CLIENT_SECRET= ",
+            "FF_AUTH_CLIENTS_0_SCOPES=flags:read")
+        .run(ctx -> failedWith(ctx, "client-secret"));
   }
 }

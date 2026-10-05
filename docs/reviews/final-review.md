@@ -10,9 +10,9 @@ pr-review-toolkit:silent-failure-hunter (SF); pr-review-toolkit:pr-test-analyzer
 ## Summary
 | Severity | Total | Fixed | Rejected | Disputed | Escalated | Blocked | Owner-accepted | Open |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| BLOCKER | 2 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
+| BLOCKER | 2 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
 | CRITICAL | 9 | 8 | 1 | 0 | 0 | 0 | 0 | 0 |
-| MAJOR | 28 | 19 | 0 | 0 | 1 | 0 | 2 | 6 |
+| MAJOR | 28 | 19 | 0 | 0 | 0 | 0 | 3 | 6 |
 | MINOR | 47 | 13 | 0 | 0 | 0 | 0 | 0 | 34 |
 
 ## Findings
@@ -22,7 +22,7 @@ BLOCKER and CRITICAL
 | ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | SA-1 | BLOCKER | docs | docs/verify-report.md | 12.3 | Final verify report and this review not committed yet | fixed | docs/verify-report.md committed (verify-all PASS on e92f5b6) with this report |
-| SA-2 | BLOCKER | process | docs/escalations/ESC-002..006 | 12.3, 12.5 | Five escalations are still open | open | Needs owner answers |
+| SA-2 | BLOCKER | process | docs/escalations/ESC-002..006 | 12.3, 12.5 | Five escalations are still open | fixed | Owner answers applied (D-040) |
 | BF-1, JR-1 | CRITICAL | backend | evaluation/FlagCacheService.java:148-199 | 7.2, AC-CACHE-4 | AFTER_COMMIT listeners of two writes to the same key can apply in reverse commit order; cache keeps the older value | fixed | commit 'M8 review: fix BF-1' (D-033) |
 | BF-2 | CRITICAL | backend | audit/AuditController.java:43-52 | 6.1 GET /audit | `page`/`size` outside int range give 400 malformed-request instead of 200 empty page / 400 validation | fixed | commit 'M8 review: fix BF-2' |
 | SF-C1 | CRITICAL | backend | common/BodySizeLimitFilter.java:36-63, auth/TokenController.java:55 | 9.1, 9.2 | Chunked form body > 64 KB to /auth/token gives 400/401 instead of 413 payload-too-large | fixed | commit 'M8 review: fix SF-C1' |
@@ -64,7 +64,7 @@ MAJOR
 | BF-5, SF-M2, JR-2 | MAJOR | backend | evaluation/FlagCacheService.java:127-138, 256-260 | 7.2, 9.2 | JDBC inside `synchronized(writeLock)`; pinned virtual threads; listeners wait holding pooled connections | open | Part fixed (ReentrantLock, no pinning); pool wait during reconcile left for the owner (D-034) |
 | BF-6 | MAJOR | backend | common/GlobalExceptionHandler.java:128-138 | 9.1 | NUL character in name/description gives 500 instead of 400 | fixed | commit 'M8 review: fix BF-3, BF-4, BF-6' |
 | SF-M1 | MAJOR | backend | evaluation/FlagCacheService.java:252-260 | 7.2, 9.3 | Reconcile can report false drift for a write committed during the snapshot; comment says it cannot | open | Known limit documented in code and D-034; value stays correct |
-| SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder (ESC-003 open) | escalated | ESC-003 (waiting for the owner) |
+| SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder | owner-accepted | ESC-003 A (D-040) |
 | SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | owner-accepted | ESC-007 A item 2 |
 | SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | owner-accepted | ESC-007 A item 3 |
 | FF-1 | MAJOR | frontend | hooks/queries.ts:146-150 | 8.5, AC-FLAG-3 | Refetch after one toggle can flip another in-flight optimistic toggle back | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |

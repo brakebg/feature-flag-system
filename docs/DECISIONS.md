@@ -418,3 +418,28 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
 - D-018, D-019 (blank secrets) and D-023 stay as built (owner accepted).
 - Reconciliation reads the max audit id before its snapshot, so a failure there leaves the cache
   untouched (round 3 MINOR).
+
+## D-040 · 2026-10-05 · 5.1, 5.5, 6.1, 9.1, 11.3 · ESC-002 to ESC-006 answers applied
+
+The owner answered these on the PR on 2026-10-04 and 2026-10-05; the builder had missed the
+answers (owner and builder post as the same GitHub login).
+
+- ESC-002 A: D-011 and D-012 stay as built.
+- ESC-003 A: `HmacJwtEncoder` stays; 5.2 (`aud` array) wins over the class named in 5.1.
+- ESC-004 item 1 A: the token error order in D-018 stays.
+- ESC-004 item 2 (C, modified): `FF_AUTH_CLIENTS_<n>_*` clients are now appended after the
+  configured clients instead of replacing them. Env index 0 is the first env client. The
+  duplicate-id and blank-secret checks run on the merged list.
+- Test change (contradicted the owner's answer and 5.1 "added"): `AuthPropertiesTest`
+  `clientsCanComeFromFfAuthClientsEnvironmentVariables` expected only the env client
+  (`billing`). Now `envClientsAreAddedAfterTheConfiguredClients` expects `order-service`, then
+  the env clients. New: `envClientsWithoutConfiguredClientsStartAtIndexZero`,
+  `envClientWithAConfiguredClientIdFailsStartup`, `envClientWithABlankSecretFailsStartup`, and
+  `EnvClientsIT` (env client 0 and `order-service` both get tokens). Both new tests failed on the
+  old code first.
+- `TokenSecretEncodingIT` now sets its `billing` client through `FF_AUTH_CLIENTS_0_*` instead of
+  `featureflags.auth.clients[1]` (assertions unchanged). `EnvClientsIT` uses the same properties,
+  so both share one Spring context. A separate context was one database pool too many for the
+  test PostgreSQL ("too many clients already" in other ITs).
+- ESC-005 A: D-020 and D-021 stay as built.
+- ESC-006 A: D-024 and D-025 stay as built.

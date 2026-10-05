@@ -62,7 +62,7 @@ Backend environment variables (defaults are for `dev` only; change every secret 
 | `FF_ADMIN_TOKEN_TTL` | `PT8H` | Admin token lifetime (ISO-8601 duration) |
 | `FF_CLIENT_TOKEN_TTL` | `PT15M` | Client token lifetime |
 | `FF_CLIENT_ORDER_SERVICE_SECRET` | `order-service-dev-secret` | Secret of the sample client `order-service` |
-| `FF_AUTH_CLIENTS_<n>_CLIENT_ID`, `_CLIENT_SECRET`, `_SCOPES` | not set | Client list from the environment; replaces the built-in list (`<n>` = 0, 1, ...) |
+| `FF_AUTH_CLIENTS_<n>_CLIENT_ID`, `_CLIENT_SECRET`, `_SCOPES` | not set | More clients from the environment; added after the built-in list (`<n>` = 0, 1, ...) |
 | `FF_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Allowed browser origins (Vite dev server) |
 | `FF_REQUIRE_HTTPS` | `false` (`true` in `prod`) | Reject login and token requests that did not arrive over HTTPS (403 `https-required`) |
 | `FF_CACHE_RECONCILE_CRON` | `0 0 3 * * *` | Daily cache reconciliation (server time zone) |

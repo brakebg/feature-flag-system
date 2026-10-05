@@ -46,3 +46,4 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | 2cee8d6 | M8 | M8 complete (no separate milestone audit; final review next) | make verify-all PASS on 2ca0423, gates 1-15 |
 | 2026-10-05 | (next commit) | final | Final review round 1: 12 agents; 2 BLOCKER, 6 CRITICAL, 30 MAJOR, 45 MINOR recorded | docs only |
 | 2026-10-05 | (this commit) | final | Final review rounds 1-3 done; ESC-007 resolved; docs/verify-report.md committed (verify-all PASS e92f5b6); waiting for ESC-002..006 | verify-all PASS |
+| 2026-10-05 | (this commit) | final | ESC-002..006 answers applied (D-040): env clients appended after yml clients (test-first), escalations closed | verify-fast PASS |
