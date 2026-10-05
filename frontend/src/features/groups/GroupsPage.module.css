@@ -1,0 +1,16 @@
+.grid {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  flex-grow: 1;
+}
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 32px;
+}
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

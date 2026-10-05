@@ -1,0 +1,38 @@
+.list {
+  margin: 0;
+  padding: 12px 16px;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  max-height: 200px;
+  overflow: auto;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-weight: 500;
+}
+.key {
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-badge);
+}
+.input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-text);
+}

@@ -75,24 +75,44 @@ describe('routes and app shell (spec 8.1, 8.3)', () => {
     sessionStorage.setItem(TOKEN_KEY, fakeToken('admin', 3600));
     let adminCalls = 0;
     server.use(
-      http.all('/api/v1/admin/*', () => {
+      http.get('/api/v1/admin/audit', () => {
+        adminCalls++;
+        return HttpResponse.json({
+          content: [
+            {
+              id: 1,
+              occurredAt: '2026-10-01T10:00:00Z',
+              actor: 'admin',
+              action: 'GROUP_CREATED',
+              targetKey: 'secret-group',
+              details: { name: 'Secret' },
+            },
+          ],
+          page: { size: 50, number: 0, totalElements: 1, totalPages: 1 },
+        });
+      }),
+      http.get('/api/v1/admin/groups', () => {
         adminCalls++;
         return HttpResponse.json([]);
       }),
     );
-    renderApp(['/login', '/groups', '/audit']);
+    renderApp(['/login', '/audit', '/audit']);
     const user = userEvent.setup();
+    expect(await screen.findByText('secret-group')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    adminCalls = 0;
 
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/login$/));
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/login'));
     expect(screen.queryByRole('status')).toBeNull();
 
-    // Back from /login goes to the protected /groups entry, which must send the user to /login.
+    // Back from /login goes to the protected /audit entry, which must send the user to /login.
     await user.click(screen.getByTestId('history-back'));
     await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/login'));
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull();
+    expect(screen.queryByText('secret-group')).toBeNull();
     expect(adminCalls).toBe(0);
   });
 
