@@ -1,6 +1,7 @@
 // Gate 13 (spec 9.2, 11.3): Evaluation API load, 200 req/s for 60 s, split equally over
-// the three endpoints, existing keys only. Fails on p95 >= 50 ms or any error.
-// The cache hit rate (AC-CACHE-9) is computed by scripts/perf.sh from the metric deltas.
+// the three endpoints, existing keys only. The p95 < 50 ms threshold is the 9.2 target; it is
+// reported, not blocking (decision 0007): scripts/perf.sh fails the gate only on errors, failed
+// checks or a cache hit rate (AC-CACHE-9, from the metric deltas) below 99 %.
 import http from 'k6/http';
 import { check } from 'k6';
 

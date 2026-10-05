@@ -4,7 +4,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Current
 
-- Milestone: M8 complete; final review done (round 3); ESC-002..006 answers applied (D-040)
+- Milestone: M8 complete; final review done (round 3); ESC-002..006 answers applied (D-040);
+  main merged (decision 0007, gate 13 p95 report-only, D-041)
 - `scripts/current-milestone`: 8
 
 ## Last green commit
@@ -69,6 +70,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 - ESC-002..006 resolved (owner comments 5980536047, 5980536322, 5980648922, 5989504944,
   5989505154; D-040). ESC-004 item 2 changed the code: env clients are appended after yml ones.
 - Open escalations: none. Blockers: none.
+- Known intermittent e2e failure (not fixed): verify-all on 16ae98e, gate 12: two
+  chromium-narrow tests (AC-AUD-2, AC-FLAG-5) timed out in the `api` fixture. Their
+  `POST /auth/login` to host.docker.internal:38080 never reached the backend (backend log shows
+  other requests served in the same seconds). The serial project (AC-EVAL-6) did not run.
+  A re-run of `scripts/e2e.sh` alone passed 82/82. Likely the Docker Desktop host port
+  forward. Possible fix: run the Playwright container in the stacks' networks.
 
 ## wip/ branches
 

@@ -443,3 +443,18 @@ answers (owner and builder post as the same GitHub login).
   test PostgreSQL ("too many clients already" in other ITs).
 - ESC-005 A: D-020 and D-021 stay as built.
 - ESC-006 A: D-024 and D-025 stay as built.
+
+## D-041 · 2026-10-05 · 9.2, 11.3 gate 13 · Decision 0007: p95 is report-only
+
+The owner merged decision 0007 into `main` (spec 9.2, 11.3, 12.5 changed); it is merged into
+this branch on the owner's request.
+- `perf/evaluate.js` keeps the `p(95)<50` threshold and `rate: 200` (the 9.2 target;
+  `check-integrity.mjs` and `owner-review.sh` read them).
+- k6 exits 99 when any threshold is crossed, so `scripts/perf.sh` decides from the k6 summary
+  (`--summary-export`): the gate fails on a k6 exit other than 0 or 99, no requests, an error
+  rate above 0, a failed check, or a cache hit rate below 0.99. A p95 at or above 50 ms only
+  shows as "NOT met" in the report.
+- The measurements (requests, error rate, failed checks, hit rate, p95 against 50 ms) go to
+  `build/reports/perf.md`; `verify.mjs` adds them to `verify-report.md` when gate 13 ran.
+- The pass/fail logic was checked with fake summaries: p95 120 ms passes; error rate 0.01, 2
+  failed checks, or k6 exit 1 fail.

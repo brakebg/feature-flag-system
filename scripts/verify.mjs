@@ -183,6 +183,11 @@ for (const r of results.filter((x) => x.status === 'fail')) {
     md.push('```', s.error ?? '', '```');
   }
 }
+// Gate 13 writes its measurements; the p95 is reported here, not blocking (decision 0007).
+const perf = path.join(BUILD, 'reports', 'perf.md');
+if (existsSync(perf) && results.some((r) => r.id === 13 && (r.status === 'pass' || r.status === 'fail'))) {
+  md.push('', readFileSync(perf, 'utf8'));
+}
 const trace = path.join(BUILD, 'traceability.md');
 if (existsSync(trace) && results.some((r) => r.id === 14 && r.status !== 'inactive' && r.status !== 'not-run')) {
   md.push('', readFileSync(trace, 'utf8'));
