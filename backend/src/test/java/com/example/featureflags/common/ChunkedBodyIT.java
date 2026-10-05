@@ -77,15 +77,22 @@ class ChunkedBodyIT {
   void badFormEncodingIsHandledLikeTheContainerDoes() throws Exception {
     // FR-7 / N1: a bad percent escape or an unknown charset is client input, never a 500, and a
     // chunked body gives the same answer as the same body with a Content-Length.
+    // Expected (5.5): a skipped bad pair leaves a valid request (200, all scopes, expires_in 900);
+    // an unknown charset leaves no parameters, so grant_type is missing (400 invalid_request).
     String[][] cases = {
-      {"grant_type=client_credentials&scope=%zz", "application/x-www-form-urlencoded"},
-      {"grant_type=client_credentials&x=%", "application/x-www-form-urlencoded"},
-      {"grant_type=client_credentials", "application/x-www-form-urlencoded; charset=bogus"},
+      {"grant_type=client_credentials&scope=%zz", "application/x-www-form-urlencoded", "200"},
+      {"grant_type=client_credentials&x=%", "application/x-www-form-urlencoded", "200"},
+      {"grant_type=client_credentials", "application/x-www-form-urlencoded; charset=bogus", "400"},
     };
     for (String[] c : cases) {
       HttpResponse<String> plain = token(c[0], c[1], false);
       HttpResponse<String> chunked = token(c[0], c[1], true);
-      assertThat(plain.statusCode()).as(c[0] + " " + c[1]).isLessThan(500);
+      assertThat(plain.statusCode()).as(c[0] + " " + c[1]).isEqualTo(Integer.parseInt(c[2]));
+      if (c[2].equals("200")) {
+        assertThat(chunked.body()).contains("\"expires_in\":900", "\"scope\":\"flags:read\"");
+      } else {
+        assertThat(chunked.body()).isEqualTo("{\"error\":\"invalid_request\"}");
+      }
       assertThat(chunked.statusCode()).as(c[0] + " " + c[1]).isEqualTo(plain.statusCode());
       if (plain.statusCode() != 200) {
         assertThat(chunked.body()).as(c[0] + " " + c[1]).isEqualTo(plain.body());

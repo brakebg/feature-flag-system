@@ -87,19 +87,17 @@ class AuthPropertiesTest {
   }
 
   @Test
-  void ttlBelowOneSecondOrWithFractionsFails() {
+  void ttlBelowOneSecondFailsAndFractionsAreAccepted() {
+    // ESC-007 A (5.1): any duration of 1 second or more is accepted; fractions are allowed.
     runner
         .withPropertyValues("featureflags.auth.admin-token-ttl=PT0.5S")
         .run(ctx -> failedWith(ctx, "admin-token-ttl"));
     runner
-        .withPropertyValues("featureflags.auth.client-token-ttl=PT0.5S")
-        .run(ctx -> failedWith(ctx, "client-token-ttl"));
-    runner
-        .withPropertyValues("featureflags.auth.client-token-ttl=PT1.5S")
+        .withPropertyValues("featureflags.auth.client-token-ttl=PT0.999S")
         .run(ctx -> failedWith(ctx, "client-token-ttl"));
     runner
         .withPropertyValues(
-            "featureflags.auth.client-token-ttl=PT1S", "featureflags.auth.admin-token-ttl=PT1S")
+            "featureflags.auth.client-token-ttl=PT1.5S", "featureflags.auth.admin-token-ttl=PT1S")
         .run(ctx -> assertThat(ctx).hasNotFailed());
   }
 

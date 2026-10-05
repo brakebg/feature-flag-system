@@ -405,3 +405,16 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
 - `GET /audit?targetKey=` with U+0000 is 400 `validation`, field `targetKey` (BF-FR-8).
 - After each reconciliation the cache forgets the per-key change ids and treats changes up to the
   newest audit id seen after its snapshot as already loaded (bounded memory, BF-FR-9).
+
+## D-039 · 2026-10-05 · 5.1, 5.2 · ESC-007 answer A applied
+
+- A token TTL with fractions of a second is accepted; tokens use the whole seconds (floor), and
+  startup fails only when the floored TTL is below 1 s. `exp - iat` equals the floored TTL.
+- Test change (contradicted the owner's reading of 5.1): `AuthPropertiesTest`
+  `ttlBelowOneSecondOrWithFractionsFails` expected startup to fail for `PT1.5S`; 5.1 "any ISO-8601
+  duration of 1 second or more is accepted" with ESC-007 A makes it valid. The test is now
+  `ttlBelowOneSecondFailsAndFractionsAreAccepted` (PT0.5S and PT0.999S fail, PT1.5S starts), and
+  `TokenIssuerTest.aTtlWithFractionsUsesTheWholeSeconds` checks `exp - iat` = 1 for PT1.9S/PT1.5S.
+- D-018, D-019 (blank secrets) and D-023 stay as built (owner accepted).
+- Reconciliation reads the max audit id before its snapshot, so a failure there leaves the cache
+  untouched (round 3 MINOR).

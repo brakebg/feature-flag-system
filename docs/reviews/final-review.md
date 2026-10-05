@@ -27,7 +27,7 @@ BLOCKER and CRITICAL
 | BF-2 | CRITICAL | backend | audit/AuditController.java:43-52 | 6.1 GET /audit | `page`/`size` outside int range give 400 malformed-request instead of 200 empty page / 400 validation | fixed | commit 'M8 review: fix BF-2' |
 | SF-C1 | CRITICAL | backend | common/BodySizeLimitFilter.java:36-63, auth/TokenController.java:55 | 9.1, 9.2 | Chunked form body > 64 KB to /auth/token gives 400/401 instead of 413 payload-too-large | fixed | commit 'M8 review: fix SF-C1' |
 | TA-1 | CRITICAL | tests | evaluation/EvaluationIT.java:273-289 | AC-CACHE-5, 7.2 | Rollback test cannot tell AFTER_COMMIT from BEFORE_COMMIT; a commit failure is untested | fixed | commit 'M8 review: fix TA-1' (test added; fails with BEFORE_COMMIT, passes with AFTER_COMMIT) |
-| SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | escalated | ESC-007 (5.1 vs 5.2 conflict) |
+| SA-3, JR-3 | CRITICAL | backend | auth/ClientRegistrationProperties.java:51-58 | 5.1 | TTL with fractions of a second (PT1.5S) fails startup; spec accepts any duration >= 1 s | fixed | ESC-007 A, commit 'M8 review: apply ESC-007 A' (D-039) |
 | SA-4 | CRITICAL | backend | db/migration/{common,dev}/ (D-014) | 4.3 | Migrations sit in sub-folders, not in `db/migration`; decided at Level 1 | rejected | Files are in backend/src/main/resources/db/migration (sub-folders common/, dev/); V2 runs only in dev via spring.flyway.locations, as 4.3 says. FlywayProfileIT proves it (prod: no seed, dev: seed). Cannot make it fail. |
 
 Round 2 (re-check: spec-auditor, final-reviewer backend, silent-failure-hunter, test-auditor)
@@ -45,6 +45,16 @@ Round 2 (re-check: spec-auditor, final-reviewer backend, silent-failure-hunter, 
 Round 2 re-check results: BF-1, BF-2, BF-3, BF-4, BF-6, SF-C1, SF-M2, SF-M3, TA-1, TA-2, TA-3 confirmed
 fixed; SA-4 rejection accepted; SA-3 still holds until ESC-007 is answered; BF-5 still open (owner).
 
+Round 3 (re-check: final-reviewer backend, silent-failure-hunter, test-auditor): SF-N1, BF-FR-7,
+BF-FR-8, BF-FR-9, TA-8, TA-9, TA-10 confirmed fixed; no new BLOCKER or CRITICAL.
+
+| ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TA-11 | MAJOR | tests | ChunkedBodyIT | 5.5 | Bad-encoding cases only checked < 500 and parity | fixed | commit 'M8 review: apply ESC-007 A; round 3 items' (exact 200 / 400 invalid_request) |
+| TA-12 | MINOR | tests | FlagCacheServiceTest | D-033 | Boundary seq == loaded id untested | fixed | same commit (fails with `<`) |
+| TA-13, TA-14, BF-FR-10, SF-r3-1 | MINOR | backend | FlagServiceTest:192, FlagCacheService | – | Unrelated 77L; stacked Javadoc; max id read after the snapshot | fixed | same commit |
+| BF-FR-11, SF-r3-2 | MINOR | backend | BodySizeLimitFilter | 9.1 | Query string decoded with the body charset; no DEBUG line for a skipped pair | open | No spec path affected (token reads body parameters) |
+
 MAJOR
 
 | ID(s) | Severity | Area | File:line | Spec / AC | Problem | Status | Commit / reason |
@@ -55,8 +65,8 @@ MAJOR
 | BF-6 | MAJOR | backend | common/GlobalExceptionHandler.java:128-138 | 9.1 | NUL character in name/description gives 500 instead of 400 | fixed | commit 'M8 review: fix BF-3, BF-4, BF-6' |
 | SF-M1 | MAJOR | backend | evaluation/FlagCacheService.java:252-260 | 7.2, 9.3 | Reconcile can report false drift for a write committed during the snapshot; comment says it cannot | open | Known limit documented in code and D-034; value stays correct |
 | SA-5 | MAJOR | backend | auth/HmacJwtEncoder.java | 5.1 vs 5.2 | Custom encoder instead of NimbusJwtEncoder (ESC-003 open) | escalated | ESC-003 (waiting for the owner) |
-| SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | escalated | ESC-007 |
-| SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | escalated | ESC-007 |
+| SA-6 | MAJOR | backend | auth/ClientRegistrationProperties.java:32-45 | 5.1 | Extra startup failures (blank admin password, blank client secret) decided at Level 1 | owner-accepted | ESC-007 A item 2 |
+| SA-7 | MAJOR | docs | DECISIONS D-018, D-021, D-023 | 12.5 | Level 1 entries that touch the API | owner-accepted | ESC-007 A item 3 |
 | FF-1 | MAJOR | frontend | hooks/queries.ts:146-150 | 8.5, AC-FLAG-3 | Refetch after one toggle can flip another in-flight optimistic toggle back | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
 | FF-2 | MAJOR | frontend | features/audit/AuditPage.tsx:57 | 8.6 | Load more by offset shows duplicate rows when new events arrive | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |
 | FF-3 | MAJOR | frontend | components/Modal.tsx:17, GroupDialog, FlagDialog | 8.5 | Closing a dialog while its request runs loses a later field error (no toast) | fixed | commit 'M8 review: fix FF-1..FF-4, TA-2' (D-035) |

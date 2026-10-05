@@ -47,10 +47,14 @@ public record ClientRegistrationProperties(
     }
   }
 
+  /**
+   * Spec 5.1: any duration of 1 second or more. Tokens use the whole seconds (floor), which must
+   * still be 1 second or more (ESC-007 A).
+   */
   private static void requireTtl(String name, Duration ttl) {
-    if (ttl == null || ttl.compareTo(Duration.ofSeconds(1)) < 0 || ttl.getNano() != 0) {
+    if (ttl == null || ttl.toSeconds() < 1) {
       throw new IllegalArgumentException(
-          "featureflags.auth." + name + " must be whole seconds, at least 1 second");
+          "featureflags.auth." + name + " must be at least 1 second");
     }
   }
 

@@ -502,9 +502,11 @@ class FlagCacheServiceTest {
     cache.reloadAll();
     when(queries.findEnabled("orders", "new-checkout")).thenReturn(Optional.of(true));
     cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 40));
-
     assertThat(cache.flag("orders", "new-checkout")).contains(true);
-    assertThat(cache.revision()).isEqualTo(43);
+    // TA-12: the newest loaded id itself (42) is already in the loaded data too.
+    cache.onChange(new FlagsChangedEvent.FlagChanged("orders", "new-checkout", false, 42));
+    assertThat(cache.flag("orders", "new-checkout")).contains(true);
+    assertThat(cache.revision()).isEqualTo(44);
   }
 
   @Test

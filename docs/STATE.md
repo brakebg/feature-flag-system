@@ -63,7 +63,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 ## Open escalations and blockers
 
 - ESC-001 resolved: A (owner comment 5979791924). Due milestones may only move earlier.
-- ESC-007 (open): fractional TTL (SA-3), blank-secret fail-fast (SA-6), D-018/D-023 API details (SA-7).
+- ESC-007 resolved: A (owner comment 5992802206), applied in D-039.
 - ESC-006 (open): PIT runs kept out of the tag log (D-024); smoke readiness step (D-025).
 - ESC-005 (open): PIT unit tests only (D-020); duplicate-key before limit-reached (D-021).
 - ESC-004 (open): token endpoint error order (D-018); FF_AUTH_CLIENTS_n replace the yml list.

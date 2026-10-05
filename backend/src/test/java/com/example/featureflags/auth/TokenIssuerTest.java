@@ -88,4 +88,31 @@ class TokenIssuerTest {
     assertThat(exp - iat).isEqualTo(900);
     assertThat(t.ttlSeconds()).isEqualTo(900);
   }
+
+  @Test
+  @org.junit.jupiter.api.Tag("AC-EVAL-1")
+  void aTtlWithFractionsUsesTheWholeSeconds() {
+    // ESC-007 A (5.1, 5.2): PT1.9S gives iat/exp in whole seconds with exp - iat = 1.
+    ClientRegistrationProperties p = props();
+    ClientRegistrationProperties fractional =
+        new ClientRegistrationProperties(
+            p.adminUsername(),
+            p.adminPassword(),
+            p.jwtSecret(),
+            p.issuer(),
+            Duration.ofMillis(1900),
+            Duration.ofMillis(1500),
+            p.clients());
+    TokenIssuer t = new TokenIssuer(fractional, Clock.fixed(NOW, ZoneOffset.UTC));
+    IssuedToken admin = t.issueAdmin("admin");
+    IssuedToken client = t.issueClient("order-service", List.of("flags:read"));
+    for (IssuedToken token : List.of(admin, client)) {
+      Jwt jwt = decode(token.value());
+      long iat = ((Instant) jwt.getClaim("iat")).getEpochSecond();
+      long exp = ((Instant) jwt.getClaim("exp")).getEpochSecond();
+      assertThat(exp - iat).isEqualTo(1);
+      assertThat(token.ttlSeconds()).isEqualTo(1);
+      assertThat(token.expiresAt()).isEqualTo(Instant.ofEpochSecond(exp));
+    }
+  }
 }

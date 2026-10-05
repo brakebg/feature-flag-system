@@ -189,7 +189,7 @@ class FlagServiceTest {
     when(flags.findGroupId(id(9))).thenReturn(Optional.empty());
     assertThatThrownBy(() -> service.toggle(id(9), true)).isInstanceOf(NotFoundException.class);
     assertThatThrownBy(() -> service.delete(id(9))).isInstanceOf(NotFoundException.class);
-    assertThatThrownBy(() -> service.update(id(9), new UpdateFlagRequest(null, null, 77L)))
+    assertThatThrownBy(() -> service.update(id(9), new UpdateFlagRequest(null, null, 0L)))
         .isInstanceOf(NotFoundException.class);
   }
 
