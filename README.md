@@ -34,8 +34,15 @@ reconciliation (03:00). Do not scale the backend horizontally in v1.
 - Set `SPRING_PROFILES_ACTIVE=prod`. Then `FF_REQUIRE_HTTPS` defaults to `true`, and the backend
   logs a WARN for every default password or secret that is still in use.
 - Put an ingress (load balancer, Kubernetes Ingress, Traefik, Caddy) in front of both containers.
-  It terminates TLS, sends `X-Forwarded-Proto`, and rate-limits `POST /api/v1/auth/login` and
-  `POST /api/v1/auth/token` per client IP. The service itself has no rate limiting.
+  It terminates TLS and rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/token` per
+  client IP. The service itself has no rate limiting.
+- The backend trusts `X-Forwarded-*` headers. The ingress MUST set `X-Forwarded-Proto` itself
+  (overwrite, never pass on the client's value) and drop client-sent `X-Forwarded-Host`,
+  `X-Forwarded-Prefix` and `Forwarded`. Ports 8080 (backend) and 80 (UI) must be reachable only
+  through the ingress, never directly from clients.
+- The UI image runs nginx as a non-root user on port 80. Docker allows this by default. On
+  Kubernetes or containerd, set the pod sysctl `net.ipv4.ip_unprivileged_port_start=0` (or run
+  the pod with the `NET_BIND_SERVICE` capability).
 - The images run on their own:
   - backend: needs only `FF_DB_URL`, `FF_DB_USER`, `FF_DB_PASSWORD` (plus real secrets, below);
   - UI: needs only `BACKEND_URL` (nginx proxies `/api/` to it).

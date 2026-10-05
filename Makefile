@@ -10,19 +10,20 @@ export GIT_COMMIT
 .PHONY: up down build-images test lint format verify verify-fast verify-all tools
 
 ## Local stack (spec 10.3): UI http://localhost:3000, login admin / admin123.
-up:
-	docker compose build --pull
-	docker tag feature-flag-backend:$(VERSION) feature-flag-backend:sha-$(SHORT_SHA)
-	docker tag feature-flag-ui:$(VERSION) feature-flag-ui:sha-$(SHORT_SHA)
+up: build-images
 	docker compose up -d
 
 down:
 	docker compose down
 
+# Images are tagged <version> and sha-<short commit> (spec 9.6). Outside a git checkout there is
+# no commit id: the sha tags are skipped with a warning (IF-6).
 build-images:
 	docker compose build --pull
-	docker tag feature-flag-backend:$(VERSION) feature-flag-backend:sha-$(SHORT_SHA)
-	docker tag feature-flag-ui:$(VERSION) feature-flag-ui:sha-$(SHORT_SHA)
+	@if [ -n "$(SHORT_SHA)" ]; then \
+	  docker tag feature-flag-backend:$(VERSION) feature-flag-backend:sha-$(SHORT_SHA); \
+	  docker tag feature-flag-ui:$(VERSION) feature-flag-ui:sha-$(SHORT_SHA); \
+	else echo "warning: no git commit id; images tagged $(VERSION) only"; fi
 
 test:
 	cd backend && JAVA_HOME=$(JAVA_HOME_21) ./mvnw -B -ntp verify

@@ -52,11 +52,11 @@ MAJOR
 | PT-2 | MAJOR | tests | FlagCacheServiceTest | 7.2 | No concurrent onChange test for one group | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' (fails without the writer lock) |
 | PT-4 | MAJOR | tests | AdminGroupsIT, GroupServiceTest:94 | 9.1, 9.2 | Group limit, real optimistic-lock 409 and real unique-violation 409 not tested under concurrency | fixed | commit 'M8 review: tests for TA-3, PT-1, PT-2, PT-4' |
 | IF-1 | MAJOR | infra | frontend/nginx.conf:18 | 10.2 | nginx resolves BACKEND_URL once; a recreated backend gives 502 | open | |
-| IF-2 | MAJOR | infra | frontend/nginx.conf:19 | 10.2 | `Host: $http_host` breaks a BACKEND_URL behind a host-routing ingress; no SNI | open | |
-| IF-3 | MAJOR | infra | frontend/nginx.conf:13 | 9.1, 9.2 | nginx answers bodies > 1 MB with an HTML 413 | open | |
-| IF-4 | MAJOR | infra | frontend/Dockerfile:22-23 | 10.2 | Non-root nginx on port 80 fails without unprivileged-port sysctl (Kubernetes) | open | |
-| IF-5 | MAJOR | infra | docker-compose.yml, backend/Dockerfile | 9.4 | `SERVER_PORT` other than 8080 breaks healthcheck and UI proxy | open | |
-| IF-6 | MAJOR | infra | Makefile:5,15-16 | 10.3, AC-OPS-1 | `make up` outside a git checkout fails at the sha tag | open | |
+| IF-2 | MAJOR | infra | frontend/nginx.conf:19 | 10.2 | `Host: $http_host` breaks a BACKEND_URL behind a host-routing ingress; no SNI | fixed | commit 'M8 review: infra fixes IF-2, IF-3, IF-5, IF-6' (D-036) |
+| IF-3 | MAJOR | infra | frontend/nginx.conf:13 | 9.1, 9.2 | nginx answers bodies > 1 MB with an HTML 413 | fixed | commit 'M8 review: infra fixes IF-2, IF-3, IF-5, IF-6' (D-036) |
+| IF-4 | MAJOR | infra | frontend/Dockerfile:22-23 | 10.2 | Non-root nginx on port 80 fails without unprivileged-port sysctl (Kubernetes) | open | Documented in README (sysctl / NET_BIND_SERVICE); image unchanged: setcap would fail under no-new-privileges |
+| IF-5 | MAJOR | infra | docker-compose.yml, backend/Dockerfile | 9.4 | `SERVER_PORT` other than 8080 breaks healthcheck and UI proxy | fixed | commit 'M8 review: infra fixes IF-2, IF-3, IF-5, IF-6' (D-036) |
+| IF-6 | MAJOR | infra | Makefile:5,15-16 | 10.3, AC-OPS-1 | `make up` outside a git checkout fails at the sha tag | fixed | commit 'M8 review: infra fixes IF-2, IF-3, IF-5, IF-6' (D-036) |
 | IF-7 | MAJOR | infra | backend/Dockerfile:9-13 | 9.6 | Image built without GIT_COMMIT has no git.commit.id, silently | open | |
 | IF-8 | MAJOR | gates | scripts/lib/trace-registry.mjs:60-79 | 11.4 | 9.1 rows that share a status (409 duplicate-key / limit-reached) are not checked per type | open | |
 
@@ -74,7 +74,7 @@ MINOR (optional; listed for the owner)
 | BF-8 | backend | AuditService.java:47 | `ff_admin_writes_total` counted before commit | open |
 | BF-9 | backend | SecurityConfig.java:57-122 | Method longer than 50 lines | open |
 | SA-8 | backend | SecurityConfig.java | CORS values not compared case-insensitively | open |
-| SR-1 | docs | README.md:37 | README should say the ingress must overwrite X-Forwarded-* and hide ports 8080/80 | open |
+| SR-1 | docs | README.md:37 | README should say the ingress must overwrite X-Forwarded-* and hide ports 8080/80 | fixed |
 | SF-m3 | backend | AuditPurgeJob.java:44-53 | Normal INFO line after a failed purge | open |
 | SA-9 | frontend | D-029, D-030 | Extra UI texts (logged) | open |
 | RR-1 | frontend | Modal.tsx:23 | First focus on Close, not the first field | open |

@@ -375,3 +375,15 @@ moves on for every committed change. Reconciliation keeps the ids (it fixes valu
   `Group <key> was already deleted` (spec silent on this text, Level 1); a group delete then goes
   to `/groups` like a success.
 - TA-2: the AC-FLAG-6 tests now check that a new GET of the group follows the 409.
+
+## D-036 · 2026-10-05 · 9.1, 9.4, 9.6, 10.2 · Final review infra fixes
+
+- IF-2 (replaces part of D-031): nginx sends the upstream's own `Host` and the browser host with
+  its port in `X-Forwarded-Host` (the backend uses `forward-headers-strategy=framework`), so CORS
+  still sees the same origin and a `BACKEND_URL` behind a host-routing ingress works; SNI on.
+- IF-3: nginx limits `/api/` bodies to 64 KB and answers above that with the 9.1 problem detail
+  `payload-too-large` (same type as the backend), with the security headers.
+- IF-5: compose `BACKEND_URL` and the backend `HEALTHCHECK` follow `SERVER_PORT`.
+- IF-6: `make up` / `make build-images` skip the `sha-` tags with a warning outside a git checkout.
+- IF-4, SR-1: README states the ingress rules for `X-Forwarded-*`, that ports 8080/80 are reached
+  only through the ingress, and the unprivileged-port sysctl for the UI image on Kubernetes.

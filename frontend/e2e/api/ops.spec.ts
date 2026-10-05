@@ -51,4 +51,19 @@ test.describe('operations (spec 9.3, 10.2)', () => {
       expect(hsts.map((h) => h.value)).toEqual(['max-age=31536000; includeSubDomains']);
     });
   }
+
+  test('IF-3: a body above 64 KB through the UI proxy gets the 9.1 problem detail', async ({
+    request,
+  }) => {
+    for (const size of [70_000, 2_000_000]) {
+      const res = await request.post(`${UI_URL}/api/v1/admin/groups`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify({ key: 'big', name: 'x'.repeat(size) }),
+      });
+      expect(res.status()).toBe(413);
+      expect(res.headers()['content-type']).toMatch(/^application\/problem\+json/);
+      expect((await res.json()).type).toBe('https://featureflags.local/problems/payload-too-large');
+      expect(res.headers()['content-security-policy']).toBe(CSP);
+    }
+  });
 });

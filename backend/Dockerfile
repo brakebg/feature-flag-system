@@ -22,5 +22,5 @@ USER 10001:10001
 EXPOSE 8080
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -fs http://localhost:8080/actuator/health/readiness >/dev/null || exit 1
+  CMD curl -fs "http://localhost:${SERVER_PORT:-8080}/actuator/health/readiness" >/dev/null || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
