@@ -43,4 +43,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | b1f2d37 | M8 | Playwright e2e for every 11.2 scenario (api, limits, ui x4 browsers, serial), AC-OPS-1/2 scripts, nginx Host fix, Zod jitless (CSP) | verify-fast PASS; e2e 81/81 x3 runs; perf PASS (p95 3.8 ms, hit rate 1.0) |
 | 2026-10-05 | 3379f16 | M8 | README (setup, config, single instance, curl examples tested, polling), CHANGELOG 1.0.0, design-compare gallery, AC-OPS-1 health states | verify-fast PASS |
 | 2026-10-05 | 2ca0423 | M8 | Gate 13: wait for an idle backend before the load (D-032); one earlier verify failed at gate 13 (p95 130 ms) | verify-fast PASS; perf after e2e p95 2.8 ms |
-| 2026-10-05 | (next commit) | M8 | M8 complete (no separate milestone audit; final review next) | make verify-all PASS on 2ca0423, gates 1-15 |
+| 2026-10-05 | 2cee8d6 | M8 | M8 complete (no separate milestone audit; final review next) | make verify-all PASS on 2ca0423, gates 1-15 |
+| 2026-10-05 | (next commit) | final | Final review round 1: 12 agents; 2 BLOCKER, 6 CRITICAL, 30 MAJOR, 45 MINOR recorded | docs only |

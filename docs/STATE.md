@@ -23,9 +23,10 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. Final review (builder-agents 6): run the 12 agents on main...HEAD, write
-   docs/reviews/final-review.md, commit it before fixing anything.
-2. Triage and fix every BLOCKER / CRITICAL test-first; re-check rounds (max 3).
+1. Final review round 1 written (docs/reviews/final-review.md). Triage the 6 CRITICAL
+   test-first: BF-1 cache order, BF-2 audit int range, SF-C1 chunked 413, TA-1 commit-failure
+   test, SA-3 fractional TTL, SA-4 migration folders. Then small MAJORs.
+2. Re-check rounds (max 3) with the agents that reported BLOCKER/CRITICAL (SA, BF, SF, TA, JR).
 3. `make verify-all`, commit docs/verify-report.md, tick spec 12.3, PR ready + final comment.
 
 ## M8 notes
