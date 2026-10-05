@@ -23,11 +23,13 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-1. Final review round 1 written (docs/reviews/final-review.md). Triage the 6 CRITICAL
-   test-first: BF-1 cache order, BF-2 audit int range, SF-C1 chunked 413, TA-1 commit-failure
-   test, SA-3 fractional TTL, SA-4 migration folders. Then small MAJORs.
-2. Re-check rounds (max 3) with the agents that reported BLOCKER/CRITICAL (SA, BF, SF, TA, JR).
-3. `make verify-all`, commit docs/verify-report.md, tick spec 12.3, PR ready + final comment.
+1. Final review round 2 (re-check) running: spec-auditor, final-reviewer backend,
+   silent-failure-hunter, test-auditor on e720537...HEAD. Then update the summary table in
+   docs/reviews/final-review.md.
+2. Round 1 status: CRITICAL BF-1, BF-2, SF-C1, TA-1 fixed; SA-3 escalated (ESC-007); SA-4
+   rejected. BLOCKER SA-1 (last step), SA-2 (owner answers ESC-002..007).
+3. Finish (builder-agents 6 step 6): verify-all, commit docs/verify-report.md. While escalations
+   are open the PR cannot be marked ready (12.3 "No escalation is open").
 
 ## M8 notes
 
