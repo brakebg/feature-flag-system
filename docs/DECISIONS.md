@@ -458,3 +458,24 @@ this branch on the owner's request.
   `build/reports/perf.md`; `verify.mjs` adds them to `verify-report.md` when gate 13 ran.
 - The pass/fail logic was checked with fake summaries: p95 120 ms passes; error rate 0.01, 2
   failed checks, or k6 exit 1 fail.
+
+## D-042 · 2026-10-07 · 9.3, 9.6 · Owner bug: /actuator/info had no git.commit.id
+
+Owner comment 6021814988. Cause: in the Docker build there is no `.git`, so
+`git-commit-id-maven-plugin` wrote a `git.properties` with only a header comment into
+`target/classes`. The resources step does not overwrite a newer file, so the file the Dockerfile
+writes from `GIT_COMMIT` (D-008) never reached the jar. Fix: the Dockerfile runs Maven with
+`-Dmaven.gitcommitid.skip=true`. Local builds still use the plugin (they have `.git`).
+Test: e2e `api/ops.spec.ts` checks `git.commit.id` against the Docker stack. Checked by hand on
+a fresh stack: `{"git":{"commit":{"id":"<7 hex>"}}, "build":{"version":"1.0.0",...}}`.
+A plain `docker compose build` without `GIT_COMMIT` still has no commit id (no `.git` in the
+build context); `make up`, `make build-images` and the gate scripts pass it.
+
+## D-043 · 2026-10-07 · 10.2 · Owner bug: 413 had no Cache-Control: no-store
+
+Owner comment 6021815278. Cause: `BodySizeLimitFilter` (order +5) answered 413 before
+`AdminCacheControlFilter` (order +10) ran. Fix: `AdminCacheControlFilter` now runs at order +1,
+right after the request id filter. Test first, seen failing:
+`ChunkedBodyIT.adminBodyAbove65536BytesIs413WithNoStore` (POST /groups and PATCH /flags/{id},
+with Content-Length and chunked; exactly one `Cache-Control: no-store`). The e2e 413 test also
+checks the header now.

@@ -24,6 +24,9 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
+0. Owner bug reports 6021814988 (info git.commit.id, D-042) and 6021815278 (413 no-store,
+   D-043) fixed on `wip/owner-bugs`. Gate 10 red (new CVE-2026-47884, ESC-008). After the
+   ESC-008 answer: fix gate 10, merge `wip/owner-bugs` into the feature branch, react rocket.
 1. Done: ESC-002..006 applied (D-040), main merged + gate 13 report-only (D-041), verify-all PASS.
 2. PR #3 marked ready; final summary posted. Wait for the owner review.
 3. Optional (owner choice): fix the intermittent e2e host-port stall (see Open escalations).
@@ -69,7 +72,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 - ESC-007 resolved: A (owner comment 5992802206), applied in D-039.
 - ESC-002..006 resolved (owner comments 5980536047, 5980536322, 5980648922, 5989504944,
   5989505154; D-040). ESC-004 item 2 changed the code: env clients are appended after yml ones.
-- Open escalations: none. Blockers: none.
+- Open escalations: ESC-008 (gate 10 CVE, blocks merging wip/owner-bugs). Blockers: none.
 - Known intermittent e2e failure (not fixed): verify-all on 16ae98e, gate 12: two
   chromium-narrow tests (AC-AUD-2, AC-FLAG-5) timed out in the `api` fixture. Their
   `POST /auth/login` to host.docker.internal:38080 never reached the backend (backend log shows
@@ -79,11 +82,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## wip/ branches
 
-- None.
+- `wip/owner-bugs`: D-042, D-043 (both owner bugs). Red only on gate 10 (ESC-008).
 
 ## Last processed PR comment
 
-- 5995056632 (2026-10-05, builder [RESOLVED ESC-006]); all owner answers up to it applied.
+- 6021815278 (2026-10-06, owner bug report 413 no-store). Both bug reports: eyes reacted,
+  fixed on wip/owner-bugs; rocket after they land on the feature branch.
 
 ## Notes for the next session
 

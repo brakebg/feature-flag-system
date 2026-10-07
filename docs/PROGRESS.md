@@ -49,3 +49,4 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | (this commit) | final | ESC-002..006 answers applied (D-040): env clients appended after yml clients (test-first), escalations closed | verify-fast PASS |
 | 2026-10-05 | (this commit) | final | Merged main (decision 0007); gate 13: p95 report-only, errors/checks/hit rate block, measurements in verify report (D-041) | verify-fast PASS |
 | 2026-10-05 | (this commit) | final | verify-all PASS on e670c3c (all 15 gates); report copied; PR marked ready | verify-all PASS |
+| 2026-10-07 | (wip/owner-bugs) | final | Owner bugs: /actuator/info git.commit.id in the Docker image (D-042), 413 Cache-Control no-store (D-043); ESC-008 for new CVE | verify-fast red on gate 10 only (CVE-2026-47884) |

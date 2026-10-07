@@ -11,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,6 +65,51 @@ class ChunkedBodyIT {
     assertThat(res.headers().firstValue("Content-Type")).hasValue("application/problem+json");
     assertThat(res.body())
         .contains("\"type\":\"https://featureflags.local/problems/payload-too-large\"");
+  }
+
+  @Test
+  @Tag("ERR-POST-/admin/groups-413")
+  @Tag("ERR-PATCH-/admin/flags/{flagId}-413")
+  void adminBodyAbove65536BytesIs413WithNoStore() throws Exception {
+    // Spec 10.2: every Admin API response (any status) has Cache-Control: no-store; 413 too.
+    String body = "{\"key\":\"big\",\"name\":\"" + "x".repeat(70_000) + "\"}";
+    HttpResponse<String> login =
+        http.send(
+            HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/auth/login"))
+                .header("Content-Type", "application/json")
+                .POST(
+                    HttpRequest.BodyPublishers.ofString(
+                        "{\"username\":\"admin\",\"password\":\"admin123\"}"))
+                .build(),
+            HttpResponse.BodyHandlers.ofString());
+    String token = login.body().replaceAll(".*\"accessToken\":\"([^\"]+)\".*", "$1");
+    String[][] cases = {
+      {"POST", "/api/v1/admin/groups"},
+      {"PATCH", "/api/v1/admin/flags/00000000-0000-0000-0000-000000000001"},
+    };
+    for (String[] c : cases) {
+      for (boolean chunked : new boolean[] {false, true}) {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        HttpRequest request =
+            HttpRequest.newBuilder(URI.create("http://localhost:" + port + c[1]))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + token)
+                .method(
+                    c[0],
+                    chunked
+                        ? HttpRequest.BodyPublishers.ofInputStream(
+                            () -> new ByteArrayInputStream(bytes))
+                        : HttpRequest.BodyPublishers.ofByteArray(bytes))
+                .build();
+        HttpResponse<String> res = http.send(request, HttpResponse.BodyHandlers.ofString());
+        String what = c[0] + " " + c[1] + (chunked ? " chunked" : "");
+        assertThat(res.statusCode()).as(what).isEqualTo(413);
+        assertThat(res.body())
+            .as(what)
+            .contains("\"type\":\"https://featureflags.local/problems/payload-too-large\"");
+        assertThat(res.headers().allValues("Cache-Control")).as(what).containsExactly("no-store");
+      }
+    }
   }
 
   @Test
