@@ -264,8 +264,9 @@ Read first, in this order:
    what spec 001 built and decided.
 
 Branch: create the working branch from <spec>/spec.json from main and work
-only there. Do not push to any other branch (for example a session branch such
-as claude/...). Your first commit creates your memory files in <spec>/
+only there, plus the wip/ branches your spec and CLAUDE.md allow (spec 002:
+wip/spring-boot-4 for phase B checkpoints). Do not push to any other branch
+(for example a session branch such as claude/...). Your first commit creates your memory files in <spec>/
 (STATE.md, PROGRESS.md, DECISIONS.md, BLOCKERS.md, MILESTONE). After the first
 green chunk, open exactly one draft PR from the working branch to main.
 
