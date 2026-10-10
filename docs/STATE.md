@@ -10,11 +10,11 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last green commit
 
-- e670c3c (`make verify-all` PASS, all 15 gates; report in docs/verify-report.md).
+- This commit (owner bug fixes D-042/D-043, CVE table D-044/D-045). `make verify-all` PASS.
 
 ## Last full `make verify`
 
-- 2026-10-05 `make verify-all` on e670c3c: PASS, gates 1-15 (p95 2.8 ms, hit rate 1.0).
+- 2026-10-10 `make verify-all`: PASS, gates 1-15 (p95 3.0 ms, hit rate 1.0). docs/verify-report.md.
 
 ## Chunks done in M7
 
@@ -24,10 +24,8 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-0. `wip/owner-bugs` has the owner bug fixes (D-042, D-043), the main merge (decision 0007 CVE)
-   and ESC-008 applied (D-044). Gate 10 still red: new CVE-2026-47890 (ESC-009). After the
-   answer: fix gate 10, fast-forward the feature branch to `wip/owner-bugs`, react rocket on
-   6021814988 and 6021815278.
+0. Done: owner bugs 6021814988 (D-042) and 6021815278 (D-043) fixed and on the feature branch;
+   ESC-008/009 resolved (D-044, D-045, spec 11.3 table, decisions/0008).
 1. Done: ESC-002..006 applied (D-040), main merged + gate 13 report-only (D-041), verify-all PASS.
 2. PR #3 marked ready; final summary posted. Wait for the owner review.
 3. Optional (owner choice): fix the intermittent e2e host-port stall (see Open escalations).
@@ -73,7 +71,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 - ESC-007 resolved: A (owner comment 5992802206), applied in D-039.
 - ESC-002..006 resolved (owner comments 5980536047, 5980536322, 5980648922, 5989504944,
   5989505154; D-040). ESC-004 item 2 changed the code: env clients are appended after yml ones.
-- Open escalations: ESC-009 (gate 10 CVE-2026-47890, blocks merging wip/owner-bugs). ESC-008 resolved (D-044). Blockers: none.
+- ESC-008, ESC-009 resolved (D-044, D-045). Open escalations: none. Blockers: none.
 - Known intermittent e2e failure (not fixed): verify-all on 16ae98e, gate 12: two
   chromium-narrow tests (AC-AUD-2, AC-FLAG-5) timed out in the `api` fixture. Their
   `POST /auth/login` to host.docker.internal:38080 never reached the backend (backend log shows
@@ -83,12 +81,12 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## wip/ branches
 
-- `wip/owner-bugs`: D-042, D-043 (both owner bugs). Red only on gate 10 (ESC-009).
+- `wip/owner-bugs`: merged into the feature branch (fast-forward). Not deleted (Level 3).
 
 ## Last processed PR comment
 
-- 6021815278 (2026-10-06, owner bug report 413 no-store). Both bug reports: eyes reacted,
-  fixed on wip/owner-bugs; rocket after they land on the feature branch.
+- 6032965071 (2026-10-07, builder ESC-008). Owner bug reports 6021814988, 6021815278: rocket.
+  ESC-009 answered by the owner through the spec change on main (decisions/0008).
 
 ## Notes for the next session
 

@@ -482,7 +482,13 @@ checks the header now.
 
 ## D-044 · 2026-10-10 · 11.3 gate 10 · ESC-008: CVE-2026-47884 accepted by the owner
 
-The owner changed spec 11.3 on `main` (decisions/0007-accept-cve-2026-47884.md, merged into
-this branch on the owner's request). `.trivyignore` gets the entry in the spec format:
+The owner changed spec 11.3 on `main` (decision 0007, later renumbered to decisions/0008, merged
+into this branch on the owner's request). `.trivyignore` gets the entry in the spec format:
 `# owner accepted, spec 11.3` / `CVE-2026-47884 exp:2027-04-10`. The agent never removes it.
 `wip/owner-bugs` (D-042, D-043) is merged into the feature branch.
+
+## D-045 · 2026-10-10 · 11.3 gate 10 · ESC-009: five more CVEs accepted by the owner
+
+The owner extended the spec 11.3 "Accepted vulnerabilities" table (decisions/0008, merged from
+`main`): CVE-2026-47890, CVE-2026-78667, CVE-2026-78669, CVE-2026-97031, CVE-2026-4775, all
+review by 2027-04-10. `.trivyignore` has all six entries in the spec format; never removed.

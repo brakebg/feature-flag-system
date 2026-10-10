@@ -1,24 +1,24 @@
 # Verify report
 
-Mode: `all` · Milestone: M8 · Commit: e670c3c · 2026-10-05T13:36:59.374Z
+Mode: `all` · Milestone: M8 · Commit: e706383 (uncommitted changes) · 2026-10-10T12:32:30.735Z
 
 **Result: PASS**
 
 | # | Gate | Status | Duration |
 | --- | --- | --- | --- |
-| 1 | Format and lint | pass | 4.7 s |
-| 2 | Compile and types | pass | 3.7 s |
-| 3 | Architecture rules | pass | 3.9 s |
+| 1 | Format and lint | pass | 6.8 s |
+| 2 | Compile and types | pass | 4.1 s |
+| 3 | Architecture rules | pass | 4.3 s |
 | 4 | Banned dependencies | pass | 1.1 s |
-| 5 | Backend tests | pass | 67.9 s |
-| 6 | Coverage | pass | 9.8 s |
-| 7 | Mutation testing | pass | 21.1 s |
-| 8 | API contract | pass | 14.2 s |
-| 9 | Frontend tests | pass | 5.9 s |
-| 10 | Secrets | pass | 28.9 s |
-| 11 | Docker smoke test | pass | 79.2 s |
-| 12 | End-to-end | pass | 146.4 s |
-| 13 | Performance | pass | 98.7 s |
+| 5 | Backend tests | pass | 36.8 s |
+| 6 | Coverage | pass | 5.2 s |
+| 7 | Mutation testing | pass | 18.4 s |
+| 8 | API contract | pass | 9.8 s |
+| 9 | Frontend tests | pass | 4.6 s |
+| 10 | Secrets | pass | 15.6 s |
+| 11 | Docker smoke test | pass | 12.4 s |
+| 12 | End-to-end | pass | 75.6 s |
+| 13 | Performance | pass | 83.3 s |
 | 14 | Traceability | pass | 0.1 s |
 | 15 | Test integrity | pass | 0.2 s |
 
@@ -30,12 +30,12 @@ Mode: `all` · Milestone: M8 · Commit: e670c3c · 2026-10-05T13:36:59.374Z
 | Error rate | 0 | 0 | yes |
 | Failed checks | 0 | 0 | yes |
 | Cache hit rate | 1.0000 | >= 0.99 | yes |
-| Evaluation p95 | 2.8 ms | < 50 ms (met) | no (decision 0007) |
+| Evaluation p95 | 3.0 ms | < 50 ms (met) | no (decision 0007) |
 
 
 ## Traceability (gate 14)
 
-Milestone M8. Tests read: 513. Problems: 0. Pending (not yet due): 0.
+Milestone M8. Tests read: 515. Problems: 0. Pending (not yet due): 0.
 
 | ID | Status | Tests |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ Milestone M8. Tests read: 513. Problems: 0. Pending (not yet due): 0.
 | ERR-POST-/admin/groups-401 | pass | ✓ junit: AdminGroupsIT.createNeedsAnAdminToken |
 | ERR-POST-/admin/groups-403 | pass | ✓ junit: AdminGroupsIT.createNeedsAnAdminToken |
 | ERR-POST-/admin/groups-409 | pass | ✓ junit: AdminGroupsIT.parallelCreatesWithTheSameKeyGiveOneDuplicateKey<br>✓ junit: AdminGroupsIT.duplicateKeyIs409<br>✓ junit: AdminGroupsIT.thousandAndFirstGroupIsLimitReachedAndDeletingFreesASlot<br>✓ junit: AdminGroupsIT.parallelCreatesAtTheLimitLetExactlyOneThrough |
-| ERR-POST-/admin/groups-413 | pass | ✓ junit: AdminGroupsIT.bodyAbove64KiBIs413 |
+| ERR-POST-/admin/groups-413 | pass | ✓ junit: AdminGroupsIT.bodyAbove64KiBIs413<br>✓ junit: ChunkedBodyIT.adminBodyAbove65536BytesIs413WithNoStore |
 | ERR-GET-/admin/groups/{groupId}-400 | pass | ✓ junit: AdminGroupsIT.malformedIdIs400 |
 | ERR-GET-/admin/groups/{groupId}-401 | pass | ✓ junit: AdminGroupsIT.detailNeedsAnAdminToken |
 | ERR-GET-/admin/groups/{groupId}-403 | pass | ✓ junit: AdminGroupsIT.detailNeedsAnAdminToken |
@@ -118,7 +118,7 @@ Milestone M8. Tests read: 513. Problems: 0. Pending (not yet due): 0.
 | ERR-PATCH-/admin/flags/{flagId}-403 | pass | ✓ junit: AdminFlagsIT.patchErrors |
 | ERR-PATCH-/admin/flags/{flagId}-404 | pass | ✓ junit: AdminFlagsIT.patchErrors |
 | ERR-PATCH-/admin/flags/{flagId}-409 | pass | ✓ junit: AdminFlagsIT.staleVersionIsConflict |
-| ERR-PATCH-/admin/flags/{flagId}-413 | pass | ✓ junit: AdminFlagsIT.patchErrors |
+| ERR-PATCH-/admin/flags/{flagId}-413 | pass | ✓ junit: AdminFlagsIT.patchErrors<br>✓ junit: ChunkedBodyIT.adminBodyAbove65536BytesIs413WithNoStore |
 | ERR-POST-/admin/flags/{flagId}/toggle-400 | pass | ✓ junit: AdminFlagsIT.toggleBodyIsRequired |
 | ERR-POST-/admin/flags/{flagId}/toggle-401 | pass | ✓ junit: AdminFlagsIT.toggleErrors |
 | ERR-POST-/admin/flags/{flagId}/toggle-403 | pass | ✓ junit: AdminFlagsIT.toggleErrors |
