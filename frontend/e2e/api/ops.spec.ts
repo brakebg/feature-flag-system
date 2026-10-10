@@ -21,6 +21,16 @@ test.describe('operations (spec 9.3, 10.2)', () => {
     expect(body.components.db.status).toBe('UP');
   });
 
+  test('/actuator/info is public with a SemVer build.version and a hex git.commit.id (9.3, 9.6)', async ({
+    request,
+  }) => {
+    const res = await request.get(`${API_URL}/actuator/info`);
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.build.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(body.git.commit.id).toMatch(/^[0-9a-f]{7,40}$/);
+  });
+
   test('[AC-CACHE-6] readiness is UP once the stack serves traffic', async ({ request }) => {
     const res = await request.get(`${API_URL}/actuator/health/readiness`);
     expect(res.status()).toBe(200);

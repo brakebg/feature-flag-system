@@ -5,13 +5,15 @@ COPY .mvn .mvn
 COPY mvnw pom.xml ./
 RUN ./mvnw -B -ntp -q dependency:go-offline
 COPY src src
-# Commit id for /actuator/info (spec 9.6); passed by `make up` / CI.
+# Commit id for /actuator/info (spec 9.6); passed by `make up` / CI. There is no .git here, so
+# git-commit-id-maven-plugin is skipped: it would write an empty git.properties into
+# target/classes, and the resources step does not overwrite that newer file (D-042).
 ARG GIT_COMMIT=""
 RUN if [ -n "$GIT_COMMIT" ]; then \
       printf 'git.commit.id=%s\ngit.commit.id.abbrev=%s\n' "$GIT_COMMIT" "$(echo "$GIT_COMMIT" | cut -c1-7)" \
         > src/main/resources/git.properties; \
     fi \
- && ./mvnw -B -ntp -q -DskipTests -Dspotless.check.skip=true package \
+ && ./mvnw -B -ntp -q -DskipTests -Dspotless.check.skip=true -Dmaven.gitcommitid.skip=true package \
  && cp target/feature-flag-service-*.jar /src/app.jar
 
 FROM eclipse-temurin:21-jre

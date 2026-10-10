@@ -105,5 +105,6 @@ test.describe('admin API (spec 4.3, 6, 9.2)', () => {
     });
     expect(res.status()).toBe(413);
     expect((await res.json()).type).toBe('https://featureflags.local/problems/payload-too-large');
+    expect(res.headers()['cache-control']).toBe('no-store'); // 10.2: any status
   });
 });

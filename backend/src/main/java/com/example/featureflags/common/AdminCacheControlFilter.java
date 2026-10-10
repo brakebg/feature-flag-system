@@ -13,9 +13,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Spec 10.2: every Admin API response, whatever its status, has {@code Cache-Control: no-store}.
+ * Runs before {@link BodySizeLimitFilter}, so its 413 answer has the header too.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 10)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class AdminCacheControlFilter extends OncePerRequestFilter {
 
   @Override
