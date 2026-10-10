@@ -59,6 +59,12 @@ class OpenApiExportIT {
             names(
                 schemas.get("CreateGroupRequest").get("properties").get("description").get("type")))
         .containsExactlyInAnyOrder("string", "null");
+    // Spec 002 4 item 3: springdoc 3 must not add "minimum" for @PositiveOrZero (D-5).
+    for (String request : new String[] {"UpdateGroupRequest", "UpdateFlagRequest"}) {
+      assertThat(schemas.get(request).get("properties").get("version").has("minimum"))
+          .as(request)
+          .isFalse();
+    }
     String pretty = TestJson.prettySorted(doc) + "\n";
     Files.writeString(Path.of("openapi.json"), pretty, StandardCharsets.UTF_8);
   }

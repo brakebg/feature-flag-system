@@ -76,6 +76,42 @@ class ResponseJsonTest {
   }
 
   @Test
+  void flagFieldOrderIsTheOrderOf1_0_0() throws Exception {
+    // Spec 002 4 item 2: field order stays the same on Jackson 3 (declaration order).
+    JsonNode n = json(new Flag(F, G, "k1", "o.k1", "text", true, T, "admin", T, "admin", 3));
+    assertThat(names(n))
+        .containsExactly(
+            "id",
+            "groupId",
+            "key",
+            "fullKey",
+            "description",
+            "enabled",
+            "createdAt",
+            "createdBy",
+            "updatedAt",
+            "updatedBy",
+            "version");
+  }
+
+  @Test
+  void groupSummaryFieldOrderIsTheOrderOf1_0_0() throws Exception {
+    JsonNode n = json(new GroupSummary(G, "orders", "Orders", "d", 2, 1, "admin", T, "bob", 4));
+    assertThat(names(n))
+        .containsExactly(
+            "id",
+            "key",
+            "name",
+            "description",
+            "flagCount",
+            "enabledCount",
+            "createdBy",
+            "updatedAt",
+            "updatedBy",
+            "version");
+  }
+
+  @Test
   void groupShapes() throws Exception {
     JsonNode summary =
         json(new GroupSummary(G, "orders", "Orders", null, 2, 1, "admin", T, "bob", 4));

@@ -25,6 +25,16 @@ class Jackson3OnlyTest {
   }
 
   @Test
+  void noTestClassImportsJackson2CoreOrDatabindExceptTheFailingFixture() {
+    JavaClasses tests =
+        new ClassFileImporter()
+            .withImportOption(location -> !location.contains("/archfixture/"))
+            .importPackages("com.example.featureflags");
+    assertThatCode(() -> ArchitectureTest.noJackson2CoreOrDatabind.check(tests))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
   void aClassImportingJackson2DatabindFails() {
     JavaClasses fixture = new ClassFileImporter().importClasses(Jackson2User.class);
     assertThatThrownBy(() -> ArchitectureTest.noJackson2CoreOrDatabind.check(fixture))

@@ -73,12 +73,15 @@ Test `ChunkedBodyIT.badFormEncodingIsHandledLikeTheContainerDoes` is unchanged a
 | File | Old | New | Forced by |
 | --- | --- | --- | --- |
 | support/TestJson | Jackson 2 `ObjectMapper`, `Jackson2ObjectMapperBuilder` | Jackson 3 `JsonMapper`, `JacksonJsonHttpMessageConverter` + `ProblemDetailJacksonMixin` | Jackson 3, Spring 7 |
-| all tests with `JsonNode` / `ObjectMapper` imports | `com.fasterxml.jackson.databind.*` | `tools.jackson.databind.*` | Jackson 3 packages |
+| ops/OpenApiExportIT, audit/AuditApiIT, flag/AdminFlagsIT, group/AdminGroupsIT, auth/LoginIT, auth/TokenEndpointIT, evaluation/EvaluationIT, domain/RequestValidationTest, domain/ResponseJsonTest, support/AdminClient, support/SecurityTestSupport | `com.fasterxml.jackson.databind.*` | `tools.jackson.databind.*` | Jackson 3 packages |
 | common/JacksonConfigTest (9 assertions) | `isInstanceOf(JsonProcessingException.class)` | `isInstanceOf(JacksonException.class)` (`tools.jackson.core`) | Jackson 3 exception base class |
 | domain/ResponseJsonTest `names()` | `n.fieldNames().forEachRemaining(..)` | `out.addAll(n.propertyNames())` | Jackson 3 JsonNode API |
 | support/IntegrationTest, ops/SwaggerProdIT | `org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc` | `org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc` | Boot 4 modules |
 | support/IntegrationTest, common/FirewallIT, common/ChunkedBodyIT | `@AutoConfigureObservability` | `@AutoConfigureMetrics` | Boot 4 modules |
 | support/PostgresContainerConfig, MigrationIT, FlywayProfileIT | `org.testcontainers.containers.PostgreSQLContainer<?>` | `org.testcontainers.postgresql.PostgreSQLContainer` | Testcontainers 2 |
+
+`TestJson.converter()` no longer disables `WRITE_DATES_AS_TIMESTAMPS` (old `StandaloneMvc` line): it
+is the Jackson 3 default. `Jackson3OnlyTest` also checks the test classes (all but the fixture).
 
 Main code: `SecurityConfig.scopeAndAudience` implements `authorize` (Security 7 removed `check`),
 `ReadinessConfig` imports from `org.springframework.boot.health.*`, `JacksonConfig` uses the
