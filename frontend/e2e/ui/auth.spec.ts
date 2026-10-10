@@ -84,4 +84,29 @@ test.describe('authentication (spec 8.2, 8.3)', () => {
     await expect(page.getByText('Secret group')).toHaveCount(0);
     expect(adminRequests).toEqual([]);
   });
+
+  test('[AC-AUTH-6] sign in, sign out at once, Back shows the login page again (8.3)', async ({
+    page,
+  }) => {
+    // Spec 8.3: "Going Back afterwards shows the login page again", also when the app has no
+    // other history entry (login replaces /login with /groups).
+    await page.goto('/login');
+    await page.getByLabel('Username').fill('admin');
+    await page.getByLabel('Password').fill('admin123');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/groups$/);
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    const adminRequests: string[] = [];
+    page.on('request', (r) => {
+      if (r.url().includes('/api/v1/admin/')) adminRequests.push(r.url());
+    });
+    await page.goBack();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(0);
+    expect(adminRequests).toEqual([]);
+  });
 });

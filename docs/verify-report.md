@@ -1,24 +1,24 @@
 # Verify report
 
-Mode: `all` · Milestone: M8 · Commit: e706383 (uncommitted changes) · 2026-10-10T12:32:30.735Z
+Mode: `all` · Milestone: M8 · Commit: 7c0aefb (uncommitted changes) · 2026-10-10T13:17:58.406Z
 
 **Result: PASS**
 
 | # | Gate | Status | Duration |
 | --- | --- | --- | --- |
-| 1 | Format and lint | pass | 6.8 s |
-| 2 | Compile and types | pass | 4.1 s |
-| 3 | Architecture rules | pass | 4.3 s |
-| 4 | Banned dependencies | pass | 1.1 s |
-| 5 | Backend tests | pass | 36.8 s |
-| 6 | Coverage | pass | 5.2 s |
-| 7 | Mutation testing | pass | 18.4 s |
-| 8 | API contract | pass | 9.8 s |
-| 9 | Frontend tests | pass | 4.6 s |
-| 10 | Secrets | pass | 15.6 s |
-| 11 | Docker smoke test | pass | 12.4 s |
-| 12 | End-to-end | pass | 75.6 s |
-| 13 | Performance | pass | 83.3 s |
+| 1 | Format and lint | pass | 4.0 s |
+| 2 | Compile and types | pass | 3.7 s |
+| 3 | Architecture rules | pass | 3.8 s |
+| 4 | Banned dependencies | pass | 1.0 s |
+| 5 | Backend tests | pass | 32.4 s |
+| 6 | Coverage | pass | 4.9 s |
+| 7 | Mutation testing | pass | 20.8 s |
+| 8 | API contract | pass | 9.7 s |
+| 9 | Frontend tests | pass | 3.9 s |
+| 10 | Secrets | pass | 7.7 s |
+| 11 | Docker smoke test | pass | 10.2 s |
+| 12 | End-to-end | pass | 63.8 s |
+| 13 | Performance | pass | 81.7 s |
 | 14 | Traceability | pass | 0.1 s |
 | 15 | Test integrity | pass | 0.2 s |
 
@@ -30,12 +30,12 @@ Mode: `all` · Milestone: M8 · Commit: e706383 (uncommitted changes) · 2026-10
 | Error rate | 0 | 0 | yes |
 | Failed checks | 0 | 0 | yes |
 | Cache hit rate | 1.0000 | >= 0.99 | yes |
-| Evaluation p95 | 3.0 ms | < 50 ms (met) | no (decision 0007) |
+| Evaluation p95 | 2.9 ms | < 50 ms (met) | no (decision 0007) |
 
 
 ## Traceability (gate 14)
 
-Milestone M8. Tests read: 515. Problems: 0. Pending (not yet due): 0.
+Milestone M8. Tests read: 517. Problems: 0. Pending (not yet due): 0.
 
 | ID | Status | Tests |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ Milestone M8. Tests read: 515. Problems: 0. Pending (not yet due): 0.
 | AC-AUTH-3 | pass | ✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-3] without a token /groups redirects to /login<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-3] without a token /groups redirects to /login<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-3] without a token /groups redirects to /login |
 | AC-AUTH-4 | pass | ✓ vitest: src/features/audit/audit.test.tsx › audit page (spec 8.6) > [AC-AUTH-4] a 401 on a real screen clears the token, the cached data and goes to /login?expired=1<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-4] a token whose exp is in the past is cleared and leads to /login?expired=1<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-4] the expired banner also shows under StrictMode (render stays pure)<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-4] any 401 from the Admin API clears the token and leads to /login?expired=1<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-4] FF-6: a token that expires during the session also clears the cached data<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-4] an expired token leads to /login?expired=1 @cross-browser<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-4] a 401 from an admin call (token with a changed signature) leads to /login?expired=1<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-4] an expired token leads to /login?expired=1 @cross-browser<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-4] a 401 from an admin call (token with a changed signature) leads to /login?expired=1<br>✓ playwright:firefox-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-4] an expired token leads to /login?expired=1 @cross-browser<br>✓ playwright:webkit-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-4] an expired token leads to /login?expired=1 @cross-browser |
 | AC-AUTH-5 | removed (no test needed) | - |
-| AC-AUTH-6 | pass | ✓ vitest: src/api/apiClient.test.ts › apiClient (spec 8.7) > [AC-AUTH-6] without a token no Admin API request is sent (spec 8.3)<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-6] sign out clears the token, goes to /login and Back does not show protected data<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign out clears the token; Back does not show protected data<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign out clears the token; Back does not show protected data |
+| AC-AUTH-6 | pass | ✓ vitest: src/api/apiClient.test.ts › apiClient (spec 8.7) > [AC-AUTH-6] without a token no Admin API request is sent (spec 8.3)<br>✓ vitest: src/features/shell/AppShell.test.tsx › routes and app shell (spec 8.1, 8.3) > [AC-AUTH-6] sign out clears the token, goes to /login and Back does not show protected data<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign out clears the token; Back does not show protected data<br>✓ playwright:chromium-desktop: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign in, sign out at once, Back shows the login page again (8.3)<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign out clears the token; Back does not show protected data<br>✓ playwright:chromium-narrow: authentication (spec 8.2, 8.3) › [AC-AUTH-6] sign in, sign out at once, Back shows the login page again (8.3) |
 | AC-GRP-1 | pass | ✓ junit: AdminGroupsIT.listShowsCountsAndOmitsMissingDescription<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-1] create group orders (name Orders): it is selected, in the list with badge 0/0, and toasted<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-1] create a group: selected, in the list with badge 0/0<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-1] create a group: selected, in the list with badge 0/0 |
 | AC-GRP-2 | pass | ✓ junit: AdminGroupsIT.duplicateKeyIs409<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-2] a second group with key orders shows "Key already exists" on the Key field<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-2] a second group with the same key shows "Key already exists"<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-2] a second group with the same key shows "Key already exists" |
 | AC-GRP-3 | pass | ✓ junit: AdminFlagsIT.createValidation<br>✓ junit: AdminGroupsIT.keysFailingTheRegexAreRejected<br>✓ junit: AdminGroupsIT.keysFailingTheRegexAreRejected<br>✓ junit: AdminGroupsIT.keysFailingTheRegexAreRejected<br>✓ junit: AdminGroupsIT.keysFailingTheRegexAreRejected<br>✓ vitest: src/features/flags/flags.test.tsx › flags (spec 8.4, 8.5) > [AC-GRP-3] flag key Orders is rejected in the New flag dialog without a request<br>✓ vitest: src/features/flags/flags.test.tsx › flags (spec 8.4, 8.5) > [AC-GRP-3] flag key 1abc is rejected in the New flag dialog without a request<br>✓ vitest: src/features/flags/flags.test.tsx › flags (spec 8.4, 8.5) > [AC-GRP-3] flag key a is rejected in the New flag dialog without a request<br>✓ vitest: src/features/flags/flags.test.tsx › flags (spec 8.4, 8.5) > [AC-GRP-3] flag key has space is rejected in the New flag dialog without a request<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-3] key Orders is rejected in the UI without a request<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-3] key 1abc is rejected in the UI without a request<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-3] key a is rejected in the UI without a request<br>✓ vitest: src/features/groups/GroupsPage.test.tsx › groups pane (spec 8.4) > [AC-GRP-3] key has space is rejected in the UI without a request<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key Orders is invalid<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key 1abc is invalid<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key a is invalid<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key has space is invalid<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key -ab is invalid<br>✓ vitest: src/schemas/forms.test.ts › form rules = backend rules (spec 4.2) > [AC-GRP-3] key aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa is invalid<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-3] key "Orders" is rejected in the UI and by the API<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-3] key "1abc" is rejected in the UI and by the API<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-3] key "a" is rejected in the UI and by the API<br>✓ playwright:chromium-desktop: groups (spec 8.4, 8.5) › [AC-GRP-3] key "has space" is rejected in the UI and by the API<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-3] key "Orders" is rejected in the UI and by the API<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-3] key "1abc" is rejected in the UI and by the API<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-3] key "a" is rejected in the UI and by the API<br>✓ playwright:chromium-narrow: groups (spec 8.4, 8.5) › [AC-GRP-3] key "has space" is rejected in the UI and by the API |

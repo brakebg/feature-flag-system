@@ -10,11 +10,11 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Last green commit
 
-- This commit (owner bug fixes D-042/D-043, CVE table D-044/D-045). `make verify-all` PASS.
+- This commit (sign out Back fix D-046). `make verify-all` PASS.
 
 ## Last full `make verify`
 
-- 2026-10-10 `make verify-all`: PASS, gates 1-15 (p95 3.0 ms, hit rate 1.0). docs/verify-report.md.
+- 2026-10-10 `make verify-all`: PASS, gates 1-15 (p95 2.9 ms). docs/verify-report.md.
 
 ## Chunks done in M7
 
@@ -26,6 +26,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 0. Done: owner bugs 6021814988 (D-042) and 6021815278 (D-043) fixed and on the feature branch;
    ESC-008/009 resolved (D-044, D-045, spec 11.3 table, decisions/0008).
+   Sign out adds a history entry, so Back shows /login again (8.3, D-046, owner request).
 1. Done: ESC-002..006 applied (D-040), main merged + gate 13 report-only (D-041), verify-all PASS.
 2. PR #3 marked ready; final summary posted. Wait for the owner review.
 3. Optional (owner choice): fix the intermittent e2e host-port stall (see Open escalations).

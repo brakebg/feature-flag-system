@@ -492,3 +492,13 @@ into this branch on the owner's request). `.trivyignore` gets the entry in the s
 The owner extended the spec 11.3 "Accepted vulnerabilities" table (decisions/0008, merged from
 `main`): CVE-2026-47890, CVE-2026-78667, CVE-2026-78669, CVE-2026-97031, CVE-2026-4775, all
 review by 2027-04-10. `.trivyignore` has all six entries in the spec format; never removed.
+
+## D-046 · 2026-10-10 · 8.3, AC-AUTH-6 · Sign out adds a history entry
+
+Spec 8.3: "Going Back afterwards shows the login page again". Login replaces `/login` with
+`/groups`, and sign out also used `replace`. After "sign in, sign out at once" the history had
+no app entry before `/login`, so Back left the app (`about:blank`). AC-AUTH-6 still held (no
+protected data), but 8.3 did not. Fix (asked by the owner in the session): sign out navigates
+to `/login` with a new history entry. Back lands on the protected page, `RequireAuth` sends it
+to `/login` without a request. Test first, seen failing (URL `about:blank`): e2e
+`[AC-AUTH-6] sign in, sign out at once, Back shows the login page again (8.3)`.

@@ -52,3 +52,4 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-07 | (wip/owner-bugs) | final | Owner bugs: /actuator/info git.commit.id in the Docker image (D-042), 413 Cache-Control no-store (D-043); ESC-008 for new CVE | verify-fast red on gate 10 only (CVE-2026-47884) |
 | 2026-10-10 | (wip/owner-bugs) | final | Merged main (CVE-2026-47884 accepted), .trivyignore entry, ESC-008 resolved (D-044); ESC-009 for CVE-2026-47890 | verify-fast red on gate 10 only (CVE-2026-47890) |
 | 2026-10-10 | (this commit) | final | Merged main (decisions/0008: 6 CVEs accepted), .trivyignore 6 entries, ESC-009 resolved (D-045); feature branch fast-forwarded to wip/owner-bugs | verify-all PASS, gates 1-15 |
+| 2026-10-10 | (this commit) | final | Sign out pushes /login so Back always shows the login page (8.3, AC-AUTH-6, D-046); e2e test first | verify-all PASS, gates 1-15 |

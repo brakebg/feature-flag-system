@@ -14,7 +14,8 @@ export function AppShell() {
   function signOut() {
     clearToken();
     queryClient.clear();
-    navigate('/login', { replace: true });
+    // Push, not replace: Back always lands on an app page, which shows /login again (8.3, D-046).
+    navigate('/login');
   }
 
   return (
