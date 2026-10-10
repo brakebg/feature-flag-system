@@ -2,10 +2,10 @@ package com.example.featureflags.support;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 /** Gets real tokens through the public endpoints. */
 public final class SecurityTestSupport {

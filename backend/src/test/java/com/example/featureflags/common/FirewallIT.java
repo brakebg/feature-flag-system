@@ -9,7 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -20,7 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
  * a problem detail. Runs against the real Tomcat, where the firewall sees the raw path.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureObservability
+@AutoConfigureMetrics
 @ActiveProfiles("test")
 @Import({PostgresContainerConfig.class, DatabaseCleaner.class})
 class FirewallIT {

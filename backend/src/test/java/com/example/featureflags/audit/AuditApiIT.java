@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.Tokens;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 4.1, 6.1 GET /audit, AC-AUD-1, AC-AUD-2 (API part). */
 @IntegrationTest

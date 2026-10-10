@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.TestJson;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.util.Base64;
 import org.junit.jupiter.api.Tag;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 5.2: admin login. */
 @IntegrationTest

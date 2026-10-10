@@ -23,7 +23,6 @@ import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.SecurityTestSupport;
 import com.example.featureflags.support.TestJson;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,6 +47,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 7: Evaluation API, cache behaviour and ETags, through the real stack. */
 @IntegrationTest
