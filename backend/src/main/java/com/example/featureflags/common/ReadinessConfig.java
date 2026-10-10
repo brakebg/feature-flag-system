@@ -1,7 +1,7 @@
 package com.example.featureflags.common;
 
-import org.springframework.boot.actuate.availability.AvailabilityStateHealthIndicator;
-import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.health.application.AvailabilityStateHealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.availability.ApplicationAvailability;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.context.annotation.Bean;

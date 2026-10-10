@@ -160,7 +160,7 @@ public class SecurityConfig {
 
   static AuthorizationManager<RequestAuthorizationContext> scopeAndAudience(
       String scope, String audience) {
-    return (Supplier<Authentication> auth, RequestAuthorizationContext ctx) -> {
+    return (Supplier<? extends Authentication> auth, RequestAuthorizationContext ctx) -> {
       if (!(auth.get() instanceof JwtAuthenticationToken jwt)) {
         return new AuthorizationDecision(false);
       }

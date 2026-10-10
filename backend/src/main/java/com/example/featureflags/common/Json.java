@@ -1,11 +1,11 @@
 package com.example.featureflags.common;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
 import java.io.OutputStream;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * The only place in the main code that uses the Jackson tree and mapper API. Filters call these
@@ -22,7 +22,7 @@ public class Json {
   }
 
   /** Writes {@code value} as JSON to {@code out}. */
-  public void write(OutputStream out, Object value) throws IOException {
+  public void write(OutputStream out, Object value) {
     mapper.writeValue(out, value);
   }
 
@@ -30,11 +30,11 @@ public class Json {
    * Spec 9.3: reduces a health body to {@code status} and the {@code db} component. Returns null
    * when {@code body} is not a JSON object with a {@code status} field.
    */
-  public byte[] keepHealthStatusAndDb(byte[] body) throws IOException {
+  public byte[] keepHealthStatusAndDb(byte[] body) {
     JsonNode in;
     try {
       in = mapper.readTree(body);
-    } catch (IOException notJson) {
+    } catch (JacksonException notJson) {
       return null;
     }
     if (in == null || !in.has("status")) {
