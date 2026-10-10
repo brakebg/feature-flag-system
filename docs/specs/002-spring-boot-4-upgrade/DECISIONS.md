@@ -36,3 +36,10 @@ Test changed (forced by the Spring 7 API removal; the compare strictness stays t
 | File | Old | New |
 | --- | --- | --- |
 | ops/HealthIT (3 lines) | `content().json("...", true)` | `content().json("...", JsonCompareMode.STRICT)` |
+
+## D-3 · A3: nothing else to prepare on 3.5
+
+Level 1. Checked section 9 against the code. Security config is lambda DSL only; tests use
+`@MockitoSpyBean`; Flyway, Testcontainers 2, Hibernate 7 and Tomcat 11 items need the new
+platform and move to phase B. Targets found on Maven Central: Spring Boot 4.1.1 (latest 4.1.x),
+springdoc-openapi 3.1.1.

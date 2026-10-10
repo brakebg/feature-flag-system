@@ -14,13 +14,12 @@ Keep under 150 lines.
 
 ## wip/ branches
 
-- none yet (phase B will use `wip/spring-boot-4`)
+- `wip/spring-boot-4`: phase B runs on this branch (checkpoints, may be red). Not merged yet.
 
 ## Next 3 steps
 
-1. A3: check section 9 items that already work on 3.5 (Testcontainers 1.21 API is not in 2.x
-   so cannot move yet; look at `spring.jackson`/Flyway/Tomcat settings). If nothing, go on.
-2. B0: docs-only commit "phase B runs on wip/spring-boot-4", push. Create `wip/spring-boot-4`.
+1. A3 checked: nothing more works on 3.5 alone (see D-3). Phase A done.
+2. Phase B runs on `wip/spring-boot-4`: check it out, read its STATE.md, continue there.
 3. B1 step 1: pom to Boot 4.1 + starters; compile; checkpoint after each step.
 
 ## Open escalations
