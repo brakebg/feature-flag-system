@@ -479,3 +479,10 @@ right after the request id filter. Test first, seen failing:
 `ChunkedBodyIT.adminBodyAbove65536BytesIs413WithNoStore` (POST /groups and PATCH /flags/{id},
 with Content-Length and chunked; exactly one `Cache-Control: no-store`). The e2e 413 test also
 checks the header now.
+
+## D-044 · 2026-10-10 · 11.3 gate 10 · ESC-008: CVE-2026-47884 accepted by the owner
+
+The owner changed spec 11.3 on `main` (decisions/0007-accept-cve-2026-47884.md, merged into
+this branch on the owner's request). `.trivyignore` gets the entry in the spec format:
+`# owner accepted, spec 11.3` / `CVE-2026-47884 exp:2027-04-10`. The agent never removes it.
+`wip/owner-bugs` (D-042, D-043) is merged into the feature branch.

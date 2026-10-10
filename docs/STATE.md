@@ -24,9 +24,10 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## Next 3 steps
 
-0. Owner bug reports 6021814988 (info git.commit.id, D-042) and 6021815278 (413 no-store,
-   D-043) fixed on `wip/owner-bugs`. Gate 10 red (new CVE-2026-47884, ESC-008). After the
-   ESC-008 answer: fix gate 10, merge `wip/owner-bugs` into the feature branch, react rocket.
+0. `wip/owner-bugs` has the owner bug fixes (D-042, D-043), the main merge (decision 0007 CVE)
+   and ESC-008 applied (D-044). Gate 10 still red: new CVE-2026-47890 (ESC-009). After the
+   answer: fix gate 10, fast-forward the feature branch to `wip/owner-bugs`, react rocket on
+   6021814988 and 6021815278.
 1. Done: ESC-002..006 applied (D-040), main merged + gate 13 report-only (D-041), verify-all PASS.
 2. PR #3 marked ready; final summary posted. Wait for the owner review.
 3. Optional (owner choice): fix the intermittent e2e host-port stall (see Open escalations).
@@ -72,7 +73,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 - ESC-007 resolved: A (owner comment 5992802206), applied in D-039.
 - ESC-002..006 resolved (owner comments 5980536047, 5980536322, 5980648922, 5989504944,
   5989505154; D-040). ESC-004 item 2 changed the code: env clients are appended after yml ones.
-- Open escalations: ESC-008 (gate 10 CVE, blocks merging wip/owner-bugs). Blockers: none.
+- Open escalations: ESC-009 (gate 10 CVE-2026-47890, blocks merging wip/owner-bugs). ESC-008 resolved (D-044). Blockers: none.
 - Known intermittent e2e failure (not fixed): verify-all on 16ae98e, gate 12: two
   chromium-narrow tests (AC-AUD-2, AC-FLAG-5) timed out in the `api` fixture. Their
   `POST /auth/login` to host.docker.internal:38080 never reached the backend (backend log shows
@@ -82,7 +83,7 @@ Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 
 ## wip/ branches
 
-- `wip/owner-bugs`: D-042, D-043 (both owner bugs). Red only on gate 10 (ESC-008).
+- `wip/owner-bugs`: D-042, D-043 (both owner bugs). Red only on gate 10 (ESC-009).
 
 ## Last processed PR comment
 

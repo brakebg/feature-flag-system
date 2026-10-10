@@ -50,3 +50,4 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-05 | (this commit) | final | Merged main (decision 0007); gate 13: p95 report-only, errors/checks/hit rate block, measurements in verify report (D-041) | verify-fast PASS |
 | 2026-10-05 | (this commit) | final | verify-all PASS on e670c3c (all 15 gates); report copied; PR marked ready | verify-all PASS |
 | 2026-10-07 | (wip/owner-bugs) | final | Owner bugs: /actuator/info git.commit.id in the Docker image (D-042), 413 Cache-Control no-store (D-043); ESC-008 for new CVE | verify-fast red on gate 10 only (CVE-2026-47884) |
+| 2026-10-10 | (wip/owner-bugs) | final | Merged main (CVE-2026-47884 accepted), .trivyignore entry, ESC-008 resolved (D-044); ESC-009 for CVE-2026-47890 | verify-fast red on gate 10 only (CVE-2026-47890) |

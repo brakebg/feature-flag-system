@@ -1,2 +1,5 @@
 # Trivy ignore list (gate 10, spec 11.3). Only vulnerabilities with no fixed version,
 # each with a reason and an expiry date (`exp:YYYY-MM-DD`), and a docs/DECISIONS.md entry.
+
+# owner accepted, spec 11.3
+CVE-2026-47884 exp:2027-04-10
