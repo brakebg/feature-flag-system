@@ -15,5 +15,7 @@ Not the same as `docs/DECISIONS.md`: that file holds the agent's own Level 1 dec
 | 0005 | [Spec changes from review round 2 and tester questions](0005-spec-review-round-2.md) | Accepted |
 | 0006 | [Remove the edit-block hook](0006-remove-edit-block-hook.md) | Accepted |
 | 0007 | [Accept CVE-2026-47884, excluded from Trivy](0007-accept-cve-2026-47884.md) | Accepted |
+| 0008 | [Performance gate: hit rate blocks, p95 is report-only](0007-performance-gate-report-only.md) | Accepted |
+
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.
