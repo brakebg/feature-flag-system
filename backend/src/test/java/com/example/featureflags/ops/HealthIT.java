@@ -9,6 +9,7 @@ import com.example.featureflags.support.IntegrationTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Spec 9.3: public health endpoints and their exact bodies. */
@@ -24,17 +25,19 @@ class HealthIT {
         .andExpect(status().isOk())
         .andExpect(
             content()
-                .json("{\"status\":\"UP\",\"components\":{\"db\":{\"status\":\"UP\"}}}", true));
+                .json(
+                    "{\"status\":\"UP\",\"components\":{\"db\":{\"status\":\"UP\"}}}",
+                    JsonCompareMode.STRICT));
   }
 
   @Test
   void livenessAndReadinessAreUp() throws Exception {
     mvc.perform(get("/actuator/health/liveness"))
         .andExpect(status().isOk())
-        .andExpect(content().json("{\"status\":\"UP\"}", true));
+        .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
     mvc.perform(get("/actuator/health/readiness"))
         .andExpect(status().isOk())
-        .andExpect(content().json("{\"status\":\"UP\"}", true));
+        .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
   }
 
   @Test

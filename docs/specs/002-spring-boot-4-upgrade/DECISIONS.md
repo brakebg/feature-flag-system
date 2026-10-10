@@ -23,3 +23,16 @@ Tests changed (plumbing only, no assertion changed; forced by A2, the Jackson 3 
 
 `domain/ResponseJsonTest`, `domain/RequestValidationTest`, `common/JacksonConfigTest` keep the
 autowired mapper on purpose: they test the Jackson configuration itself.
+
+## D-2 · A1: deprecated API removed (spec 002 §7 A1)
+
+Level 1. Compile with `-Xlint:all` on Boot 3.5 shows three kinds of deprecation:
+`ContentResultMatchers.json(String, boolean)` (removed in Spring 7), and
+`ObjectMapper.configure(MapperFeature, boolean)` in `JacksonConfig` (goes away with the Jackson 3
+builder in phase B). Main code already uses the lambda DSL and `@MockitoSpyBean`.
+
+Test changed (forced by the Spring 7 API removal; the compare strictness stays the same):
+
+| File | Old | New |
+| --- | --- | --- |
+| ops/HealthIT (3 lines) | `content().json("...", true)` | `content().json("...", JsonCompareMode.STRICT)` |

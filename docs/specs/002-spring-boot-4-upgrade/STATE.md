@@ -4,13 +4,13 @@ Keep under 150 lines.
 
 ## Current
 
-- Milestone: M9, phase A (prepare, green on Spring Boot 3.5)
-- Branch: `feature/spring-boot-4`
-- Last processed PR comment: none (no PR yet)
+- Milestone: M9, phase A done after this commit (A1, A2 done). Next: A3 then B0.
+- Branch: `feature/spring-boot-4`; draft PR #13
+- Last processed PR comment: none (no owner comments yet)
 
 ## Last green commit
 
-- 1bbf019 (A2). `make verify-fast` PASS.
+- A1 commit (see PROGRESS.md). `make verify-fast` PASS.
 
 ## wip/ branches
 
@@ -18,9 +18,10 @@ Keep under 150 lines.
 
 ## Next 3 steps
 
-1. A1: compile with -Xlint:deprecation, remove APIs deleted in Boot 4 / Spring 7 / Security 7.
-2. A1: compile with deprecation warnings, remove APIs deleted in Boot 4 / Security 7.
-3. B0: docs-only commit naming wip/spring-boot-4, then phase B.
+1. A3: check section 9 items that already work on 3.5 (Testcontainers 1.21 API is not in 2.x
+   so cannot move yet; look at `spring.jackson`/Flyway/Tomcat settings). If nothing, go on.
+2. B0: docs-only commit "phase B runs on wip/spring-boot-4", push. Create `wip/spring-boot-4`.
+3. B1 step 1: pom to Boot 4.1 + starters; compile; checkpoint after each step.
 
 ## Open escalations
 
