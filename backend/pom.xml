@@ -14,7 +14,7 @@
   <groupId>com.example</groupId>
   <artifactId>feature-flag-service</artifactId>
   <!-- Must equal the root VERSION file (checked by scripts/check-integrity.mjs). -->
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <name>feature-flag-service</name>
   <description>Feature Flag Service backend</description>
 

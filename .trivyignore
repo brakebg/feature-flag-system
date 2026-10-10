@@ -3,8 +3,6 @@
 # (spec 11.3 "Accepted vulnerabilities" table).
 
 # owner accepted, spec 11.3 (decisions/0008)
-CVE-2026-47884 exp:2027-04-10
-CVE-2026-47890 exp:2027-04-10
 CVE-2026-78667 exp:2027-04-10
 CVE-2026-78669 exp:2027-04-10
 CVE-2026-97031 exp:2027-04-10

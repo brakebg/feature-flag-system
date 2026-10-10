@@ -20,10 +20,8 @@ Keep under 150 lines.
 
 ## Next 3 steps
 
-1. C3 first (cheap): AC-UPG-1 test, AC-UPG-2 ArchUnit rule, `.trivyignore` lines removed,
-   VERSION 1.1.0, CHANGELOG, README versions.
-2. C1/C2: `make verify` (gates 7, 8, 11-13, Docker images).
-3. C4: milestone audit (spec-auditor, test-auditor, security-reviewer, final-reviewer backend),
+1. C3 done (D-8). Next: `make verify` (gates 7, 8, 11-13, Docker images).
+2. C4: milestone audit (spec-auditor, test-auditor, security-reviewer, final-reviewer backend),
    `MILESTONE` = `9 complete`, merge origin/main, `make verify-all`, PR ready.
 
 ## Open escalations

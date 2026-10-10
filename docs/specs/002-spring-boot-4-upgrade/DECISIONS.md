@@ -83,3 +83,14 @@ Test `ChunkedBodyIT.badFormEncodingIsHandledLikeTheContainerDoes` is unchanged a
 Main code: `SecurityConfig.scopeAndAudience` implements `authorize` (Security 7 removed `check`),
 `ReadinessConfig` imports from `org.springframework.boot.health.*`, `JacksonConfig` uses the
 Jackson 3 builder (`USE_NULL_FOR_MISSING_REFERENCE_VALUES` replaces `configureReadAbsentAsNull`).
+
+## D-8 · C3: AC-UPG tests, release 1.1.0
+
+Level 1. AC-UPG-1: `PlatformVersionsTest` reads `SpringBootVersion`, `SpringVersion`,
+`SpringSecurityCoreVersion` and the Jackson `PackageVersion` classes. AC-UPG-2: rule
+`ArchitectureTest.noJackson2CoreOrDatabind`, proved by `Jackson3OnlyTest` (passes on production
+classes, fails on the fixture `archfixture/Jackson2User`; the fixture is a test class, outside
+the production scope of the rule). `VERSION`, `backend/pom.xml`, `frontend/package.json` and its
+lock file, and the `docker-compose.yml` defaults are 1.1.0 (gate 15 compares the first three).
+`.trivyignore`: lines for CVE-2026-47884 and CVE-2026-47890 removed; the other four stay (owner
+accepted, spec 001 11.3). README names no stack versions, so it has no change.
