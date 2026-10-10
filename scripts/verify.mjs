@@ -6,13 +6,15 @@
 //   node scripts/verify.mjs fast        gates 1-6, 9, 10, 14, 15           (make verify-fast)
 //   node scripts/verify.mjs only 5 14   only the listed gates (inner loop; not a gate result)
 //
-// A gate that is not yet active (scripts/current-milestone < activeFrom) passes trivially.
+// A gate that is not yet active (milestone < activeFrom) passes trivially. The milestone comes
+// from the active spec (scripts/lib/active-spec.mjs, docs/specs/README.md).
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gates } from './gates.mjs';
 import { javaEnv } from './lib/java-env.mjs';
+import { milestoneState } from './lib/active-spec.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BUILD = path.join(ROOT, 'build');
@@ -25,7 +27,8 @@ if (!['verify', 'all', 'fast', 'only'].includes(mode)) {
   process.exit(2);
 }
 const onlyIds = mode === 'only' ? rest.map(Number) : null;
-const milestone = Number(readFileSync(path.join(ROOT, 'scripts/current-milestone'), 'utf8').trim());
+const mstate = milestoneState(ROOT);
+const milestone = mstate.n;
 const full = mode === 'verify' || mode === 'all';
 const env = { ...process.env, ...javaEnv() };
 
@@ -170,7 +173,7 @@ writeFileSync(path.join(BUILD, 'verify-report.json'), JSON.stringify(report, nul
 
 const md = [];
 md.push(`# Verify report`, '');
-md.push(`Mode: \`${mode}\` · Milestone: M${milestone} · Commit: ${report.commit}${report.dirty ? ' (uncommitted changes)' : ''} · ${report.date}`, '');
+md.push(`Mode: \`${mode}\` · Spec: ${mstate.spec ? mstate.spec.id : 'none (main)'} · Milestone: M${milestone}${mstate.complete ? ' complete' : ''} · Commit: ${report.commit}${report.dirty ? ' (uncommitted changes)' : ''} · ${report.date}`, '');
 md.push(`**Result: ${ok ? 'PASS' : 'FAIL'}**`, '');
 md.push('| # | Gate | Status | Duration |', '| --- | --- | --- | --- |');
 for (const r of results) md.push(`| ${r.id} | ${r.name} | ${r.status} | ${(r.ms / 1000).toFixed(1)} s |`);

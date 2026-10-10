@@ -804,12 +804,12 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 7 | Mutation testing | PIT on `auth`, `group`, `flag`, `evaluation` packages | Mutation score < 60 %; catches tests that run code without asserting on it | M4 |
 | 8 | API contract | springdoc writes `backend/openapi.json`; `openapi-typescript` generates `frontend/src/api/schema.d.ts`; `git diff --exit-code` | Committed OpenAPI file or generated types are out of date, or UI code does not compile against them | M4 |
 | 9 | Frontend tests | `npm test -- --coverage` (Vitest, RTL, MSW) | Any failing test | M6 |
-| 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. Two exceptions only, both listed in `.trivyignore` (format below): (a) a vulnerability with no fixed version, recorded by the agent in docs/DECISIONS.md with a reason and an expiry date; (b) a vulnerability the owner has accepted, listed in the "Accepted vulnerabilities" table below. Any other entry in `.trivyignore` fails the gate | M1 |
+| 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. Two exceptions only, both listed in `.trivyignore` (format below): (a) a vulnerability with no fixed version, recorded by the agent in <spec>/DECISIONS.md with a reason and an expiry date; (b) a vulnerability the owner has accepted, listed in the "Accepted vulnerabilities" table below. Any other entry in `.trivyignore` fails the gate | M1 |
 | 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present (HSTS only when the request has `X-Forwarded-Proto: https`, 10.2) | M5 |
 | 12 | End-to-end | Playwright, `--repeat-each=2`, retries 0 | Any failure, including a test that passes once and fails once (flaky), or any Content-Security-Policy violation reported in the browser console | M8 |
 | 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | Any error, or cache hit rate < 99 %. The p95 is measured and reported against the 50 ms target but does not fail the gate (9.2, decision 0007) | M8 |
 | 14 | Traceability | `scripts/check-traceability.mjs` (section 11.4) | Any acceptance criterion without a passing test, or a test tagged with an unknown ID | M1 |
-| 15 | Test integrity | `scripts/check-integrity.mjs` | Any `@Disabled`, `assumeTrue(false)`, `.skip(`, `.only(`, `xit(`, `test.fixme`; any `eslint-disable` or `@SuppressWarnings` without a `// reason:` comment; thresholds in config files differing from this spec; coverage, mutation, lint or ArchUnit exclusions not listed in `docs/DECISIONS.md` | M1 |
+| 15 | Test integrity | `scripts/check-integrity.mjs` | Any `@Disabled`, `assumeTrue(false)`, `.skip(`, `.only(`, `xit(`, `test.fixme`; any `eslint-disable` or `@SuppressWarnings` without a `// reason:` comment; thresholds in config files differing from this spec; coverage, mutation, lint or ArchUnit exclusions not listed in `<spec>/DECISIONS.md` | M1 |
 
 A gate not yet active passes trivially but is already wired into `make verify` from M1, so later milestones only add tests, never plumbing.
 
@@ -884,7 +884,7 @@ In the black-box suite, API tests run once in an `api` project; UI tests run in 
 **Matching the design**
 
 1. Style checks: Playwright reads computed styles and asserts the key design values, for example the primary button background `#2350C8`, top bar background `#15181D`, body font IBM Plex Sans, keys in IBM Plex Mono, 44 px login inputs, and the switch colour when on. Design values live once in `frontend/src/styles/tokens.css`; tests compare against the values taken from `docs/design/`, not against `tokens.css`.
-2. Screenshot regression: from M7, `toHaveScreenshot` baselines for all five screens on `chromium-desktop` are committed (`maxDiffPixelRatio` 0.01). Changing a baseline requires a `docs/DECISIONS.md` entry naming the screen and the reason; gate 15 checks that every changed baseline file is listed there.
+2. Screenshot regression: from M7, `toHaveScreenshot` baselines for all five screens on `chromium-desktop` are committed (`maxDiffPixelRatio` 0.01). Changing a baseline requires a `<spec>/DECISIONS.md` entry naming the screen and the reason; gate 15 checks that every changed baseline file is listed there.
 3. Review gallery: the final run writes `docs/design-compare/index.html`, showing each screen's screenshot next to its design PNG at the same size, for the owner's final review. There is no automated pixel comparison against the design PNGs, because font rendering and sample data differences would cause constant false failures.
 
 ## 12. Implementation plan for the AI agent
@@ -893,15 +893,15 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 
 ### 12.1 Working rules
 
-- This spec is committed as `docs/SPEC.md`. Read it fully, then `docs/STATE.md`, before writing code. If code and spec disagree, the spec wins.
-- Where the spec is silent, make a Level 1 decision (12.5): choose the simplest option, record it in `docs/DECISIONS.md`, and continue.
+- This spec is committed as `docs/SPEC.md`. Read it fully, then `<spec>/STATE.md`, before writing code. If code and spec disagree, the spec wins.
+- Where the spec is silent, make a Level 1 decision (12.5): choose the simplest option, record it in `<spec>/DECISIONS.md`, and continue.
 - Do not add dependencies, services or features beyond this spec (no Redis, Kafka, component libraries, i18n, dark mode).
 - Work in small green chunks and push every one (12.6). A milestone ends with a commit `M<n>: complete` and a summary comment on the PR (for information only; the agent does not wait for a reply).
 - Never commit real secrets; only the documented dev defaults.
 
 ### 12.2 Milestones
 
-1. **M1 Scaffolding** — repo layout (10.1), Spring Boot app with health endpoint, Vite React TS app, docker-compose with Postgres, CI workflow, lint/format configured, make verify with all 15 gates wired (inactive gates pass trivially), docs/acceptance-criteria.md registry with IDs, CLAUDE.md with the startup ritual, docs/STATE.md and docs/PROGRESS.md, the draft PR, and the escalation-notify workflow. Done when: `make up` shows a placeholder UI and `/actuator/health` is UP.
+1. **M1 Scaffolding** — repo layout (10.1), Spring Boot app with health endpoint, Vite React TS app, docker-compose with Postgres, CI workflow, lint/format configured, make verify with all 15 gates wired (inactive gates pass trivially), docs/acceptance-criteria.md registry with IDs, CLAUDE.md with the startup ritual, <spec>/STATE.md and <spec>/PROGRESS.md, the draft PR, and the escalation-notify workflow. Done when: `make up` shows a placeholder UI and `/actuator/health` is UP.
 2. **M2 Schema and domain** — Flyway V1/V2, entities, repositories, DTO records, `GlobalExceptionHandler`. Done when: migration test on Testcontainers passes.
 3. **M3 Auth** — config properties, `/auth/login`, client credentials token endpoint, resource-server JWT validation with scopes and audiences, security rules (5.4). Done when: auth integration tests pass.
 4. **M4 Admin API** — group and flag services/controllers, optimistic locking, cascade delete, audit events, `/audit`. Done when: all section 6 integration tests pass and OpenAPI renders.
@@ -916,9 +916,9 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 - [ ] The traceability matrix shows every acceptance criterion and every error case covered by at least one passing test.
 - [ ] Gate 15 reports no integrity violations; thresholds equal the values in this spec.
 - [ ] README documents setup, configuration, the single-instance rule, Admin and Evaluation API with curl examples.
-- [ ] `docs/DECISIONS.md` lists every assumption; `docs/BLOCKERS.md` is empty, or each entry explains what was tried.
-- [ ] No escalation is open, no `wip/` branch remains, and `docs/STATE.md` shows all milestones complete.
-- [ ] The final `docs/verify-report.md` is committed and the PR is marked ready for review.
+- [ ] `<spec>/DECISIONS.md` lists every assumption; `<spec>/BLOCKERS.md` is empty, or each entry explains what was tried.
+- [ ] No escalation is open, no `wip/` branch remains, and `<spec>/STATE.md` shows all milestones complete.
+- [ ] The final `<spec>/verify-report.md` is committed and the PR is marked ready for review.
 
 ### 12.4 Feedback loop: how the agent reacts to failures
 
@@ -927,8 +927,8 @@ Failed tests drive the work: the agent changes production code until the gates p
 1. Work in small steps. After each change run `make verify-fast`; before every milestone commit run `make verify`. A milestone is done only when every gate active for it is green.
 2. On failure, open `build/verify-report.md`, start with the first failing gate, read the failing test and the acceptance criterion it is tagged with, then fix the production code.
 3. Forbidden ways to turn a gate green: deleting, skipping or disabling tests; weakening or removing assertions; lowering thresholds; adding exclusions; editing `docs/acceptance-criteria.md` or the banned-dependency lists; swallowing exceptions; adding test-only branches to production code. Gate 15 catches most of these; the rest are rules.
-4. A test may be changed only when it contradicts this spec. The agent records the AC ID, the old expectation, the spec section that proves it wrong, and the fix in `docs/DECISIONS.md`.
-5. Stuck rule: if the same gate fails with the same error after 5 attempts, revert to the last green commit and try a different approach. After 3 different approaches, record the gate, the error and what was tried in `docs/BLOCKERS.md`, continue with work that does not depend on it, and list the blocker in the final summary. A milestone with a red gate is never marked done.
+4. A test may be changed only when it contradicts this spec. The agent records the AC ID, the old expectation, the spec section that proves it wrong, and the fix in `<spec>/DECISIONS.md`.
+5. Stuck rule: if the same gate fails with the same error after 5 attempts, revert to the last green commit and try a different approach. After 3 different approaches, record the gate, the error and what was tried in `<spec>/BLOCKERS.md`, continue with work that does not depend on it, and list the blocker in the final summary. A milestone with a red gate is never marked done.
 6. Determinism: inject `Clock`; no `Thread.sleep` in tests (use Awaitility); pin Testcontainers image tags; no random data without a fixed seed. An intermittently failing test is a bug to fix, never something to retry.
 
 ### 12.5 Escalation
@@ -957,10 +957,10 @@ Before escalating, the agent checks that the spec, `DECISIONS.md` and earlier es
 
 **Flow on GitHub**
 
-1. Working PR: in M1 the agent opens one draft PR from branch `feature/feature-flag-service` to `main`. All work is pushed there; the owner enables Auto-fix on it so PR comments reach the live session.
-2. Raise: the agent commits `docs/escalations/ESC-<NNN>.md` (template below), pushes, adds it to `STATE.md`, and posts a PR comment starting with `[ESCALATION ESC-<NNN>]` that contains the trigger number, the one question, options A/B/C and its recommendation. It also asks the question in the session.
+1. Working PR: at the start of its spec the agent opens one draft PR from the spec's working branch (`branch` in `<spec>/spec.json`; spec 001: `feature/feature-flag-service`) to `main`. All work is pushed there; the owner enables Auto-fix on it so PR comments reach the live session.
+2. Raise: the agent commits `<spec>/escalations/ESC-<NNN>.md` (template below), pushes, adds it to `STATE.md`, and posts a PR comment starting with `[ESCALATION ESC-<NNN>]` that contains the trigger number, the one question, options A/B/C and its recommendation. It also asks the question in the session.
 3. Notify: workflow `.github/workflows/escalation-notify.yml` runs on `issue_comment` created. If the body starts with `[ESCALATION`, it adds the label `needs-human` and posts `@<owner> ESC-<NNN> needs your answer` as the GitHub Actions bot (owner from repository variable `ESCALATION_OWNER`). This is needed because the agent's comments appear under the owner's own account, and GitHub does not notify people about their own comments. The workflow has only `issues: write` and `pull-requests: write`, never checks out or runs code.
-4. Answer: the owner replies on the PR with `ESC-<NNN>: <option>` plus any notes, or answers in the session. If the session that asked has ended, the owner starts a new cloud session with the prompt `Resume from docs/STATE.md`; its startup ritual (12.6) reads the answer from the PR.
+4. Answer: the owner replies on the PR with `ESC-<NNN>: <option>` plus any notes, or answers in the session. If the session that asked has ended, the owner starts a new cloud session with the prompt `Resume from <spec>/STATE.md`; its startup ritual (12.6) reads the answer from the PR.
 5. Close: the agent records the answer in `DECISIONS.md` under the escalation ID, sets the file's status to resolved, applies it, and posts `[RESOLVED ESC-<NNN>] applied option <X> in <commit>`. The workflow removes `needs-human` when no escalation remains open.
 6. While waiting: never guess on the escalated item. Continue independent work; if none is left, push, update `STATE.md`, post `[WAITING] all remaining work blocked by ESC-<NNN>`, and end the session.
 7. Batching: Level 3 items that are not yet blocking anything are collected and raised together in one escalation at the next milestone boundary.
@@ -993,25 +993,30 @@ Any session can end at any time: cloud VMs are reclaimed after inactivity (uncom
 **Small green chunks**
 
 1. A chunk is one small, self-contained change: one endpoint, one component, one migration, one group of tests. Aim for at most about 300 changed lines.
-2. Per chunk: implement it with its tests → `make verify-fast` → green → update `docs/STATE.md` and append to `docs/PROGRESS.md` → commit → push immediately. Unpushed commits are never left behind.
+2. Per chunk: implement it with its tests → `make verify-fast` → green → update `<spec>/STATE.md` and append to `<spec>/PROGRESS.md` → commit → push immediately. Unpushed commits are never left behind.
 3. Commit message: `M<n> <area>: <what changed>`, with a trailer `AC: AC-FLAG-3, AC-FLAG-4` naming the criteria it advances.
 4. Only green chunks go to the PR branch. If a chunk cannot be made green before the session must stop, push it to `wip/<short-name>` instead, and list that branch in `STATE.md`.
-5. Milestone end: full `make verify` green → `STATE.md` updated → commit `M<n>: complete` → PR comment with a milestone summary (what was built, gate results, decisions, blockers).
+5. Milestone end: set `<spec>/MILESTONE` to `<n> complete` → full `make verify` green → `STATE.md` updated → commit `M<n>: complete` → PR comment with a milestone summary (what was built, gate results, decisions, blockers).
 
 **Memory files**
+
+Every spec has its own folder `docs/specs/<NNN-name>/`, written `<spec>` below (`docs/specs/README.md`). Spec 001 (this document) uses `docs/specs/001-feature-flag-service/`. All agent memory of a spec lives in its folder and nowhere else, so several specs can be worked on in parallel, each in its own session, branch and PR, without touching each other's files. A session reads and writes only the folder of its active spec.
 
 | File | Holds | Updated |
 | --- | --- | --- |
 | `CLAUDE.md` (repo root) | Startup ritual and the short form of the working rules; loaded automatically by Claude Code | M1, rarely after |
 | `docs/SPEC.md` | This specification | Only by the owner |
-| `docs/STATE.md` | Where the work stands and what comes next (below) | Every commit |
-| `docs/PROGRESS.md` | Append-only log: date, commit, milestone, chunk, verify result | Every commit |
-| `docs/DECISIONS.md` | Level 1 decisions and escalation answers | When made |
-| `docs/BLOCKERS.md` | Level 2 blockers | When raised or cleared |
-| `docs/escalations/ESC-*.md` | Level 3 escalations | When raised or resolved |
-| `docs/acceptance-criteria.md` | Criteria registry, read-only for the agent | M1 |
+| `<spec>/STATE.md` | Where the work stands and what comes next (below) | Every commit |
+| `<spec>/PROGRESS.md` | Log of this spec only: date, commit, milestone, chunk, verify result | Every commit |
+| `<spec>/MILESTONE` | `<n>` while milestone n runs, `<n> complete` when it is done; read by the gates | Milestone start and end |
+| `<spec>/verify-report.md`, `<spec>/reviews/` | Final verify report and review reports of this spec | Milestone end, review |
+| `<spec>/DECISIONS.md` | Level 1 decisions and escalation answers | When made |
+| `<spec>/BLOCKERS.md` | Level 2 blockers | When raised or cleared |
+| `<spec>/escalations/ESC-*.md` | Level 3 escalations | When raised or resolved |
+| `docs/acceptance-criteria.md`, `<spec>/acceptance-criteria.md` | Criteria registries (product; per later spec), read-only for the agent | By the owner |
+| `<spec>/spec.json`, `<spec>/SPEC.md` | Spec metadata (id, branch, milestones, registry) and the spec text | Only by the owner |
 
-`docs/STATE.md` has these sections, kept under 150 lines (older detail lives in `PROGRESS.md`):
+`<spec>/STATE.md` has these sections, kept under 150 lines (older detail lives in `PROGRESS.md`):
 
 - Current milestone and chunk, with status.
 - Last green commit SHA, and the last full `make verify` result per gate with its date.
@@ -1024,8 +1029,8 @@ Any session can end at any time: cloud VMs are reclaimed after inactivity (uncom
 
 **Startup ritual** (in `CLAUDE.md`; run at the start of every session and again after any context compaction)
 
-1. Read `CLAUDE.md`, `docs/STATE.md`, `docs/DECISIONS.md`, `docs/BLOCKERS.md` and every open `docs/escalations/ESC-*.md`; read the `docs/SPEC.md` sections the next steps touch.
-2. `git fetch`, check out `feature/feature-flag-service`, and confirm the branch head matches or follows the last green commit in `STATE.md`. If they differ, reconcile from `PROGRESS.md` before changing anything.
+1. Read `CLAUDE.md`, `<spec>/STATE.md`, `<spec>/DECISIONS.md`, `<spec>/BLOCKERS.md` and every open `<spec>/escalations/ESC-*.md`; read the `docs/SPEC.md` sections the next steps touch.
+2. `git fetch`, check out the spec's working branch (`<spec>/spec.json`), and confirm the branch head matches or follows the last green commit in `STATE.md`. If they differ, reconcile from `PROGRESS.md` before changing anything.
 3. Read PR comments newer than the last processed one; apply any escalation answers (12.5 step 5).
 4. Check each listed `wip/` branch: finish it, or record why it was dropped.
 5. Run `make verify-fast` to confirm a green baseline.

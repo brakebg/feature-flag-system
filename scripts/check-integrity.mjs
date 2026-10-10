@@ -2,18 +2,20 @@
 // Gate 15 (spec 11.3): test integrity.
 // Fails on: skipped / focused tests; eslint-disable or @SuppressWarnings without a
 // "// reason:" comment; thresholds that differ from the spec; coverage, mutation, lint or
-// ArchUnit exclusions not listed in docs/DECISIONS.md; gate activation that differs from
-// the spec; a changed screenshot baseline not listed in docs/DECISIONS.md; an
+// ArchUnit exclusions not listed in a docs/specs/*/DECISIONS.md; gate activation that differs from
+// the spec; a changed screenshot baseline not listed in a docs/specs/*/DECISIONS.md; an
 // acceptance-criteria registry that is not a verbatim copy of spec 11.2.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { gates } from './gates.mjs';
+import { milestoneState, specs } from './lib/active-spec.mjs';
 
-const milestone = Number(readFileSync('scripts/current-milestone', 'utf8').trim());
+const milestone = milestoneState().n;
 const problems = [];
 const read = (f) => (existsSync(f) ? readFileSync(f, 'utf8') : null);
-const decisions = read('docs/DECISIONS.md') ?? '';
+// Exclusions and baselines may be justified in any spec's DECISIONS.md (docs/specs/<id>/).
+const decisions = specs().map((s) => read(`${s.dir}/DECISIONS.md`) ?? '').join('\n');
 
 function walk(dir, filter, out = []) {
   if (!existsSync(dir)) return out;
@@ -93,7 +95,7 @@ if (k6 !== null || milestone >= 8) {
   expect(/duration:\s*'60s'/.test(k6 ?? ''), "perf/evaluate.js: duration must be '60s'");
 }
 
-// 4. Exclusions must be listed in docs/DECISIONS.md.
+// 4. Exclusions must be listed in a docs/specs/*/DECISIONS.md.
 const exclusions = [];
 for (const m of pom.matchAll(/<(exclude|excludedClass|excludedMethod|excludedTestClass|avoidCallsTo)>([^<]*)<\/\1>/g)) {
   const inEnforcer = pom.lastIndexOf('<bannedDependencies>', m.index) > pom.lastIndexOf('</bannedDependencies>', m.index);
@@ -112,7 +114,7 @@ for (const m of eslintCfg.matchAll(/ignores:\s*\[([^\]]*)\]/g)) {
   }
 }
 for (const e of exclusions) {
-  if (!decisions.includes(e.what)) problems.push(`${e.where}: exclusion "${e.what}" is not listed in docs/DECISIONS.md`);
+  if (!decisions.includes(e.what)) problems.push(`${e.where}: exclusion "${e.what}" is not listed in a docs/specs/*/DECISIONS.md`);
 }
 
 // 5. Gate activation and verify-fast set equal spec 11.3.
@@ -124,7 +126,7 @@ for (const g of gates) {
   expect(!!g.fast === specFast.includes(g.id), `scripts/gates.mjs: gate ${g.id} fast=${!!g.fast}, spec says ${specFast.includes(g.id)}`);
 }
 
-// 6. Changed screenshot baselines must be listed in docs/DECISIONS.md (spec 11.6).
+// 6. Changed screenshot baselines must be listed in a docs/specs/*/DECISIONS.md (spec 11.6).
 const base = spawnSync('git', ['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' }).stdout.trim();
 if (base) {
   const changed = new Set([
@@ -132,7 +134,7 @@ if (base) {
   ]);
   // A baseline that was only added (first version) is not a change.
   for (const f of changed) {
-    if (!decisions.includes(path.basename(f))) problems.push(`${f}: changed screenshot baseline not listed in docs/DECISIONS.md`);
+    if (!decisions.includes(path.basename(f))) problems.push(`${f}: changed screenshot baseline not listed in a docs/specs/*/DECISIONS.md`);
   }
 }
 

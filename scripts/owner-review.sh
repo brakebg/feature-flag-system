@@ -139,7 +139,7 @@ if [ -n "$noreason" ]; then fail "suppressions without a '// reason:' comment:";
 else pass "every eslint-disable / @SuppressWarnings has a reason"; fi
 
 deleted=$(git log -M --diff-filter=D --name-only --format='' "$SINCE..$REF" -- "${TEST_PATHS[@]}" | sort -u)
-if [ -n "$deleted" ]; then warn "test files deleted (check docs/DECISIONS.md for a reason):"; printf '%s\n' "$deleted" | sed 's/^/    /' | tee -a "$REPORT"
+if [ -n "$deleted" ]; then warn "test files deleted (check the DECISIONS.md of the spec folder for a reason):"; printf '%s\n' "$deleted" | sed 's/^/    /' | tee -a "$REPORT"
 else pass "no test files deleted"; fi
 
 removed=$(git log -M -p --format='@@COMMIT %h %s' "$SINCE..$REF" -- "${TEST_PATHS[@]}" | awk '

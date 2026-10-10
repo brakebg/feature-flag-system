@@ -69,6 +69,7 @@ forbids a rate limiter in the service). So:
 
    ```
    Scope: <M4 | final | backend | frontend | infra>
+   Spec folder: docs/specs/<NNN-name>/ (spec file, acceptance-criteria.md, DECISIONS.md, escalations/)
    Git range: <base>...HEAD
    Spec sections: <list>
    Re-check: <no | earlier findings + rejection reasons, pasted>
@@ -140,7 +141,7 @@ done (spec 12.3) and before the PR is marked ready.
 
 ### Step 2: write the report
 
-Merge all findings into `docs/reviews/final-review.md` (template in section 7). Keep each
+Merge all findings into `<spec>/reviews/final-review.md` (template in section 7). Keep each
 agent's ID. When two agents report the same defect, keep one row, list both IDs, use the
 higher severity. Commit and push the report before fixing anything. It is your memory if
 the session ends.
@@ -163,7 +164,7 @@ the session ends.
 2. Fix the production code. Fix the general behaviour, not only the one input.
 3. `make verify-fast` green. Commit `M8 review: fix <ID> <what changed>` with the
    `AC:` and `Spec:` trailers. Push.
-4. Set the finding to `fixed` with the commit SHA in the report. Update `docs/STATE.md`.
+4. Set the finding to `fixed` with the commit SHA in the report. Update `<spec>/STATE.md`.
 
 ### Step 5: re-check (rounds 2 to 4)
 
@@ -180,7 +181,7 @@ Round 1 is step 1. Steps 4 and 5 repeat at most 3 times (rounds 2, 3 and 4).
      decides at the final review.
 4. After round 4 (3 fix attempts), every BLOCKER or CRITICAL that is still not `fixed`
    gets status `blocked`:
-   - add it to `docs/BLOCKERS.md`;
+   - add it to `<spec>/BLOCKERS.md`;
    - raise one Level 3 escalation for all `blocked` findings (spec 12.5, trigger 3: the
      final review is the last step, so all remaining work depends on it);
    - write the ESC ID in the report row.
@@ -189,7 +190,7 @@ Round 1 is step 1. Steps 4 and 5 repeat at most 3 times (rounds 2, 3 and 4).
 
 ### Step 6: finish
 
-1. `make verify-all` green. Commit the final `docs/verify-report.md`.
+1. `make verify-all` green. Commit the final `<spec>/verify-report.md`.
 2. Tick spec 12.3.
 3. The report shows no BLOCKER or CRITICAL with status `open`, `confirmed` or `blocked`.
    While a `blocked` escalation is open, do not mark the PR ready: follow spec 12.5 flow
@@ -200,7 +201,7 @@ Round 1 is step 1. Steps 4 and 5 repeat at most 3 times (rounds 2, 3 and 4).
    decisions, blockers.
 5. Stop. Never merge.
 
-## 7. Report template: `docs/reviews/final-review.md`
+## 7. Report template: `<spec>/reviews/final-review.md`
 
 ```markdown
 # Final review

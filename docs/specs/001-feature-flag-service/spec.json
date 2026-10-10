@@ -1,0 +1,8 @@
+{
+  "id": "001",
+  "title": "Feature Flag Service v1",
+  "spec": "docs/SPEC.md",
+  "acceptance": "docs/acceptance-criteria.md",
+  "branch": "feature/feature-flag-service",
+  "milestones": [1, 2, 3, 4, 5, 6, 7, 8]
+}

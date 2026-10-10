@@ -1,10 +1,16 @@
 # Owner-only paths. The builder agent must never change them.
 # Read by .github/workflows/locked-files-guard.yml (PR comment, main's copy)
 # and by scripts/owner-review.sh (checks the branch history from main).
-# One path per line; "/**" = everything below. "create-once" = the agent may create
+# One path per line (git glob); "/**" = everything below, "*" = one folder level.
+# Agent memory in docs/specs/<id>/ (STATE, PROGRESS, DECISIONS, ...) is not locked.
+# "create-once" = the agent may create
 # the file once (M1) but never change or delete it afterwards.
 docs/SPEC.md
-docs/specs/**
+docs/specs/README.md
+docs/specs/*/SPEC.md
+docs/specs/*/spec.json
+docs/specs/*/acceptance-criteria.md
+scripts/lib/active-spec.mjs
 docs/design/**
 docs/VALIDATION.md
 decisions/**

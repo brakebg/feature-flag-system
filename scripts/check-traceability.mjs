@@ -10,9 +10,11 @@
 // Output: build/traceability.md (ID -> tests -> pass/fail), included in the verify report.
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { acDue, acIds, errIds, errorTableRows } from './lib/trace-registry.mjs';
+import { acDue, acIds, errIds, errorTableRows, specAcs } from './lib/trace-registry.mjs';
+import { isDue, milestoneState } from './lib/active-spec.mjs';
 
-const milestone = Number(readFileSync('scripts/current-milestone', 'utf8').trim());
+const state = milestoneState();
+const milestone = state.n;
 const ID_RE = /\b(?:AC|ERR)-[A-Za-z0-9{}/._-]*[A-Za-z0-9}]/g;
 
 /** @type {{ source: string, name: string, ids: string[], passed: boolean }[]} */
@@ -74,6 +76,7 @@ function decode(s) {
 const registry = new Map();
 for (const { id, removed } of acIds()) registry.set(id, { due: removed ? null : acDue[id], removed });
 for (const [id, due] of Object.entries(errIds)) registry.set(id, { due, removed: false });
+for (const { id, removed, due } of specAcs()) registry.set(id, { due: removed ? null : due, removed });
 
 const problems = [];
 const pending = [];
@@ -95,7 +98,7 @@ for (const [id, info] of registry) {
   if (info.removed) status = 'removed (no test needed)';
   else if (failed.length) status = 'FAIL';
   else if (ts.length) status = 'pass';
-  else if (milestone >= (info.due ?? 8)) status = 'MISSING'; // unknown due: missing from M8 on
+  else if (info.due === undefined || isDue(info.due, state)) status = 'MISSING'; // unknown due: always missing
   else status = `pending (due M${info.due})`;
   if (status === 'FAIL') problems.push(`${id}: failing tests: ${failed.map((t) => t.name).join('; ')}`);
   if (status === 'MISSING') problems.push(`${id}: no test (due M${info.due})`);

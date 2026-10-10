@@ -11,7 +11,7 @@ source scripts/lib/stack.sh
 
 # Gate 12 settings live in playwright.config.ts (retries 0); the script takes no extra arguments,
 # so no caller can change them. New screenshot baselines need FF_UPDATE_BASELINES=1 (and a
-# docs/DECISIONS.md entry, spec 11.6).
+# DECISIONS.md entry in the spec folder, spec 11.6).
 if [ "$#" -gt 0 ]; then echo "e2e.sh: no arguments allowed" >&2; exit 2; fi
 EXTRA=()
 if [ "${FF_UPDATE_BASELINES:-}" = 1 ]; then EXTRA=(--update-snapshots); fi
