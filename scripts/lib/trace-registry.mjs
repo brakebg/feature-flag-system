@@ -33,6 +33,7 @@ export const acDue = {
   'AC-CACHE-6': 5, 'AC-CACHE-7': 5, 'AC-CACHE-8': 5, 'AC-CACHE-9': 8,
   'AC-AUD-1': 4, 'AC-AUD-2': 7, 'AC-AUD-3': 4,
   'AC-OPS-1': 8, 'AC-OPS-2': 8, 'AC-OPS-3': 2, 'AC-OPS-4': 5,
+  'AC-UPG-1': 9, 'AC-UPG-2': 9, // spec 002, decision 0009
 };
 
 const admin = [

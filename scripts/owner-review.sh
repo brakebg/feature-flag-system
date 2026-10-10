@@ -5,7 +5,7 @@
 # owner's copies (the builder cannot change what runs here).
 #
 # Usage: scripts/owner-review.sh [REF] [--since REF] [--no-suite]
-#   REF        branch to review (default: origin/feature/feature-flag-service)
+#   REF        branch to review (default: origin/feature/spring-boot-4)
 #   --since    only check test changes after this ref (default: where the branch left main)
 #   --no-suite skip the black-box acceptance suite (no Docker needed)
 #   Ports used by the suite stacks: 8080/3000 (default), 8280/3200 (https), 8380/3300 (limits);
@@ -15,7 +15,7 @@
 # Exit 0 = no FAIL. Exit 1 = at least one FAIL. WARN = look at it yourself.
 set -uo pipefail
 
-REF="origin/feature/feature-flag-service"
+REF="origin/feature/spring-boot-4"
 SINCE=""
 RUN_SUITE=1
 while [ $# -gt 0 ]; do

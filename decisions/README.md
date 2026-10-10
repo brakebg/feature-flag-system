@@ -16,5 +16,6 @@ Not the same as `docs/DECISIONS.md`: that file holds the agent's own Level 1 dec
 | 0006 | [Remove the edit-block hook](0006-remove-edit-block-hook.md) | Accepted |
 | 0007 | [Performance gate: hit rate blocks, p95 is report-only](0007-performance-gate-report-only.md) | Accepted |
 | 0008 | [Accept known vulnerabilities, excluded from Trivy gate 10](0008-accept-known-vulnerabilities.md) | Accepted |
+| 0009 | [Spec 002: upgrade the backend to Spring Boot 4.1](0009-upgrade-spring-boot-4.md) | Accepted |
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.
