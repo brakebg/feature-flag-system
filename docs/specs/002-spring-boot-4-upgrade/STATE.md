@@ -4,23 +4,27 @@ Keep under 150 lines.
 
 ## Current
 
-- Milestone: M9, phase A done after this commit (A1, A2 done). Next: A3 then B0.
-- Branch: `feature/spring-boot-4`; draft PR #13
-- Last processed PR comment: none (no owner comments yet)
+- Milestone: M9. Phases A and B done. Phase C next (green chunks on `feature/spring-boot-4`).
+- Draft PR #13. Last processed PR comment: none (no owner comments yet).
+- Platform now: Spring Boot 4.1.1, Spring Framework 7.0.9, Spring Security 7.1.1, Jackson 3.1.7,
+  Tomcat 11.0.26, Hibernate 7.4, Flyway 12.4, Testcontainers 2.0.5, springdoc 3.1.1.
 
 ## Last green commit
 
-- A1 commit (see PROGRESS.md). `make verify-fast` PASS.
+- B4 squash commit (see PROGRESS.md). `make verify-fast` PASS.
 
 ## wip/ branches
 
-- `wip/spring-boot-4`: phase B runs on this branch (checkpoints, may be red). Not merged yet.
+- `wip/spring-boot-4`: merged by squash into `feature/spring-boot-4` (B4). Not deleted (deleting
+  a branch is Level 3).
 
 ## Next 3 steps
 
-1. A3 checked: nothing more works on 3.5 alone (see D-3). Phase A done.
-2. Phase B runs on `wip/spring-boot-4`: check it out, read its STATE.md, continue there.
-3. B1 step 1: pom to Boot 4.1 + starters; compile; checkpoint after each step.
+1. C3 first (cheap): AC-UPG-1 test, AC-UPG-2 ArchUnit rule, `.trivyignore` lines removed,
+   VERSION 1.1.0, CHANGELOG, README versions.
+2. C1/C2: `make verify` (gates 7, 8, 11-13, Docker images).
+3. C4: milestone audit (spec-auditor, test-auditor, security-reviewer, final-reviewer backend),
+   `MILESTONE` = `9 complete`, merge origin/main, `make verify-all`, PR ready.
 
 ## Open escalations
 

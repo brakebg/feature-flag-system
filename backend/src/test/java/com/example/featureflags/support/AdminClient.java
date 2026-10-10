@@ -1,12 +1,12 @@
 package com.example.featureflags.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URI;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.databind.JsonNode;
 
 /** Calls the Admin API (spec 6.1) through MockMvc with a bearer token. */
 public class AdminClient {

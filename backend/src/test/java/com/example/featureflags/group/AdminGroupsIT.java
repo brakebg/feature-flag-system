@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.TestJson;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import org.hamcrest.Matchers;
@@ -20,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 6.1, 6.2: group endpoints of the Admin API. */
 @IntegrationTest

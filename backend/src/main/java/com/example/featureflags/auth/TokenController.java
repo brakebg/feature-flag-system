@@ -52,7 +52,7 @@ public class TokenController {
           .contentType(MediaType.APPLICATION_JSON)
           .body(Map.of("error", "invalid_client"));
     }
-    String grant = req.getParameter("grant_type");
+    String grant = parameter(req, "grant_type");
     if (grant == null || grant.isEmpty()) {
       return error(HttpStatus.BAD_REQUEST, "invalid_request");
     }
@@ -60,7 +60,7 @@ public class TokenController {
       return error(HttpStatus.BAD_REQUEST, "unsupported_grant_type");
     }
     List<String> registered = client.get().scopes();
-    String requested = req.getParameter("scope");
+    String requested = parameter(req, "scope");
     List<String> granted;
     if (requested == null || requested.isBlank()) {
       granted = registered;
@@ -115,6 +115,19 @@ public class TokenController {
       return clients.authenticate(id, secret);
     } catch (IllegalArgumentException notEncoded) {
       return Optional.empty();
+    }
+  }
+
+  /**
+   * Spec 5.5: a form pair with a bad percent escape is skipped and the rest of the body is used.
+   * Tomcat 11 reports the skipped pair once as an {@link IllegalStateException} from the first
+   * read; the parameters that decoded fine stay available, so the read is repeated once.
+   */
+  private static String parameter(HttpServletRequest req, String name) {
+    try {
+      return req.getParameter(name);
+    } catch (IllegalStateException skippedPair) {
+      return req.getParameter(name);
     }
   }
 

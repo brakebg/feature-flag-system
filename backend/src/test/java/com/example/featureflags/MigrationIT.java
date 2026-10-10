@@ -15,13 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec 4.1, 4.3: Flyway migrations on an empty database (12.2 M2 "Done when"). */
 class MigrationIT {
 
-  private static final PostgreSQLContainer<?> PG =
-      new PostgreSQLContainer<>(PostgresContainerConfig.POSTGRES);
+  private static final PostgreSQLContainer PG =
+      new PostgreSQLContainer(PostgresContainerConfig.POSTGRES);
 
   @BeforeAll
   static void start() {

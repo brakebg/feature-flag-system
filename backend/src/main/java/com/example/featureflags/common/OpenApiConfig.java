@@ -65,6 +65,11 @@ public class OpenApiConfig {
               schema.setRequired(required);
             } else if (REQUESTS.containsKey(name)) {
               schema.setRequired(REQUESTS.get(name));
+              // springdoc 3 turns @PositiveOrZero into "minimum": 0. The 1.0.0 contract has none
+              // (spec 002 section 4 item 3); the check itself stays in Bean Validation.
+              if (schema.getProperties().get("version") instanceof Schema<?> version) {
+                version.setMinimum(null);
+              }
               Object description = schema.getProperties().get("description");
               if (description instanceof Schema<?> d) {
                 // OpenAPI 3.1: nullable is the extra JSON type "null".
