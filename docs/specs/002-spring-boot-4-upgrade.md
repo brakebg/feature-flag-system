@@ -122,9 +122,29 @@ Registered in `docs/acceptance-criteria.md` (section "Spec 002"), due M9.
   main code; (c) tests on Jackson 3, Testcontainers 2, JUnit 6; (d) security and web
   configuration until gate 5 is green; (e) gates 6 to 8; (f) Docker images, gates 10 to 13;
   (g) AC-UPG-1, AC-UPG-2, `.trivyignore`, VERSION, CHANGELOG, README.
-- Review: milestone audit (`docs/builder-agents.md` section 5, row M9). Fix every BLOCKER and
-  CRITICAL before `M9: complete`. No separate final review.
+- Review: milestone audit (`docs/builder-agents.md` section 5, row M9) with the agents in
+  section 7a. Fix every BLOCKER and CRITICAL before `M9: complete`. No separate final review.
 - The limit of 20 failed `make verify` runs (spec 001 12.4) counts from the start of M9.
+
+### 7a. Session environment: cloud, no plugins
+
+M9 runs in an Anthropic cloud session (`docs/builder-prompt.md` phase 2). No plugins are
+installed there. This overrides every mention of vendor agents in `docs/builder-agents.md`
+and `CLAUDE.md` 6a for M9.
+
+| Kind | Examples | In M9 |
+| --- | --- | --- |
+| Project agents (`.claude/agents/`, part of the repo) | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` | Available. Use them as `docs/builder-agents.md` says |
+| Built-in agents | `Explore` | Available, search only |
+| Vendor agents (plugins) | `ecc:*` (for example `ecc:java-reviewer`), `pr-review-toolkit:*`, any other `<plugin>:<agent>` | **Do not exist. Do not call, look for, or install them** |
+
+- The Java / Spring review that `ecc:java-reviewer` gives in the local phase is done by the
+  project agent `final-reviewer` with scope `backend` (git range of M9). Brief it per
+  `docs/builder-agents.md` section 3 and name the Spring Boot 4 areas of section 9.
+- In the audit report, write "vendor agents: not available (cloud session)". That is the
+  expected state, not a gap, a blocker or a reason to escalate.
+- If a project agent cannot be started, that is a Level 3 escalation (trigger 4,
+  environment). Never skip the audit and never review your own work instead.
 
 **Level 3 triggers for M9** (in addition to spec 001 12.5)
 

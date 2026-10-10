@@ -250,7 +250,11 @@ Read first, in this order:
    context compaction. The active spec is the file named above.
 2. The change spec, fully. Then the docs/SPEC.md sections it names and the ones
    the next chunk touches.
-3. docs/builder-agents.md: the agents and the milestone audit.
+3. docs/builder-agents.md: the agents and the milestone audit. This is a cloud
+   session without plugins: only the project agents in .claude/agents/ and the
+   built-in Explore agent exist. Never call or look for ecc:*, pr-review-toolkit:*
+   or other plugin agents (the change spec says which project agent replaces
+   them).
 4. docs/STATE.md and docs/DECISIONS.md: what earlier work built and decided.
 
 Branch: create the working branch the change spec names from main and work only

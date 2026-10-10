@@ -103,7 +103,7 @@ commit. M8 has no separate milestone audit; the final review (section 6) covers 
 | M3, M4, M5 | `spec-auditor`, `test-auditor`, `security-reviewer`, `ecc:java-reviewer` |
 | M6 | `spec-auditor`, `test-auditor`, `ecc:react-reviewer` |
 | M7 | `spec-auditor`, `test-auditor`, `design-checker`, `ecc:react-reviewer` |
-| M9 | `spec-auditor`, `test-auditor`, `security-reviewer`, `ecc:java-reviewer` (spec 002; no separate final review) |
+| M9 | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (scope backend). Cloud session, no vendor agents (spec 002 section 7a); no separate final review |
 
 Vendor agents (`ecc:`, `pr-review-toolkit:`) only when available (section 2a).
 
