@@ -106,7 +106,7 @@ Debezium is down, every instance still converges through step 5.
 - Source: PostgreSQL connector, plugin `pgoutput`, table `public.flag_change` only, its own
   publication and replication slot. Sink: Redis stream (`debezium.sink.type=redis`).
 - Debezium offsets are stored in Redis (`RedisOffsetBackingStore`) so the container needs no volume.
-- One Debezium instance only. It is a singleton by design; if it is down, 5.5 step 5 heals.
+- One Debezium instance only. It is a singleton by design; if it is down, 5.5 step 5 heals it.
 - The PostgreSQL server needs `wal_level=logical`. The compose database service sets it.
 - The exact Debezium properties are part of the deliverable (`ops/debezium/application.properties`).
   They MUST produce the entry format of 5.3.
@@ -136,8 +136,6 @@ The consumer MUST ignore unknown fields (forward compatible).
 - `revision` never decreases (AC-HA-9). Gaps in the numbers are fine: the ETag only has to change
   when the data changes.
 - `ETag: "<revision>"` and all spec 7.2 header rules stay as they are.
-- Entries with a revision that jumps ahead (a gap in the stream, for example after trimming or
-  lost entries): see 5.5, rule "gap".
 
 ### 5.5 Applying changes in each instance
 
@@ -147,9 +145,9 @@ The consumer MUST ignore unknown fields (forward compatible).
    entries with `revision <= revision` (5.4).
 3. Entries are applied in stream order with the same copy-on-write updates as the write path
    (spec 7.2 table). `RECONCILE` entries change no cache entry; they only set `revision`.
-4. **Gap rule:** if an entry has `revision` greater than `revision + 1` it is only a gap when the
-   missing numbers are not rolled-back sequence values; since this cannot be told from the stream,
-   gaps are NOT treated as errors. Instead the safety net (step 5) decides.
+4. **Gaps:** a jump in the revision numbers is not an error, because rolled-back transactions
+   also use sequence values and the stream cannot tell the two cases apart. Lost entries are found by
+   the safety net (step 5).
 5. **Safety net:** every `FF_CACHE_REVISION_POLL` (default `PT10S`) the instance reads
    `max(flag_change.id)`. If it is greater than the local `revision` and has stayed so for
    `FF_CACHE_CATCHUP_GRACE` (default `PT5S`), the instance reloads all groups and flags from the
