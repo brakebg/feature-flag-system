@@ -4,6 +4,7 @@
 # One path per line; "/**" = everything below. "create-once" = the agent may create
 # the file once (M1) but never change or delete it afterwards.
 docs/SPEC.md
+docs/specs/**
 docs/design/**
 docs/VALIDATION.md
 decisions/**

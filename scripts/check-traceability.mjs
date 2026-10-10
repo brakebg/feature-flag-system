@@ -95,7 +95,7 @@ for (const [id, info] of registry) {
   if (info.removed) status = 'removed (no test needed)';
   else if (failed.length) status = 'FAIL';
   else if (ts.length) status = 'pass';
-  else if (milestone >= 8 || milestone >= info.due) status = 'MISSING';
+  else if (milestone >= (info.due ?? 8)) status = 'MISSING'; // unknown due: missing from M8 on
   else status = `pending (due M${info.due})`;
   if (status === 'FAIL') problems.push(`${id}: failing tests: ${failed.map((t) => t.name).join('; ')}`);
   if (status === 'MISSING') problems.push(`${id}: no test (due M${info.due})`);
