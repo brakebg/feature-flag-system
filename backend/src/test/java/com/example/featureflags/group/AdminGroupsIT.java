@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.example.featureflags.support.TestJson;
 import java.util.ArrayList;
 import java.util.List;
 import org.hamcrest.Matchers;
@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 6.1, 6.2: group endpoints of the Admin API. */
 @IntegrationTest
@@ -107,8 +108,7 @@ class AdminGroupsIT extends AdminApiTest {
                 .header(
                     "Authorization",
                     "Bearer "
-                        + com.example.featureflags.support.SecurityTestSupport.adminToken(
-                            mvc, json))
+                        + com.example.featureflags.support.SecurityTestSupport.adminToken(mvc))
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("{\"key\":\"orders\",\"name\":\"N\"}")),
         400,
@@ -561,10 +561,7 @@ class AdminGroupsIT extends AdminApiTest {
 
   private static String type(org.springframework.mock.web.MockHttpServletResponse r)
       throws Exception {
-    return new com.fasterxml.jackson.databind.ObjectMapper()
-        .readTree(r.getContentAsString())
-        .get("type")
-        .asText();
+    return TestJson.tree(r.getContentAsString()).get("type").asText();
   }
 
   @Test

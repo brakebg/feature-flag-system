@@ -5,6 +5,21 @@ versions: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-10
+
+### Changed
+
+- Platform upgrade, no change in behaviour: Spring Boot 3.5 to 4.1 (Spring Framework 7.0,
+  Spring Security 7.1, Tomcat 11, Hibernate ORM 7, Flyway 12), Jackson 2 to Jackson 3
+  (`tools.jackson`; annotations stay `com.fasterxml.jackson.annotation`), springdoc-openapi 2.8
+  to 3.1, JUnit 5 to 6, Testcontainers 1.21 to 2.0. API, OpenAPI document, database schema and
+  gates are the same as in 1.0.0.
+
+### Security
+
+- Fixes CVE-2026-47884 and CVE-2026-47890 (spring-webmvc, CRITICAL) by moving to Spring
+  Framework 7.0.9 or later. Both entries are removed from `.trivyignore`.
+
 ## [1.0.0] - 2026-10-05
 
 First release.

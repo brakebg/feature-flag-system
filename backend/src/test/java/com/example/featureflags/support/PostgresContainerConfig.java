@@ -3,7 +3,7 @@ package com.example.featureflags.support;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -15,11 +15,11 @@ public class PostgresContainerConfig {
 
   public static final DockerImageName POSTGRES = DockerImageName.parse("postgres:16.15-alpine");
 
-  private static final PostgreSQLContainer<?> CONTAINER = new PostgreSQLContainer<>(POSTGRES);
+  private static final PostgreSQLContainer CONTAINER = new PostgreSQLContainer(POSTGRES);
 
   @Bean
   @ServiceConnection
-  PostgreSQLContainer<?> postgres() {
+  PostgreSQLContainer postgres() {
     return CONTAINER;
   }
 }

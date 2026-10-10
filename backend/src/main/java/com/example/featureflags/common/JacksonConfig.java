@@ -1,15 +1,14 @@
 package com.example.featureflags.common;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.cfg.CoercionAction;
-import com.fasterxml.jackson.databind.cfg.CoercionInputShape;
-import com.fasterxml.jackson.databind.type.LogicalType;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.CoercionAction;
+import tools.jackson.databind.cfg.CoercionInputShape;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.LogicalType;
 
 /**
  * Spec 4.2: a wrong JSON type for any field is a malformed request, so Jackson must not coerce
@@ -20,28 +19,30 @@ import org.springframework.context.annotation.Configuration;
 public class JacksonConfig {
 
   @Bean
-  Jackson2ObjectMapperBuilderCustomizer strictScalars() {
-    return builder -> builder.postConfigurer(JacksonConfig::strict);
+  JsonMapperBuilderCustomizer strictScalars() {
+    return JacksonConfig::strict;
   }
 
-  /** Applies the strict scalar rules to a mapper. */
-  public static void strict(ObjectMapper mapper) {
-    mapper.configure(MapperFeature.ALLOW_COERCION_OF_SCALARS, false);
-    mapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, false);
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
-    // PATCH bodies (6.1): an omitted Optional field is null, an explicit null is empty.
-    mapper.configure(MapperFeature.IGNORE_DUPLICATE_MODULE_REGISTRATIONS, false);
-    mapper.registerModule(new Jdk8Module().configureReadAbsentAsNull(true));
+  /** Applies the strict scalar rules to a mapper builder. */
+  public static void strict(JsonMapper.Builder builder) {
+    builder
+        .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+        .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+        // PATCH bodies (6.1): an omitted Optional field is null, an explicit null is empty.
+        .enable(DeserializationFeature.USE_NULL_FOR_MISSING_REFERENCE_VALUES);
     for (LogicalType type :
         new LogicalType[] {LogicalType.Textual, LogicalType.Integer, LogicalType.Boolean}) {
-      mapper
-          .coercionConfigFor(type)
-          .setCoercion(CoercionInputShape.Integer, fail(type, LogicalType.Integer))
-          .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
-          .setCoercion(CoercionInputShape.Boolean, fail(type, LogicalType.Boolean))
-          .setCoercion(CoercionInputShape.String, fail(type, LogicalType.Textual))
-          .setCoercion(CoercionInputShape.EmptyString, fail(type, LogicalType.Textual));
+      builder.withCoercionConfig(
+          type,
+          config ->
+              config
+                  .setCoercion(CoercionInputShape.Integer, fail(type, LogicalType.Integer))
+                  .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                  .setCoercion(CoercionInputShape.Boolean, fail(type, LogicalType.Boolean))
+                  .setCoercion(CoercionInputShape.String, fail(type, LogicalType.Textual))
+                  .setCoercion(CoercionInputShape.EmptyString, fail(type, LogicalType.Textual)));
     }
   }
 

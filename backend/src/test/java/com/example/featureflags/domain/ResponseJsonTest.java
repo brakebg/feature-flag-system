@@ -8,8 +8,6 @@ import com.example.featureflags.flag.Flag;
 import com.example.featureflags.group.Group;
 import com.example.featureflags.group.GroupDetail;
 import com.example.featureflags.group.GroupSummary;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Spec 6.2: response payload shapes; optional fields without a value are omitted. */
 @JsonTest
@@ -36,7 +36,7 @@ class ResponseJsonTest {
 
   private static List<String> names(JsonNode n) {
     List<String> out = new java.util.ArrayList<>();
-    n.fieldNames().forEachRemaining(out::add);
+    out.addAll(n.propertyNames());
     return out;
   }
 
@@ -73,6 +73,42 @@ class ResponseJsonTest {
 
     JsonNode withDesc = json(new Flag(F, G, "k1", "o.k1", "text", true, T, "admin", T, "admin", 3));
     assertThat(withDesc.get("description").asText()).isEqualTo("text");
+  }
+
+  @Test
+  void flagFieldOrderIsTheOrderOf1_0_0() throws Exception {
+    // Spec 002 4 item 2: field order stays the same on Jackson 3 (declaration order).
+    JsonNode n = json(new Flag(F, G, "k1", "o.k1", "text", true, T, "admin", T, "admin", 3));
+    assertThat(names(n))
+        .containsExactly(
+            "id",
+            "groupId",
+            "key",
+            "fullKey",
+            "description",
+            "enabled",
+            "createdAt",
+            "createdBy",
+            "updatedAt",
+            "updatedBy",
+            "version");
+  }
+
+  @Test
+  void groupSummaryFieldOrderIsTheOrderOf1_0_0() throws Exception {
+    JsonNode n = json(new GroupSummary(G, "orders", "Orders", "d", 2, 1, "admin", T, "bob", 4));
+    assertThat(names(n))
+        .containsExactly(
+            "id",
+            "key",
+            "name",
+            "description",
+            "flagCount",
+            "enabledCount",
+            "createdBy",
+            "updatedAt",
+            "updatedBy",
+            "version");
   }
 
   @Test

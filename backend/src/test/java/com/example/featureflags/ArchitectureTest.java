@@ -70,6 +70,15 @@ class ArchitectureTest {
   static final ArchRule evaluationReadsDatabaseOnlyInLoadersOrReconciliation =
       classes().that().resideInAPackage("..evaluation..").should(onlyAccessDatabaseInLoaders());
 
+  /** AC-UPG-2 (spec 002 section 5 item 2); proved by {@code Jackson3OnlyTest}. */
+  @ArchTest
+  static final ArchRule noJackson2CoreOrDatabind =
+      noClasses()
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage("com.fasterxml.jackson.core..", "com.fasterxml.jackson.databind..")
+          .because("Jackson 3 (tools.jackson) only; annotations stay in jackson.annotation");
+
   @ArchTest
   static final ArchRule noPackageCycles =
       slices().matching("com.example.featureflags.(*)..").should().beFreeOfCycles();

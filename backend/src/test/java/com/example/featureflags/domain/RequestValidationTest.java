@@ -7,7 +7,6 @@ import com.example.featureflags.flag.CreateFlagRequest;
 import com.example.featureflags.flag.UpdateFlagRequest;
 import com.example.featureflags.group.CreateGroupRequest;
 import com.example.featureflags.group.UpdateGroupRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -20,6 +19,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.context.annotation.Import;
+import tools.jackson.databind.ObjectMapper;
 
 /** Spec 4.2: validation rules of the request bodies (6.2). */
 @JsonTest

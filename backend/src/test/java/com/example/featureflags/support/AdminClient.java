@@ -1,13 +1,12 @@
 package com.example.featureflags.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.databind.JsonNode;
 
 /** Calls the Admin API (spec 6.1) through MockMvc with a bearer token. */
 public class AdminClient {
@@ -16,17 +15,15 @@ public class AdminClient {
   public static final String PROBLEM = "https://featureflags.local/problems/";
 
   private final MockMvc mvc;
-  private final ObjectMapper json;
   private String token;
 
-  public AdminClient(MockMvc mvc, ObjectMapper json, String token) {
+  public AdminClient(MockMvc mvc, String token) {
     this.mvc = mvc;
-    this.json = json;
     this.token = token;
   }
 
   public AdminClient as(String newToken) {
-    return new AdminClient(mvc, json, newToken);
+    return new AdminClient(mvc, newToken);
   }
 
   private ResultActions send(MockHttpServletRequestBuilder req) throws Exception {
@@ -59,7 +56,7 @@ public class AdminClient {
   }
 
   public JsonNode body(ResultActions r) throws Exception {
-    return json.readTree(r.andReturn().getResponse().getContentAsString());
+    return TestJson.tree(r.andReturn().getResponse().getContentAsString());
   }
 
   /** Creates a group and returns its JSON. */

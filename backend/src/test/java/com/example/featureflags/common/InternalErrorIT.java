@@ -10,7 +10,6 @@ import com.example.featureflags.group.GroupService;
 import com.example.featureflags.support.AdminClient;
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.SecurityTestSupport;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -24,14 +23,13 @@ import org.springframework.test.web.servlet.MockMvc;
 class InternalErrorIT {
 
   @Autowired MockMvc mvc;
-  @Autowired ObjectMapper json;
   @MockitoBean GroupService groups;
 
   @Test
   @Tag("ERR-GET-/admin/groups-500")
   void unexpectedErrorIs500Internal() throws Exception {
     when(groups.list(any(), any())).thenThrow(new IllegalStateException("db exploded at line 42"));
-    new AdminClient(mvc, json, SecurityTestSupport.adminToken(mvc, json))
+    new AdminClient(mvc, SecurityTestSupport.adminToken(mvc))
         .get("/groups")
         .andExpect(status().isInternalServerError())
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))

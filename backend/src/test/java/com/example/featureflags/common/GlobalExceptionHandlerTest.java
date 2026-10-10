@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.featureflags.support.TestJson;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -17,8 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -104,11 +103,7 @@ class GlobalExceptionHandlerTest {
     mvc =
         MockMvcBuilders.standaloneSetup(new ThrowingController())
             .setControllerAdvice(new GlobalExceptionHandler())
-            .setMessageConverters(
-                new MappingJackson2HttpMessageConverter(
-                    new Jackson2ObjectMapperBuilder()
-                        .postConfigurer(JacksonConfig::strict)
-                        .build()))
+            .setMessageConverters(TestJson.converter())
             .setValidator(validator)
             .build();
   }

@@ -8,8 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.featureflags.support.IntegrationTest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.featureflags.support.TestJson;
 import java.time.Instant;
 import java.util.Base64;
 import org.junit.jupiter.api.Tag;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.JsonNode;
 
 /** Spec 5.2: admin login. */
 @IntegrationTest
@@ -25,7 +25,6 @@ class LoginIT {
   static final String BASE = "https://featureflags.local/problems/";
 
   @Autowired MockMvc mvc;
-  @Autowired ObjectMapper json;
 
   private org.springframework.test.web.servlet.ResultActions login(String body) throws Exception {
     return mvc.perform(
@@ -42,9 +41,9 @@ class LoginIT {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    JsonNode n = json.readTree(body);
+    JsonNode n = TestJson.tree(body);
     JsonNode claims =
-        json.readTree(Base64.getUrlDecoder().decode(n.get("accessToken").asText().split("\\.")[1]));
+        TestJson.tree(Base64.getUrlDecoder().decode(n.get("accessToken").asText().split("\\.")[1]));
     assertThat(claims.get("sub").asText()).isEqualTo("admin");
     assertThat(claims.get("scope").asText()).isEqualTo("admin");
     assertThat(claims.get("aud").isArray()).isTrue();

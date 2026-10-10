@@ -10,13 +10,13 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** Spec 4.3: the V2 seed runs only in the {@code dev} profile, through the real config files. */
 class FlywayProfileIT {
 
-  private static final PostgreSQLContainer<?> PG =
-      new PostgreSQLContainer<>(PostgresContainerConfig.POSTGRES);
+  private static final PostgreSQLContainer PG =
+      new PostgreSQLContainer(PostgresContainerConfig.POSTGRES);
 
   @BeforeAll
   static void start() {

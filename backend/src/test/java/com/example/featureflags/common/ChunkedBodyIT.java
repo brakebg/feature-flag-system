@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -25,7 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
  * parsed by the container, not through the request input stream.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureObservability
+@AutoConfigureMetrics
 @ActiveProfiles("test")
 @Import({PostgresContainerConfig.class, DatabaseCleaner.class})
 class ChunkedBodyIT {

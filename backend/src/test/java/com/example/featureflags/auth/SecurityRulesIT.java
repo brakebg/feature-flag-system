@@ -13,8 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.MutableClock;
+import com.example.featureflags.support.TestJson;
 import com.example.featureflags.support.Tokens;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
 import org.hamcrest.Matchers;
@@ -49,7 +49,6 @@ class SecurityRulesIT {
   }
 
   @Autowired MockMvc mvc;
-  @Autowired ObjectMapper json;
   @Autowired MutableClock clock;
 
   @BeforeEach
@@ -127,7 +126,7 @@ class SecurityRulesIT {
   @Tag("AC-EVAL-4")
   @Tag("ERR-GET-/admin/groups-403")
   void clientTokenOnAdminApiIs403() throws Exception {
-    String client = clientToken(mvc, json);
+    String client = clientToken(mvc);
     expect403(getWith("/api/v1/admin/groups", client));
     expect403(getWith("/api/v1/admin/audit", client));
     expect403(
@@ -182,7 +181,7 @@ class SecurityRulesIT {
   @Tag("ERR-GET-/evaluate/groups/{groupKey}-403")
   @Tag("ERR-GET-/evaluate/flags/{groupKey}/{flagKey}-403")
   void evaluationWithAdminTokenOrWrongScopeOrAudienceIs403() throws Exception {
-    String admin = adminToken(mvc, json);
+    String admin = adminToken(mvc);
     String serviceNoScope = signed("other", "feature-flag-service", NOW, NOW.plusSeconds(60));
     String readWithAdminAud = signed("flags:read", "feature-flag-admin", NOW, NOW.plusSeconds(60));
     for (String path :
@@ -199,7 +198,7 @@ class SecurityRulesIT {
 
   @Test
   void evaluationWithClientTokenPassesSecurity() throws Exception {
-    getWith("/api/v1/evaluate/flags", clientToken(mvc, json)).andExpect(status().isOk());
+    getWith("/api/v1/evaluate/flags", clientToken(mvc)).andExpect(status().isOk());
   }
 
   @Test
@@ -226,7 +225,7 @@ class SecurityRulesIT {
             + java.util.Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(
-                    json.writeValueAsBytes(
+                    TestJson.bytes(
                         Tokens.claims(
                             "admin", "admin", "feature-flag-admin", NOW, NOW.plusSeconds(60))))
             + ".";
@@ -245,7 +244,7 @@ class SecurityRulesIT {
         .andExpect(header().string("X-Content-Type-Options", "nosniff"))
         .andExpect(header().string("X-Frame-Options", "DENY"))
         .andExpect(header().string("Cache-Control", Matchers.containsString("no-cache")));
-    getWith("/api/v1/admin/groups", adminToken(mvc, json))
+    getWith("/api/v1/admin/groups", adminToken(mvc))
         .andExpect(header().stringValues("Cache-Control", "no-store"))
         .andExpect(header().string("X-Content-Type-Options", "nosniff"));
   }
@@ -259,15 +258,15 @@ class SecurityRulesIT {
   @Test
   void adminResponsesAreNeverCachedWhateverTheStatus() throws Exception {
     getWith("/api/v1/admin/groups", null).andExpect(header().string("Cache-Control", "no-store"));
-    getWith("/api/v1/admin/groups", clientToken(mvc, json))
+    getWith("/api/v1/admin/groups", clientToken(mvc))
         .andExpect(header().string("Cache-Control", "no-store"));
   }
 
   @Test
   void prometheusNeedsAnAdminToken() throws Exception {
     expect401(getWith("/actuator/prometheus", null), "/actuator/prometheus");
-    expect403(getWith("/actuator/prometheus", clientToken(mvc, json)));
-    getWith("/actuator/prometheus", adminToken(mvc, json)).andExpect(status().isOk());
+    expect403(getWith("/actuator/prometheus", clientToken(mvc)));
+    getWith("/actuator/prometheus", adminToken(mvc)).andExpect(status().isOk());
   }
 
   @Test
@@ -281,7 +280,7 @@ class SecurityRulesIT {
   @Test
   void everythingElseIs401WithoutTokenAnd403WithAValidToken() throws Exception {
     expect401(getWith("/somewhere/else", null), "/somewhere/else");
-    expect403(getWith("/somewhere/else", adminToken(mvc, json)));
+    expect403(getWith("/somewhere/else", adminToken(mvc)));
     expect401(getWith("/actuator/env", null), "/actuator/env");
   }
 
