@@ -20,6 +20,11 @@ interrupts all clients. See GitHub issue #16 for the options considered: Postgre
   Jedis, Hazelcast, Kafka and RabbitMQ stay banned (spec 003 section 1).
 - New spec folder `docs/specs/003-high-availability/` (milestone M10).
 
+## Redis distribution
+
+Redis 8, used under its AGPLv3 option, unmodified, as a separate container. Valkey (BSD) was
+considered and is the fallback if the AGPL becomes a problem; only the image changes.
+
 ## Consequences
 
 - Two new components to run (Redis, Debezium Server); PostgreSQL needs `wal_level=logical`.

@@ -15,7 +15,7 @@ names a part of `docs/SPEC.md`, this spec wins for M10.
 | `docs/SPEC.md` part | Change in M10 |
 | --- | --- |
 | 1.2 Non-goals: "Distributed cache … and horizontal scaling" | Removed. The service MAY run as several instances. A distributed *cache* stays out of scope: each instance keeps its own Caffeine cache |
-| 2 Tech stack | Adds Redis 7 (stream only, no cache use), Debezium Server, Spring Data Redis |
+| 2 Tech stack | Adds Redis 8 (stream only, no cache use), Debezium Server, Spring Data Redis |
 | 4.1 Tables | Adds table `flag_change` (the outbox, section 5.1), Flyway `V3` |
 | 7.2 Caching: "Scope" paragraph and the `revision` rules | Replaced by sections 5.4 and 5.5 of this spec |
 | 7.2 Daily reconciliation | Runs in every instance on its own cache; a found drift writes a `RECONCILE` outbox row (5.7) |
@@ -210,7 +210,7 @@ revision rule the same) but runs no reader and no poll.
 
 ### 5.11 Deployment (docker-compose, spec 10.3)
 
-- `postgres` with `wal_level=logical`; `redis` with `appendonly yes`; `debezium` (Debezium
+- `postgres` with `wal_level=logical`; `redis` (Redis 8, pinned) with `appendonly yes`; `debezium` (Debezium
   Server image, pinned version); `backend` with `deploy.replicas: 2` (or two named services);
   the UI proxy balances over both backends.
 - All images pinned to versions; the new images go through Trivy gate 10 like the others.
@@ -258,8 +258,10 @@ rolling-restart test (AC-HA-8) runs in the Docker smoke or e2e gate, not in unit
 
 ## 9. Open questions for the owner
 
-1. **Redis licence and distribution:** Redis 7.2 (BSD) or newer under the newer licences, or
-   Valkey (BSD)? The spec says "Redis 7"; pin one image.
+1. ~~Redis licence and distribution~~ **Decided by the owner: Redis 8**, used under its AGPLv3
+   option. The image is pinned to one version, run unmodified and as a separate container (no
+   patches to Redis, so no source-sharing duty). Open check: confirm the licence text of the
+   pinned version and that the Debezium Redis sink works with it (first M10 chunk of phase C).
 2. **Stream entry format:** Debezium's outbox event router can shape the entry. Accept it
    if it can produce 5.3, or define the format around what Debezium emits natively?
 3. **Staleness bound:** is 2 s normal and 15 s degraded acceptable?
