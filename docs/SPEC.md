@@ -815,15 +815,27 @@ A gate not yet active passes trivially but is already wired into `make verify` f
 
 **Accepted vulnerabilities (gate 10).** The owner has reviewed these and accepts the risk. They are excluded from the Trivy report in `make verify` and in CI. The agent adds them to `.trivyignore` and never removes them. Only the owner changes this table (decision record in `decisions/`).
 
-| CVE | Severity | Why accepted | Review by | Decision |
-| --- | --- | --- | --- | --- |
-| CVE-2026-47884 | CRITICAL | Known. Risk accepted by the owner | 2027-04-10 | decisions/0007 |
+Reason for every row: known, risk accepted by the owner (`decisions/0008`). Review by 2027-04-10 for every row.
 
-`.trivyignore` format, one entry per vulnerability:
+| # | CVE | Severity | Where | Package | Installed | Fixed in |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | CVE-2026-47884 | CRITICAL | not recorded | not recorded | not recorded | not recorded |
+| 2 | CVE-2026-47890 | CRITICAL | `backend/pom.xml` and backend image | spring-webmvc | 6.2.19 | 7.0.9 only |
+| 3 | CVE-2026-78667 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
+| 4 | CVE-2026-78669 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
+| 5 | CVE-2026-97031 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
+| 6 | CVE-2026-4775 | HIGH | UI image (alpine 3.23.3) | tiff | 4.7.1-r0 | 4.7.2-r0 |
+
+`.trivyignore` format, one entry per vulnerability. The six entries for this table:
 
 ```
 # <reason> — "owner accepted, spec 11.3" or "no fixed version, DECISIONS.md #n"
 CVE-2026-47884 exp:2027-04-10
+CVE-2026-47890 exp:2027-04-10
+CVE-2026-78667 exp:2027-04-10
+CVE-2026-78669 exp:2027-04-10
+CVE-2026-97031 exp:2027-04-10
+CVE-2026-4775 exp:2027-04-10
 ```
 
 The `exp:` date is the review date. When it passes, Trivy reports the vulnerability again; the owner then renews the entry or removes it.
