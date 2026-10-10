@@ -209,7 +209,7 @@ and `CLAUDE.md` 6a for M9.
 - [ ] The PR `feature/spring-boot-4` → `main` is marked ready for review, with a final summary
       comment: what changed, versions before and after, gate results, changed tests, decisions.
 
-Then the session stops. The owner validates with `scripts/owner-review.sh` and the black-box
+Then the session stops. The owner validates with `scripts/owner-review.sh docs/specs/002-spring-boot-4-upgrade` and the black-box
 suite v1, the same way as for 1.0.0.
 
 ## 9. Migration notes (informative)

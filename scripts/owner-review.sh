@@ -4,31 +4,83 @@
 # Run from a CLEAN checkout of main, so this script and scripts/locked-paths.txt are the
 # owner's copies (the builder cannot change what runs here).
 #
-# Usage: scripts/owner-review.sh [REF] [--since REF] [--no-suite]
-#   REF        branch to review (default: origin/feature/spring-boot-4)
+# Usage: scripts/owner-review.sh <TARGET> [--since REF] [--no-suite]
+#   TARGET     required. The script does not fetch: run `git fetch origin <branch>` first.
+#                docs/specs/<NNN-name>   spec folder: branch = "branch" in its spec.json
+#                <NNN>                   spec id: the one docs/specs/<NNN>-* folder, as above
+#                origin/<branch>         that remote branch
+#                <branch>                origin/<branch> if it exists, else the local branch
+#                <commit>                any commit (e.g. an old state to re-check)
 #   --since    only check test changes after this ref (default: where the branch left main)
 #   --no-suite skip the black-box acceptance suite (no Docker needed)
+#   -h, --help print this header
 #   Ports used by the suite stacks: 8080/3000 (default), 8280/3200 (https), 8380/3300 (limits);
 #   stop any other local stack first.
 # Env: ACCEPTANCE_DIR (default: ../feature-flag-acceptance)
 #
 # Exit 0 = no FAIL. Exit 1 = at least one FAIL. WARN = look at it yourself.
+#      Exit 2 = wrong usage or TARGET does not resolve; nothing was checked.
 set -uo pipefail
 
-REF="origin/feature/spring-boot-4"
+usage()     { sed -n '2,22p' "$0"; }
+die()       { echo "owner-review.sh: $*" >&2; exit 2; }
+usage_die() { echo "owner-review.sh: $*" >&2; usage >&2; exit 2; }
+spec_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$1" "$2" 2>/dev/null; }
+
+# ---------------------------------------------------------------- Arguments
+TARGET=""
 SINCE=""
 RUN_SUITE=1
 while [ $# -gt 0 ]; do
   case "$1" in
-    --since) SINCE="$2"; shift 2 ;;
+    --since)
+      [ $# -ge 2 ] && [ -n "$2" ] || usage_die "--since needs a REF"
+      SINCE="$2"; shift 2 ;;
     --no-suite) RUN_SUITE=0; shift ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
-    *) REF="$1"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*) usage_die "unknown option: $1" ;;
+    *)
+      [ -z "$TARGET" ] || usage_die "more than one TARGET ('$TARGET' and '$1')"
+      TARGET="$1"; shift ;;
   esac
 done
+[ -n "$TARGET" ] || usage_die "missing TARGET (spec folder, spec id or branch)"
 
+# ---------------------------------------------------------------- Resolve TARGET (before any check)
 ROOT=$(git rev-parse --show-toplevel) || exit 2
 cd "$ROOT"
+T="${TARGET%/}"
+SPEC_DIR=""
+case "$T" in
+  docs/specs/*)
+    [ -d "$T" ] || die "no spec folder $T"
+    SPEC_DIR="$T" ;;
+  [0-9][0-9][0-9])
+    shopt -s nullglob
+    matches=(docs/specs/"$T"-*/)
+    shopt -u nullglob
+    [ "${#matches[@]}" -eq 1 ] || die "spec id $T needs exactly one folder docs/specs/$T-*, found ${#matches[@]}"
+    SPEC_DIR="${matches[0]%/}" ;;
+esac
+if [ -n "$SPEC_DIR" ]; then
+  [ -f "$SPEC_DIR/spec.json" ] || die "spec folder $SPEC_DIR has no spec.json"
+  BRANCH=$(spec_field "$SPEC_DIR/spec.json" branch)
+  [ -n "$BRANCH" ] || die "$SPEC_DIR/spec.json has no \"branch\" field"
+  SPEC_ID=$(spec_field "$SPEC_DIR/spec.json" id)
+  SPEC_TITLE=$(spec_field "$SPEC_DIR/spec.json" title)
+  REF="origin/$BRANCH"
+  git rev-parse --verify --quiet "$REF^{commit}" >/dev/null \
+    || die "'$TARGET' does not resolve: $REF not found. run: git fetch origin $BRANCH"
+else
+  if git rev-parse --verify --quiet "origin/$T^{commit}" >/dev/null; then REF="origin/$T"
+  elif git rev-parse --verify --quiet "$T^{commit}" >/dev/null; then REF="$T"
+  else die "'$T' does not resolve to a commit. run: git fetch origin ${T#origin/}"
+  fi
+fi
+BASE=$(git merge-base main "$REF" 2>/dev/null) || BASE=""
+[ -z "$SINCE" ] && SINCE="$BASE"
+RANGE="$BASE..$REF"
+
 ACCEPTANCE_DIR="${ACCEPTANCE_DIR:-$ROOT/../feature-flag-acceptance}"
 HEALTH_TIMEOUT_S=90
 mkdir -p build
@@ -49,6 +101,9 @@ CODE_PATHS=(":(glob)backend/src/**" ":(glob)frontend/src/**" ":(glob)frontend/e2
 # ---------------------------------------------------------------- 0. Preconditions
 log "# Owner review — $(date '+%F %T')"
 log ""
+log "- Target: $T → $REF ($(git rev-parse --short "$REF")), branched from main at $(git rev-parse --short "$BASE" 2>/dev/null)"
+[ -n "$SPEC_DIR" ] && log "- Spec: $SPEC_ID $SPEC_TITLE ($SPEC_DIR)"
+log ""
 log "## 0. Preconditions"
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
   fail "not on main. Run from a main checkout so the script and locked list are the owner's copy."
@@ -56,16 +111,6 @@ fi
 if [ -n "$(git status --porcelain)" ]; then
   fail "working tree is not clean. Commit or stash first."
 fi
-if git remote get-url origin >/dev/null 2>&1; then
-  git fetch --quiet origin || warn "git fetch failed; using local refs"
-fi
-if ! git rev-parse --verify --quiet "$REF^{commit}" >/dev/null; then
-  fail "branch '$REF' not found"; log ""; log "Result: $FAILS FAIL, $WARNS WARN"; exit 1
-fi
-BASE=$(git merge-base main "$REF")
-[ -z "$SINCE" ] && SINCE="$BASE"
-RANGE="$BASE..$REF"
-log "- Reviewing \`$REF\` ($(git rev-parse --short "$REF")), branched from main at $(git rev-parse --short "$BASE")"
 [ "$FAILS" -gt 0 ] && { log ""; log "Result: $FAILS FAIL, $WARNS WARN — fix preconditions first"; exit 1; }
 
 # ---------------------------------------------------------------- 1. Locked files
