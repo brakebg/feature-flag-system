@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
+import com.example.featureflags.support.TestJson;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,8 +108,7 @@ class AdminGroupsIT extends AdminApiTest {
                 .header(
                     "Authorization",
                     "Bearer "
-                        + com.example.featureflags.support.SecurityTestSupport.adminToken(
-                            mvc, json))
+                        + com.example.featureflags.support.SecurityTestSupport.adminToken(mvc))
                 .contentType(MediaType.TEXT_PLAIN)
                 .content("{\"key\":\"orders\",\"name\":\"N\"}")),
         400,
@@ -561,10 +561,7 @@ class AdminGroupsIT extends AdminApiTest {
 
   private static String type(org.springframework.mock.web.MockHttpServletResponse r)
       throws Exception {
-    return new com.fasterxml.jackson.databind.ObjectMapper()
-        .readTree(r.getContentAsString())
-        .get("type")
-        .asText();
+    return TestJson.tree(r.getContentAsString()).get("type").asText();
   }
 
   @Test

@@ -1,9 +1,6 @@
 package com.example.featureflags.support;
 
 import com.example.featureflags.common.GlobalExceptionHandler;
-import com.example.featureflags.common.JacksonConfig;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -20,14 +17,7 @@ public final class StandaloneMvc {
     validator.afterPropertiesSet();
     return MockMvcBuilders.standaloneSetup(controllers)
         .setControllerAdvice(new GlobalExceptionHandler())
-        .setMessageConverters(
-            new MappingJackson2HttpMessageConverter(
-                new Jackson2ObjectMapperBuilder()
-                    .featuresToDisable(
-                        com.fasterxml.jackson.databind.SerializationFeature
-                            .WRITE_DATES_AS_TIMESTAMPS)
-                    .postConfigurer(JacksonConfig::strict)
-                    .build()))
+        .setMessageConverters(TestJson.converter())
         .setValidator(validator)
         .build();
   }

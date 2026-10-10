@@ -1,8 +1,5 @@
 package com.example.featureflags.common;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,10 +20,10 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 public class HealthBodyFilter extends OncePerRequestFilter {
 
   static final String PATH = "/actuator/health";
-  private final ObjectMapper mapper;
+  private final Json json;
 
-  public HealthBodyFilter(ObjectMapper mapper) {
-    this.mapper = mapper;
+  public HealthBodyFilter(Json json) {
+    this.json = json;
   }
 
   @Override
@@ -40,23 +37,11 @@ public class HealthBodyFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     ContentCachingResponseWrapper wrapper = new ContentCachingResponseWrapper(response);
     chain.doFilter(request, wrapper);
-    JsonNode body;
-    try {
-      body = mapper.readTree(wrapper.getContentAsByteArray());
-    } catch (IOException notJson) {
-      body = null;
-    }
-    if (body == null || !body.has("status")) {
+    byte[] bytes = json.keepHealthStatusAndDb(wrapper.getContentAsByteArray());
+    if (bytes == null) {
       wrapper.copyBodyToResponse();
       return;
     }
-    ObjectNode out = mapper.createObjectNode();
-    out.set("status", body.get("status"));
-    JsonNode db = body.path("components").path("db");
-    if (!db.isMissingNode()) {
-      out.putObject("components").set("db", db);
-    }
-    byte[] bytes = mapper.writeValueAsBytes(out);
     wrapper.resetBuffer();
     wrapper.getOutputStream().write(bytes);
     wrapper.setContentLength(bytes.length);

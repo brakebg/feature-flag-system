@@ -5,9 +5,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.featureflags.support.IntegrationTest;
+import com.example.featureflags.support.TestJson;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +22,6 @@ import org.springframework.test.web.servlet.MockMvc;
 class OpenApiExportIT {
 
   @Autowired MockMvc mvc;
-  @Autowired ObjectMapper json;
 
   @Test
   void writesTheOpenApiDocument() throws Exception {
@@ -33,7 +31,7 @@ class OpenApiExportIT {
             .andReturn()
             .getResponse()
             .getContentAsString(StandardCharsets.UTF_8);
-    JsonNode doc = json.readTree(body);
+    JsonNode doc = TestJson.tree(body);
     assertThat(doc.get("paths").has("/api/v1/admin/groups")).isTrue();
     assertThat(doc.get("paths").has("/api/v1/admin/flags/{flagId}/toggle")).isTrue();
     assertThat(doc.get("paths").has("/api/v1/auth/login")).isTrue();
@@ -61,12 +59,7 @@ class OpenApiExportIT {
             names(
                 schemas.get("CreateGroupRequest").get("properties").get("description").get("type")))
         .containsExactlyInAnyOrder("string", "null");
-    String pretty =
-        json.copy()
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-                .writeValueAsString(json.treeToValue(doc, Object.class))
-            + "\n";
+    String pretty = TestJson.prettySorted(doc) + "\n";
     Files.writeString(Path.of("openapi.json"), pretty, StandardCharsets.UTF_8);
   }
 

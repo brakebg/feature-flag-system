@@ -1,6 +1,5 @@
 package com.example.featureflags.common;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -13,10 +12,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProblemWriter {
 
-  private final ObjectMapper mapper;
+  private final Json json;
 
-  public ProblemWriter(ObjectMapper mapper) {
-    this.mapper = mapper;
+  public ProblemWriter(Json json) {
+    this.json = json;
   }
 
   public void write(
@@ -30,6 +29,6 @@ public class ProblemWriter {
     ProblemDetail p = Problems.of(status, type, title, detail, request);
     response.setStatus(status.value());
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-    mapper.writeValue(response.getOutputStream(), p);
+    json.write(response.getOutputStream(), p);
   }
 }

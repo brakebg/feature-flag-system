@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.featureflags.support.IntegrationTest;
+import com.example.featureflags.support.TestJson;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Base64;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -27,7 +27,6 @@ class TokenEndpointIT {
   static final String GOOD = basic("order-service", "order-service-dev-secret");
 
   @Autowired MockMvc mvc;
-  @Autowired ObjectMapper json;
 
   private ResultActions token(String authorization, String body) throws Exception {
     var req =
@@ -54,9 +53,9 @@ class TokenEndpointIT {
             .getResponse()
             .getContentAsString();
     JsonNode claims =
-        json.readTree(
+        TestJson.tree(
             Base64.getUrlDecoder()
-                .decode(json.readTree(body).get("access_token").asText().split("\\.")[1]));
+                .decode(TestJson.tree(body).get("access_token").asText().split("\\.")[1]));
     assertThat(claims.get("sub").asText()).isEqualTo("order-service");
     assertThat(claims.get("scope").asText()).isEqualTo("flags:read");
     assertThat(claims.get("aud").get(0).asText()).isEqualTo("feature-flag-service");

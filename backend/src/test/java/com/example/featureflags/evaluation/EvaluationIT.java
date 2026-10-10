@@ -22,6 +22,7 @@ import com.example.featureflags.flag.FlagService;
 import com.example.featureflags.support.AdminApiTest;
 import com.example.featureflags.support.IntegrationTest;
 import com.example.featureflags.support.SecurityTestSupport;
+import com.example.featureflags.support.TestJson;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -68,7 +69,7 @@ class EvaluationIT extends AdminApiTest {
 
   @BeforeEach
   void data() throws Exception {
-    clientToken = SecurityTestSupport.clientToken(mvc, json);
+    clientToken = SecurityTestSupport.clientToken(mvc);
     groupId = admin.createGroup("orders", "Orders").get("id").asText();
     flagId = admin.createFlag(groupId, "new-checkout", true).get("id").asText();
     admin.createFlag(groupId, "split-payments", false);
@@ -116,7 +117,7 @@ class EvaluationIT extends AdminApiTest {
             .andExpect(jsonPath("$.flags['orders.new-checkout']").value(true))
             .andExpect(jsonPath("$.flags['orders.split-payments']").value(false));
     long revision =
-        json.readTree(all.andReturn().getResponse().getContentAsString()).get("revision").asLong();
+        TestJson.tree(all.andReturn().getResponse().getContentAsString()).get("revision").asLong();
     assertThat(etag(all)).isEqualTo("\"" + revision + "\"");
 
     evaluate("/groups/orders")
@@ -489,8 +490,7 @@ class EvaluationIT extends AdminApiTest {
         mvc.perform(
                 get("/actuator/prometheus")
                     .header(
-                        HttpHeaders.AUTHORIZATION,
-                        "Bearer " + SecurityTestSupport.adminToken(mvc, json)))
+                        HttpHeaders.AUTHORIZATION, "Bearer " + SecurityTestSupport.adminToken(mvc)))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -508,7 +508,7 @@ class EvaluationIT extends AdminApiTest {
   @Test
   void bodyRevisionEqualsTheETag() throws Exception {
     ResultActions r = evaluate("/groups/orders");
-    JsonNode body = json.readTree(r.andReturn().getResponse().getContentAsString());
+    JsonNode body = TestJson.tree(r.andReturn().getResponse().getContentAsString());
     assertThat(etag(r)).isEqualTo("\"" + body.get("revision").asLong() + "\"");
   }
 }

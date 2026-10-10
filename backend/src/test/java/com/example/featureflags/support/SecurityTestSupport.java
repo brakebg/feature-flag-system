@@ -3,7 +3,6 @@ package com.example.featureflags.support;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,7 +12,7 @@ public final class SecurityTestSupport {
 
   private SecurityTestSupport() {}
 
-  public static String adminToken(MockMvc mvc, ObjectMapper json) throws Exception {
+  public static String adminToken(MockMvc mvc) throws Exception {
     String body =
         mvc.perform(
                 post("/api/v1/auth/login")
@@ -22,10 +21,10 @@ public final class SecurityTestSupport {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    return json.readTree(body).get("accessToken").asText();
+    return TestJson.tree(body).get("accessToken").asText();
   }
 
-  public static String clientToken(MockMvc mvc, ObjectMapper json) throws Exception {
+  public static String clientToken(MockMvc mvc) throws Exception {
     String body =
         mvc.perform(
                 post("/api/v1/auth/token")
@@ -37,7 +36,7 @@ public final class SecurityTestSupport {
             .andReturn()
             .getResponse()
             .getContentAsString();
-    JsonNode n = json.readTree(body);
+    JsonNode n = TestJson.tree(body);
     return n.get("access_token").asText();
   }
 
