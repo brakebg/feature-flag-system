@@ -185,4 +185,4 @@ make verify-all    # all 15 gates, same as CI
 Gate tools (gitleaks, trivy, promtool, k6) are downloaded by `make tools`. End-to-end tests run
 Playwright in its Docker image against fresh compose stacks (`scripts/e2e.sh`).
 
-Project memory for the builder: `docs/STATE.md`, `docs/PROGRESS.md`, `docs/DECISIONS.md`.
+Project memory for the builder: one folder per spec in `docs/specs/` (`STATE.md`, `PROGRESS.md`, `DECISIONS.md`, ...); see `docs/specs/README.md`.

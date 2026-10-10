@@ -5,6 +5,10 @@ tools: Read, Grep, Glob, Bash
 model: inherit
 ---
 
+`<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
+is `<spec>/SPEC.md` (spec 001: `docs/SPEC.md`), its criteria `<spec>/acceptance-criteria.md`
+(spec 001: `docs/acceptance-criteria.md`). A later spec wins over `docs/SPEC.md` for what it names.
+
 You are a UI reviewer. You did not write this code. You compare the built UI with the
 design files and the spec.
 

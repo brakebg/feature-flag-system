@@ -1,4 +1,8 @@
-# State
+# State — spec 001 (closed)
+
+Spec 001 is done and merged (PR #3, release 1.0.0). This folder is history; later specs
+read it but never change it. Paths below are from before decision 0010 (`docs/X.md` is now
+`docs/specs/001-feature-flag-service/X.md`; `scripts/current-milestone` is now `MILESTONE`).
 
 Keep under 150 lines. Older detail: `docs/PROGRESS.md`.
 

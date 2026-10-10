@@ -1,0 +1,8 @@
+{
+  "id": "002",
+  "title": "Spring Boot 4 upgrade",
+  "spec": "docs/specs/002-spring-boot-4-upgrade/SPEC.md",
+  "acceptance": "docs/specs/002-spring-boot-4-upgrade/acceptance-criteria.md",
+  "branch": "feature/spring-boot-4",
+  "milestones": [9]
+}

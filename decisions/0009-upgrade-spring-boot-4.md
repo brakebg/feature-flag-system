@@ -1,6 +1,6 @@
 # 0009 — Spec 002: upgrade the backend to Spring Boot 4.1
 
-Status: **Accepted**
+Status: **Accepted** (folder layout refined by 0010)
 Decided by: owner (@brakebg), 2026-10-10
 Changes: new `docs/specs/` folder and spec 002; `CLAUDE.md`; `docs/acceptance-criteria.md`;
 `docs/builder-agents.md`; `docs/builder-prompt.md`; `scripts/locked-paths.txt`;

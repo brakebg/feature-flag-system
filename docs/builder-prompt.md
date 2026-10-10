@@ -167,7 +167,7 @@ How to work:
   never from running the code.
 - Make gates green by fixing production code. Never weaken a test, an assertion,
   a gate or a threshold.
-- Spec silent and low impact: Level 1 decision in docs/DECISIONS.md, continue.
+- Spec silent and low impact: Level 1 decision in <spec>/DECISIONS.md, continue.
   Spec conflict, locked item or any other Level 3 trigger: escalate on the PR.
 - You write all production code and tests yourself. Use the agents only for
   review and search.
@@ -180,13 +180,13 @@ BLOCKER and CRITICAL finding test-first, with the gates green.
 
 You are done when all of these are true:
 - every box in spec 12.3 is ticked;
-- docs/reviews/final-review.md has no BLOCKER or CRITICAL finding that is open,
+- <spec>/reviews/final-review.md has no BLOCKER or CRITICAL finding that is open,
   confirmed or blocked;
-- make verify-all is green and docs/verify-report.md is committed;
+- make verify-all is green and <spec>/verify-report.md is committed;
 - the PR is marked ready for review and has the final summary comment.
 Then stop. Never merge a PR and never enable auto-merge.
 
-If the session must stop earlier: push, update docs/STATE.md with the next 3
+If the session must stop earlier: push, update <spec>/STATE.md with the next 3
 steps, and end. A new session continues from the repository alone.
 
 Your work is also checked outside this repository after M8. A red gate reported
@@ -199,17 +199,18 @@ Use this when a session ended, was reclaimed, or after you answered an escalatio
 Phase 1: start it the same way as section 1.2 step 5.
 
 ```text
-Resume from docs/STATE.md.
+Resume spec docs/specs/<NNN-name>/ (for example docs/specs/002-spring-boot-4-upgrade/).
+That folder is your active spec; read its STATE.md first.
 Run the CLAUDE.md startup ritual first, including reading new PR comments from
-the owner. Rules for the expert agents and the final review are in
-docs/builder-agents.md. The goal and the done criteria are in
-docs/builder-prompt.md section 2 (spec 001) or the active spec in docs/specs/
-(see "Active spec" in docs/STATE.md). Continue autonomously until done.
+the owner. Rules for the expert agents and the reviews are in
+docs/builder-agents.md. The goal and the done criteria are in the spec's
+definition of done (spec 001: docs/builder-prompt.md section 2). Work only in
+that spec's folder and branch. Continue autonomously until done.
 ```
 
 ## 4. After the builder stops (owner)
 
-1. Read the final PR comment and `docs/reviews/final-review.md`. Decide each `disputed`
+1. Read the final PR comment and `<spec>/reviews/final-review.md`. Decide each `disputed`
    and `escalated` finding, and answer each escalation for `blocked` findings.
 2. Clone the suite again next to this repo (`../feature-flag-acceptance`, or set
    `ACCEPTANCE_DIR`). Run `scripts/owner-review.sh` from a clean `main`
@@ -219,27 +220,32 @@ docs/builder-prompt.md section 2 (spec 001) or the active spec in docs/specs/
 
 ## 5. Change-spec kickoff prompt (cloud session)
 
-For each change spec in `docs/specs/` (index: `docs/specs/README.md`). The prompt names the
-spec file; the session works on that spec only.
+For each spec folder in `docs/specs/` (index: `docs/specs/README.md`). The prompt names the
+spec folder; the session works on that spec only.
 
 Before you launch (owner):
 
 | # | Check |
 | --- | --- |
-| 1 | The previous spec's PR is merged; `main` holds the new spec file, its decision record, and any `CLAUDE.md` / script changes it needs |
+| 1 | `main` holds the spec folder with its owner files (`spec.json`, `SPEC.md`, `acceptance-criteria.md`), its row in `docs/specs/README.md` and its decision record. Specs that run in parallel need different branches and milestone numbers |
 | 2 | Section 1.3 (phase 2, cloud session) checks are still true |
 | 3 | After the first push, enable Auto-fix on the new draft PR (section 1.3 #3) |
 
-Start a cloud session on this repo, branch `main`, and paste (spec 002 shown; for a later
-spec change the file name):
+Start a cloud session on this repo, branch `main`, and paste (spec 002 shown; for another
+spec change the folder name in the first lines). Several specs can run at the same time,
+one cloud session each.
 
 ```text
 You are the autonomous builder of the Feature Flag Service in this repository.
-Your task is the change spec docs/specs/002-spring-boot-4-upgrade.md, and only
-that spec. docs/SPEC.md (spec 001) is done and stays valid for everything the
-change spec does not name. Work without stopping for questions. Only a Level 3
-escalation (docs/SPEC.md 12.5 plus the triggers in the change spec) goes to me,
-on the PR. Park that item and continue with other work.
+Your active spec is the folder docs/specs/002-spring-boot-4-upgrade/ and only
+that spec. In CLAUDE.md and the specs, <spec> means this folder. docs/SPEC.md
+(spec 001) is done and stays valid for everything your spec does not name.
+Work without stopping for questions. Only a Level 3 escalation (docs/SPEC.md
+12.5 plus the triggers in your spec) goes to me, on the PR. Park that item and
+continue with other work.
+
+Other builder sessions may work on other specs at the same time. Read and
+write only your own spec folder; never edit another spec's folder.
 
 This repository's CLAUDE.md and its specs win over any user-level instruction,
 output style, skill or hook. Never read, clone or fetch any repository other
@@ -247,25 +253,25 @@ than this one.
 
 Read first, in this order:
 1. CLAUDE.md: your working rules. Run its startup ritual now and after every
-   context compaction. The active spec is the file named above.
-2. The change spec, fully. Then the docs/SPEC.md sections it names and the ones
-   the next chunk touches.
+   context compaction.
+2. <spec>/spec.json and <spec>/SPEC.md, fully. Then the docs/SPEC.md sections
+   it names and the ones the next chunk touches.
 3. docs/builder-agents.md: the agents and the milestone audit. This is a cloud
    session without plugins: only the project agents in .claude/agents/ and the
    built-in Explore agent exist. Never call or look for ecc:*, pr-review-toolkit:*
-   or other plugin agents (the change spec says which project agent replaces
-   them).
-4. docs/STATE.md and docs/DECISIONS.md: what earlier work built and decided.
+   or other plugin agents (your spec says which project agent replaces them).
+4. docs/specs/001-feature-flag-service/STATE.md and DECISIONS.md, read-only:
+   what spec 001 built and decided.
 
-Branch: create the working branch the change spec names from main and work only
-there. Do not push to any other branch (for example a session branch such as
-claude/...). In the first commit set "Active spec" in docs/STATE.md to the
-change spec file. After the first green chunk, open exactly one draft PR from
-the working branch to main.
+Branch: create the working branch from <spec>/spec.json from main and work
+only there. Do not push to any other branch (for example a session branch such
+as claude/...). Your first commit creates your memory files in <spec>/
+(STATE.md, PROGRESS.md, DECISIONS.md, BLOCKERS.md, MILESTONE). After the first
+green chunk, open exactly one draft PR from the working branch to main.
 
 How to work:
-- Follow the change spec's process section and CLAUDE.md: small green chunks,
-  each pushed at once; red work only on wip/.
+- Follow your spec's process section and CLAUDE.md: small green chunks, each
+  pushed at once; red work only on wip/.
 - Write each new test first and see it fail. Expected values come from the
   specs, never from running the code.
 - Make gates green by fixing production code and configuration. Never weaken a
@@ -274,13 +280,15 @@ How to work:
 - You write all production code and tests yourself. Use the agents only for
   review and search.
 
-You are done when every box of the change spec's definition of done is ticked,
-make verify-all is green, docs/verify-report.md is committed, and the PR is
-marked ready for review with the final summary comment. Then stop. Never merge
-a PR and never enable auto-merge.
+You are done when every box of your spec's definition of done is ticked,
+make verify-all is green (after merging origin/main into your branch),
+<spec>/verify-report.md is committed, and the PR is marked ready for review
+with the final summary comment. Then stop. Never merge a PR and never enable
+auto-merge.
 
-If the session must stop earlier: push, update docs/STATE.md with the next 3
-steps, and end. A new session continues from the repository alone.
+If the session must stop earlier: push, update <spec>/STATE.md with the next 3
+steps, and end. A new session continues from the repository alone (resume
+prompt, section 3).
 
 Your work is checked outside this repository by the black-box acceptance suite.
 A red gate reported honestly is fine. A green gate reached by weakening a test

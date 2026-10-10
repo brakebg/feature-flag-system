@@ -67,8 +67,3 @@ Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 - [ ] **AC-OPS-2** · Backend image runs standalone with only env vars set (no UI needed); UI image runs standalone pointed at any `BACKEND_URL`.
 - [ ] **AC-OPS-3** · `/actuator/health` reports UP with DB status.
 - [ ] **AC-OPS-4** · With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`).
-
-## Spec 002 — Spring Boot 4 upgrade (`docs/specs/002-spring-boot-4-upgrade.md`, due M9)
-
-- [ ] **AC-UPG-1** · The running backend reports Spring Boot 4.1.x, Spring Framework 7.0.9 or later, Spring Security 7.1.x and Jackson 3.x, read at runtime from the libraries (not from build files).
-- [ ] **AC-UPG-2** · No backend class imports Jackson 2 `com.fasterxml.jackson.core` or `com.fasterxml.jackson.databind` (ArchUnit, gate 3).

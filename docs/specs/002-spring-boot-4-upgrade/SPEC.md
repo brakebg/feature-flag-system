@@ -2,6 +2,8 @@
 
 Owner-authored, locked. Decision: `decisions/0009-upgrade-spring-boot-4.md`.
 Milestone: **M9**. Working branch: **`feature/spring-boot-4`** (from `main`), one PR to `main`.
+Spec folder (`<spec>` below): `docs/specs/002-spring-boot-4-upgrade/` — `spec.json`, this file,
+`acceptance-criteria.md`, and all memory files of this spec (`docs/specs/README.md`).
 
 This is a change spec. It is executed by an autonomous builder session whose kickoff prompt
 names this file. Every "MUST" is a hard requirement.
@@ -20,7 +22,7 @@ names this file. Every "MUST" is a hard requirement.
 | 2 Tech stack: new JSON row | Jackson 3 (`tools.jackson.*`); annotations stay `com.fasterxml.jackson.annotation` |
 | 9.6 Versioning | This release is `1.1.0` |
 | 11.3 Accepted vulnerabilities, rows 1 and 2 | End with M9: the agent removes their `.trivyignore` lines (section 5 item 4). The only case where the agent removes an accepted entry |
-| 12.2 Milestones, 12.5 flow step 1, 12.6 startup step 2 | Milestone M9, branch `feature/spring-boot-4` instead of `feature/feature-flag-service` |
+| 12.2 Milestones | Adds M9 (this spec). Branch, folder and milestone come from `<spec>/spec.json` (12.5, 12.6) |
 
 - After the PR is merged, the owner updates `docs/SPEC.md` to match (section 2 rows, 11.3
   table). The agent never edits `docs/SPEC.md` or this file.
@@ -50,7 +52,8 @@ Latest patch of each line at build time, pinned exactly (spec 001 section 2).
 | Java / PostgreSQL / Temurin image | 21 / 16 / 21 JRE | unchanged |
 | Frontend | — | unchanged |
 
-Version properties that override a Boot-managed version (`docs/DECISIONS.md` D-007: Jackson,
+Version properties that override a Boot-managed version (spec 001 decision D-007 in
+`docs/specs/001-feature-flag-service/DECISIONS.md`: Jackson,
 Tomcat, PostgreSQL driver) are removed when Boot 4.1 manages a version without a HIGH or
 CRITICAL vulnerability. An override that stays needs a new `DECISIONS.md` entry and must stay
 inside the line Boot 4.1 manages.
@@ -62,7 +65,7 @@ The upgrade is proven by these. Breaking one is a bug in the upgrade.
 1. Every acceptance criterion in `docs/acceptance-criteria.md` and every error-case ID passes.
    No test is deleted, skipped, loosened or re-baselined. A test changes only where an API of a
    new library forces it (package, annotation or class names); expected values and assertions
-   stay the same. Each changed test is listed in `docs/DECISIONS.md`: file, old line, new line,
+   stay the same. Each changed test is listed in `<spec>/DECISIONS.md`: file, old line, new line,
    the library change that forced it.
 2. HTTP behaviour is the same for clients, byte for byte: status codes; headers (`Cache-Control`,
    `ETag`, security headers, `X-Request-Id`); problem details (spec 001 9.1); JSON field names,
@@ -96,13 +99,13 @@ The upgrade is proven by these. Breaking one is a bug in the upgrade.
 5. `VERSION` = `1.1.0` (and the versions that gate 15 compares with it). `CHANGELOG.md`
    gets a `1.1.0` section: Changed (platform versions), Security (the two CVEs). README: stack
    versions only.
-6. `scripts/current-milestone` = `9`.
+6. `<spec>/MILESTONE` = `9` while M9 runs, `9 complete` at the end.
 7. Docker: base images unchanged; `/actuator/info` shows `build.version` `1.1.0` and
    `git.commit.id`.
 
 ## 6. Acceptance criteria
 
-Registered in `docs/acceptance-criteria.md` (section "Spec 002"), due M9.
+Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 9`).
 
 - **AC-UPG-1** · The running backend reports Spring Boot 4.1.x, Spring Framework 7.0.9 or later,
   Spring Security 7.1.x and Jackson 3.x, read at runtime from the libraries (not from build files).
@@ -115,8 +118,9 @@ Registered in `docs/acceptance-criteria.md` (section "Spec 002"), due M9.
   `make verify-fast` per chunk, push at once, red work only on `wip/`, owner comments before
   every commit, escalation flow 12.5.
 - Commit messages: `M9 <area>: <what changed>`, trailers `AC:` and `Spec: 002 §<n>`.
-- First commit: `docs/STATE.md` for M9 (active spec `docs/specs/002-spring-boot-4-upgrade.md`,
-  milestone M9, next 3 steps) and `scripts/current-milestone` = `9`. After the first green
+- First commit: create the memory files in `<spec>/` (`STATE.md` with milestone M9 and the
+  next 3 steps, `PROGRESS.md`, `DECISIONS.md`, `BLOCKERS.md`, `MILESTONE` = `9`). Do not
+  touch `docs/specs/001-feature-flag-service/` (history of spec 001). After the first green
   chunk, open one draft PR `feature/spring-boot-4` → `main`.
 - Suggested chunk order: (a) build file and Boot 4 starters, code compiles; (b) Jackson 3 in
   main code; (c) tests on Jackson 3, Testcontainers 2, JUnit 6; (d) security and web
@@ -155,7 +159,7 @@ and `CLAUDE.md` 6a for M9.
 ## 8. Definition of done
 
 - [ ] `make verify-all` passes from a fresh clone, all 15 gates green, on Spring Boot 4.1.x;
-      report committed as `docs/verify-report.md`.
+      report committed as `<spec>/verify-report.md`.
 - [ ] Traceability shows every criterion (including AC-UPG-1 and AC-UPG-2) and every error-case
       ID with at least one passing test.
 - [ ] `.trivyignore` has no line for CVE-2026-47884 or CVE-2026-47890; Trivy reports neither.
@@ -164,7 +168,7 @@ and `CLAUDE.md` 6a for M9.
 - [ ] `VERSION` is `1.1.0`; CHANGELOG has the `1.1.0` section; `/actuator/info` shows `1.1.0`.
 - [ ] Every test changed in M9 is listed in `DECISIONS.md`; gate 15 shows no violation.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; no `wip/` branch
-      left; `docs/STATE.md` shows M9 complete.
+      left; `<spec>/STATE.md` shows M9 complete.
 - [ ] The PR `feature/spring-boot-4` → `main` is marked ready for review, with a final summary
       comment: what changed, versions before and after, gate results, changed tests, decisions.
 

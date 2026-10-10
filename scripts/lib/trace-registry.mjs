@@ -1,6 +1,8 @@
 // ID registry for gate 14 (spec 11.4).
 //
-// - AC IDs come from docs/acceptance-criteria.md (verbatim copy of spec 11.2).
+// - AC IDs come from docs/acceptance-criteria.md (verbatim copy of spec 11.2), plus the
+//   acceptance-criteria.md of every later spec that is active or has started
+//   (docs/specs/<id>/, "Due milestone: <n>" in that file; docs/specs/README.md).
 // - ERR IDs: one per status code in the Errors column of spec 6.1, plus the auth and
 //   evaluation endpoints of spec 5 and 7. Format ERR-<METHOD>-<path>-<status>, path
 //   relative to /api/v1 (or the actuator path).
@@ -11,7 +13,8 @@
 //   is due (DECISIONS.md D-003).
 // Owner condition (ESC-001): a due milestone may only move earlier, never later, without a
 // new escalation.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { activeSpec, specs } from './active-spec.mjs';
 
 export function acIds(file = 'docs/acceptance-criteria.md') {
   const text = readFileSync(file, 'utf8');
@@ -20,6 +23,27 @@ export function acIds(file = 'docs/acceptance-criteria.md') {
     ids.push({ id: m[1], removed: m[2].startsWith('[Removed') });
   }
   return ids;
+}
+
+/**
+ * Criteria of the later specs (docs/specs/<id>/acceptance-criteria.md) that count on this
+ * branch: the active spec, and every spec whose work has started here (MILESTONE file).
+ * Spec 001 uses docs/acceptance-criteria.md and acDue below.
+ */
+export function specAcs(root = '.') {
+  const active = activeSpec(root);
+  const out = [];
+  for (const s of specs(root)) {
+    if (s.acceptance === 'docs/acceptance-criteria.md' || !s.acceptance) continue;
+    if (!(s.milestone || (active && active.id === s.id))) continue;
+    const file = `${root}/${s.acceptance}`;
+    if (!existsSync(file)) throw new Error(`${s.dir}/spec.json: ${s.acceptance} does not exist`);
+    const text = readFileSync(file, 'utf8');
+    const due = Number(/^Due milestone: (\d+)\s*$/m.exec(text)?.[1]);
+    if (!due) throw new Error(`${s.acceptance}: missing "Due milestone: <n>"`);
+    for (const a of acIds(file)) out.push({ ...a, due, spec: s.id });
+  }
+  return out;
 }
 
 // Milestone in which each AC is first fully testable (spec 12.2).
@@ -33,7 +57,6 @@ export const acDue = {
   'AC-CACHE-6': 5, 'AC-CACHE-7': 5, 'AC-CACHE-8': 5, 'AC-CACHE-9': 8,
   'AC-AUD-1': 4, 'AC-AUD-2': 7, 'AC-AUD-3': 4,
   'AC-OPS-1': 8, 'AC-OPS-2': 8, 'AC-OPS-3': 2, 'AC-OPS-4': 5,
-  'AC-UPG-1': 9, 'AC-UPG-2': 9, // spec 002, decision 0009
 };
 
 const admin = [
