@@ -10,7 +10,7 @@ Keep under 150 lines.
 
 ## Last green commit
 
-- Baseline: `make verify-fast` PASS on main (f51ca83 + 2 owner docs commits).
+- 1bbf019 (A2). `make verify-fast` PASS.
 
 ## wip/ branches
 
@@ -18,9 +18,9 @@ Keep under 150 lines.
 
 ## Next 3 steps
 
-1. A2: put all Jackson use of main code behind one config class, tests behind one helper.
+1. A1: compile with -Xlint:deprecation, remove APIs deleted in Boot 4 / Spring 7 / Security 7.
 2. A1: compile with deprecation warnings, remove APIs deleted in Boot 4 / Security 7.
-3. A3: other section 9 items that already work on Boot 3.5; then B0.
+3. B0: docs-only commit naming wip/spring-boot-4, then phase B.
 
 ## Open escalations
 
