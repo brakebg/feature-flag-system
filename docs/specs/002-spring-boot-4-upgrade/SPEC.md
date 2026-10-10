@@ -122,10 +122,47 @@ Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 9`).
   next 3 steps, `PROGRESS.md`, `DECISIONS.md`, `BLOCKERS.md`, `MILESTONE` = `9`). Do not
   touch `docs/specs/001-feature-flag-service/` (history of spec 001). After the first green
   chunk, open one draft PR `feature/spring-boot-4` → `main`.
-- Suggested chunk order: (a) build file and Boot 4 starters, code compiles; (b) Jackson 3 in
-  main code; (c) tests on Jackson 3, Testcontainers 2, JUnit 6; (d) security and web
-  configuration until gate 5 is green; (e) gates 6 to 8; (f) Docker images, gates 10 to 13;
-  (g) AC-UPG-1, AC-UPG-2, `.trivyignore`, VERSION, CHANGELOG, README.
+- M9 runs in three phases. The platform switch cannot be green in small steps, so phase B
+  uses checkpoints instead of green chunks. A crashed or corrupted session loses at most one
+  checkpoint (about 30 minutes of work).
+
+**Phase A — prepare, green on Spring Boot 3.5** (normal green chunks on `feature/spring-boot-4`)
+
+  A1. Remove every API that Spring Boot 4, Spring Framework 7 or Spring Security 7 deletes
+      (compile with deprecation warnings; follow the migration guides, section 9).
+  A2. Put all Jackson use of the main code behind one JSON configuration class, and all
+      Jackson use of the tests behind one JSON test helper, so the Jackson 3 switch touches
+      few files.
+  A3. Anything else from section 9 that already works on Boot 3.5.
+  Behaviour does not change in phase A (section 4). Each chunk is green and pushed as usual.
+
+**Phase B — the switch, on `wip/spring-boot-4`** (checkpoints)
+
+  B0. First a small green, docs-only commit on `feature/spring-boot-4`: `<spec>/STATE.md` says
+      "phase B runs on `wip/spring-boot-4`" and lists that branch under `wip/` branches. Push.
+  B1. Create `wip/spring-boot-4` from `feature/spring-boot-4`. Steps, in this order: build
+      file and Boot 4 starters (code compiles); Jackson 3 in main code; tests on Jackson 3,
+      Testcontainers 2 and JUnit 6; security and web configuration until gate 5 is green.
+  B2. Checkpoint rule: commit and push to `wip/spring-boot-4` after every step and at the
+      latest every ~300 changed lines or ~30 minutes, **even when red**. Every checkpoint
+      updates `<spec>/STATE.md` on the wip branch: what is done, which gates are red and
+      why, the exact next step. Commit message `M9 wip: <what>`, trailer `Red: <gates>`.
+  B3. A new session (startup ritual step 4) checks out `wip/spring-boot-4` and continues from
+      its `STATE.md`. It never starts the switch again from `feature/spring-boot-4`. In phase B
+      the baseline of startup step 5 is "the red gates listed in `STATE.md`, nothing more":
+      a gate that was green at the last checkpoint and is now red is fixed first.
+  B4. When `make verify-fast` is green on `wip/spring-boot-4`: squash the whole wip branch
+      into one commit on `feature/spring-boot-4` (`git merge --squash`, message lists the
+      checkpoints), run `make verify-fast` again, push. The working branch keeps only green
+      commits. Record the squash in `<spec>/STATE.md`; the wip branch stays (deleting a
+      branch is Level 3) and is listed as "merged by squash".
+
+**Phase C — finish, green chunks on `feature/spring-boot-4`**
+
+  C1. Gates 6 to 8. C2. Docker images, gates 10 to 13. C3. AC-UPG-1, AC-UPG-2,
+  `.trivyignore`, VERSION, CHANGELOG, README. C4. Milestone audit, `MILESTONE` = `9 complete`,
+  `make verify-all`, merge `origin/main`, PR ready.
+
 - Review: milestone audit (`docs/builder-agents.md` section 5, row M9) with the agents in
   section 7a. Fix every BLOCKER and CRITICAL before `M9: complete`. No separate final review.
 - The limit of 20 failed `make verify` runs (spec 001 12.4) counts from the start of M9.
@@ -167,8 +204,8 @@ and `CLAUDE.md` 6a for M9.
       `DECISIONS.md`.
 - [ ] `VERSION` is `1.1.0`; CHANGELOG has the `1.1.0` section; `/actuator/info` shows `1.1.0`.
 - [ ] Every test changed in M9 is listed in `DECISIONS.md`; gate 15 shows no violation.
-- [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; no `wip/` branch
-      left; `<spec>/STATE.md` shows M9 complete.
+- [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; every `wip/` branch
+      finished (squashed) or recorded as dropped; `<spec>/STATE.md` shows M9 complete.
 - [ ] The PR `feature/spring-boot-4` → `main` is marked ready for review, with a final summary
       comment: what changed, versions before and after, gate results, changed tests, decisions.
 
