@@ -804,7 +804,7 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 7 | Mutation testing | PIT on `auth`, `group`, `flag`, `evaluation` packages | Mutation score < 60 %; catches tests that run code without asserting on it | M4 |
 | 8 | API contract | springdoc writes `backend/openapi.json`; `openapi-typescript` generates `frontend/src/api/schema.d.ts`; `git diff --exit-code` | Committed OpenAPI file or generated types are out of date, or UI code does not compile against them | M4 |
 | 9 | Frontend tests | `npm test -- --coverage` (Vitest, RTL, MSW) | Any failing test | M6 |
-| 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. The only exception is a vulnerability with no fixed version, listed in .trivyignore with a reason and an expiry date and recorded in docs/DECISIONS.md | M1 |
+| 10 | Secrets | gitleaks with an allowlist for the documented dev defaults; Trivy filesystem scan of Maven and npm dependencies; Trivy scan of both Docker images once they are built (full verify only) | Any other secret-looking string, or any HIGH or CRITICAL vulnerability. Two exceptions only, both listed in `.trivyignore` (format below): (a) a vulnerability with no fixed version, recorded by the agent in docs/DECISIONS.md with a reason and an expiry date; (b) a vulnerability the owner has accepted, listed in the "Accepted vulnerabilities" table below. Any other entry in `.trivyignore` fails the gate | M1 |
 | 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present (HSTS only when the request has `X-Forwarded-Proto: https`, 10.2) | M5 |
 | 12 | End-to-end | Playwright, `--repeat-each=2`, retries 0 | Any failure, including a test that passes once and fails once (flaky), or any Content-Security-Policy violation reported in the browser console | M8 |
 | 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | Any error, or cache hit rate < 99 %. The p95 is measured and reported against the 50 ms target but does not fail the gate (9.2, decision 0007) | M8 |
@@ -812,6 +812,21 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 15 | Test integrity | `scripts/check-integrity.mjs` | Any `@Disabled`, `assumeTrue(false)`, `.skip(`, `.only(`, `xit(`, `test.fixme`; any `eslint-disable` or `@SuppressWarnings` without a `// reason:` comment; thresholds in config files differing from this spec; coverage, mutation, lint or ArchUnit exclusions not listed in `docs/DECISIONS.md` | M1 |
 
 A gate not yet active passes trivially but is already wired into `make verify` from M1, so later milestones only add tests, never plumbing.
+
+**Accepted vulnerabilities (gate 10).** The owner has reviewed these and accepts the risk. They are excluded from the Trivy report in `make verify` and in CI. The agent adds them to `.trivyignore` and never removes them. Only the owner changes this table (decision record in `decisions/`).
+
+| CVE | Severity | Why accepted | Review by | Decision |
+| --- | --- | --- | --- | --- |
+| CVE-2026-47884 | CRITICAL | Known. Risk accepted by the owner | 2027-04-10 | decisions/0007 |
+
+`.trivyignore` format, one entry per vulnerability:
+
+```
+# <reason> — "owner accepted, spec 11.3" or "no fixed version, DECISIONS.md #n"
+CVE-2026-47884 exp:2027-04-10
+```
+
+The `exp:` date is the review date. When it passes, Trivy reports the vulnerability again; the owner then renews the entry or removes it.
 
 ### 11.4 Acceptance-criteria traceability
 
