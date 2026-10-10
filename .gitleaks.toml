@@ -1,0 +1,24 @@
+# gitleaks config for gate 10 (spec 11.3). Default rules plus an allowlist for the
+# documented dev defaults of spec 5.1 / 9.4 only. Any other secret-looking string fails.
+title = "feature-flag-service"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented dev defaults (spec 5.1, 9.4) and build output"
+regexes = [
+  '''admin123''',
+  '''order-service-dev-secret''',
+  '''change-me-to-a-32-byte-minimum-secret!!''',
+]
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)target/''',
+  '''^build/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''',
+  '''(^|/)\.git/''',
+]

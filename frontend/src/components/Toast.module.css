@@ -1,0 +1,25 @@
+.stack {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  min-width: 240px;
+  max-width: 420px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  font-weight: 500;
+}
+.success {
+  background: var(--color-topbar);
+  color: #ffffff;
+}
+.error {
+  background: var(--color-danger);
+  color: #ffffff;
+}

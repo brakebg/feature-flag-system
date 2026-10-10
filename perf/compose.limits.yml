@@ -1,0 +1,5 @@
+# Gate 13 (spec 9.2): the backend runs on 1 vCPU / 512 MB during the load test.
+services:
+  backend:
+    cpus: 1.0
+    mem_limit: 512m

@@ -1,0 +1,42 @@
+/* Design values from docs/design (spec 8). Tests compare against the design, not this file. */
+:root {
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8f9fa;
+  --color-text: #15181d;
+  --color-text-muted: #59616c;
+  --color-text-soft: #3b424c;
+  --color-border: #dce0e5;
+  --color-border-strong: #c7cdd4;
+  --color-row-border: #ebeef1;
+  --color-primary: #2350c8;
+  --color-primary-dark: #1a3d9c;
+  --color-primary-soft: #e9eefa;
+  --color-info-bg: #eef3fd;
+  --color-topbar: #15181d;
+  --color-topbar-active: #2a2f37;
+  --color-topbar-text: #c9cfd8;
+  --color-topbar-border: #3a414b;
+  --color-danger: #a8231a;
+  --color-danger-border: #e4b4ae;
+  --color-danger-soft: #fbeae8;
+  --color-danger-disabled: #e6b9b4;
+  --color-switch-off: #aab2bd;
+  --color-badge: #eef0f3;
+  --color-overlay: rgba(59, 66, 76, 0.75); /* blends to about #6B717A over #F4F5F7 (design) */
+  --label-created-bg: #e7eefc;
+  --label-created-fg: #1a3d9c;
+  --label-updated-bg: #eef0f3;
+  --label-updated-fg: #3b424c;
+  --label-toggled-bg: #fdf0e1;
+  --label-toggled-fg: #8a4b08;
+  --label-deleted-bg: #fbeae8;
+  --label-deleted-fg: #a8231a;
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+}

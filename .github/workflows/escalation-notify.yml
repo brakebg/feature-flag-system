@@ -1,0 +1,63 @@
+# Escalation notify (spec 12.5 flow steps 3 and 5).
+# Created once in M1, then locked (scripts/locked-paths.txt, create-once).
+#
+# Safety:
+# - Acts only on comments written by the owner's login (repository variable ESCALATION_OWNER).
+# - Never checks out or runs code. Uses only the GitHub API through `gh`.
+# - The comment body is read from an environment variable and only matched with a fixed
+#   regex; it is never evaluated as a shell command.
+# - Permissions: issues write and pull-requests write only. No secrets.
+name: escalation-notify
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  notify:
+    if: >-
+      github.event.issue.pull_request &&
+      vars.ESCALATION_OWNER != '' &&
+      github.event.comment.user.login == vars.ESCALATION_OWNER &&
+      (startsWith(github.event.comment.body, '[ESCALATION') ||
+       startsWith(github.event.comment.body, '[RESOLVED'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      NUMBER: ${{ github.event.issue.number }}
+      OWNER: ${{ vars.ESCALATION_OWNER }}
+      BODY: ${{ github.event.comment.body }}
+    steps:
+      - name: Label and ping on a new escalation
+        run: |
+          set -euo pipefail
+          if [[ "$BODY" =~ ^\[ESCALATION\ (ESC-[0-9]{3}) ]]; then
+            id="${BASH_REMATCH[1]}"
+            gh api --method POST "repos/${REPO}/issues/${NUMBER}/labels" -f "labels[]=needs-human" >/dev/null
+            gh api --method POST "repos/${REPO}/issues/${NUMBER}/comments" \
+              -f "body=@${OWNER} ${id} needs your answer" >/dev/null
+            echo "Pinged owner for ${id}"
+          fi
+
+      - name: Remove the label when no escalation remains open
+        run: |
+          set -euo pipefail
+          if [[ "$BODY" =~ ^\[RESOLVED\ ESC-[0-9]{3} ]]; then
+            bodies=$(gh api "repos/${REPO}/issues/${NUMBER}/comments" --paginate \
+              --jq ".[] | select(.user.login == \"${OWNER}\") | .body | split(\"\n\")[0]")
+            raised=$(printf '%s\n' "$bodies" | grep -oE '^\[ESCALATION ESC-[0-9]{3}' | grep -oE 'ESC-[0-9]{3}' | sort -u || true)
+            resolved=$(printf '%s\n' "$bodies" | grep -oE '^\[RESOLVED ESC-[0-9]{3}' | grep -oE 'ESC-[0-9]{3}' | sort -u || true)
+            open=$(comm -23 <(printf '%s\n' "$raised") <(printf '%s\n' "$resolved") | grep -c . || true)
+            if [ "$open" = "0" ]; then
+              gh api --method DELETE "repos/${REPO}/issues/${NUMBER}/labels/needs-human" >/dev/null 2>&1 || true
+              echo "No open escalation; label removed"
+            else
+              echo "${open} escalation(s) still open"
+            fi
+          fi

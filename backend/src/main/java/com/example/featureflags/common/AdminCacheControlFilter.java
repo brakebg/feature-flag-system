@@ -1,0 +1,35 @@
+package com.example.featureflags.common;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Spec 10.2: every Admin API response, whatever its status, has {@code Cache-Control: no-store}.
+ * Runs before {@link BodySizeLimitFilter}, so its 413 answer has the header too.
+ */
+@Component
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+public class AdminCacheControlFilter extends OncePerRequestFilter {
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    String path = RequestPaths.of(request);
+    return !(path.equals("/api/v1/admin") || path.startsWith("/api/v1/admin/"));
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+    response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+    chain.doFilter(request, response);
+  }
+}

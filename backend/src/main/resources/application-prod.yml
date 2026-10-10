@@ -1,0 +1,9 @@
+# prod profile (spec 9.4): HTTPS required for login and token unless FF_REQUIRE_HTTPS says otherwise.
+# Spec 5.4: Swagger UI and the OpenAPI document are disabled in prod (404 for everyone).
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+featureflags:
+  require-https: ${FF_REQUIRE_HTTPS:true}
