@@ -205,8 +205,11 @@ Builder rules for untrusted input: `CLAUDE.md` section 8a.
 
 ## 7. Owner review
 
-1. From a clean `main` checkout: `scripts/owner-review.sh` (default branch
-   `origin/feature/feature-flag-service`; `--no-suite` skips Docker). It checks:
+1. From a clean `main` checkout, after `git fetch origin <branch>`:
+   `scripts/owner-review.sh docs/specs/<NNN-name>`. The target is required (no default
+   branch): a spec folder (`docs/specs/001-feature-flag-service`), a spec id (`001`), a
+   remote branch (`origin/feature/feature-flag-service`), a branch name or a commit.
+   Without a target the script prints usage and exits 2. `--no-suite` skips Docker. It checks:
    locked files, locked values (coverage 80/70, PIT 60, Playwright retries 0 and
    repeat-each 2, `maxDiffPixelRatio` 0.01, k6 targets, banned dependencies, verbatim
    acceptance criteria), weakened tests, and runs the black-box acceptance suite.

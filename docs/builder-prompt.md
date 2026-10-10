@@ -213,7 +213,7 @@ that spec's folder and branch. Continue autonomously until done.
 1. Read the final PR comment and `<spec>/reviews/final-review.md`. Decide each `disputed`
    and `escalated` finding, and answer each escalation for `blocked` findings.
 2. Clone the suite again next to this repo (`../feature-flag-acceptance`, or set
-   `ACCEPTANCE_DIR`). Run `scripts/owner-review.sh` from a clean `main`
+   `ACCEPTANCE_DIR`). Run `scripts/owner-review.sh docs/specs/<NNN-name>` from a clean `main`
    (`docs/VALIDATION.md` section 7).
 3. Failures go back as bug reports by AC ID (`docs/VALIDATION.md` section 8). Then use the
    resume prompt.
@@ -296,6 +296,7 @@ A red gate reported honestly is fine. A green gate reached by weakening a test
 is a failed session.
 ```
 
-After the builder stops: section 4 applies unchanged. `scripts/owner-review.sh` reviews
-`origin/feature/spring-boot-4` by default; for another branch pass it as the argument
+After the builder stops: section 4 applies unchanged. `scripts/owner-review.sh` needs its
+target as the required argument: the spec folder (`scripts/owner-review.sh docs/specs/002-spring-boot-4-upgrade`
+reviews `origin/feature/spring-boot-4`), the spec id (`002`), or a branch
 (`scripts/owner-review.sh origin/<branch>`).
