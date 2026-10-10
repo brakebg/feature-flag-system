@@ -286,4 +286,3 @@ is a failed session.
 After the builder stops: section 4 applies unchanged. `scripts/owner-review.sh` reviews
 `origin/feature/spring-boot-4` by default; for another branch pass it as the argument
 (`scripts/owner-review.sh origin/<branch>`).
-
