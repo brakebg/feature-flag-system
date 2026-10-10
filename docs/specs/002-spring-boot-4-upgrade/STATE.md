@@ -4,23 +4,30 @@ Keep under 150 lines.
 
 ## Current
 
-- Milestone: M9, phase A done after this commit (A1, A2 done). Next: A3 then B0.
-- Branch: `feature/spring-boot-4`; draft PR #13
+- Milestone: M9, phase B on `wip/spring-boot-4` (this branch). Continue here, never restart the
+  switch from `feature/spring-boot-4`.
+- Working branch `feature/spring-boot-4` is green at d024a2d. Draft PR #13.
 - Last processed PR comment: none (no owner comments yet)
 
-## Last green commit
+## wip checkpoint log (newest last)
 
-- A1 commit (see PROGRESS.md). `make verify-fast` PASS.
+1. B1 step 1 done: pom on Boot 4.1.1, starters renamed, springdoc 3.1.1, Testcontainers 2 ids,
+   version overrides removed. `mvnw test-compile` OK (main still on Jackson 2 classes through
+   compat). Gates not run yet.
+
+## Red gates
+
+- not run yet at this checkpoint
 
 ## wip/ branches
 
-- `wip/spring-boot-4`: phase B runs on this branch (checkpoints, may be red). Not merged yet.
+- `wip/spring-boot-4`: this branch. Not merged yet.
 
 ## Next 3 steps
 
-1. A3 checked: nothing more works on 3.5 alone (see D-3). Phase A done.
-2. Phase B runs on `wip/spring-boot-4`: check it out, read its STATE.md, continue there.
-3. B1 step 1: pom to Boot 4.1 + starters; compile; checkpoint after each step.
+1. B1 step 2: Jackson 3 in main code (`JacksonConfig`, `Json`), then run main app tests.
+2. B1 step 3: tests on Jackson 3 (`TestJson`, domain tests), Testcontainers 2 packages, JUnit 6.
+3. B1 step 4: security/web config until gate 5 green; then B4 squash to feature branch.
 
 ## Open escalations
 
