@@ -1,8 +1,10 @@
 package com.example.featureflags.support;
 
 import com.example.featureflags.common.JacksonConfig;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.http.converter.json.ProblemDetailJacksonMixin;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -43,6 +45,7 @@ public final class TestJson {
   public static HttpMessageConverter<Object> converter() {
     JsonMapper.Builder builder = JsonMapper.builder();
     JacksonConfig.strict(builder);
+    builder.addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);
     return new JacksonJsonHttpMessageConverter(builder.build());
   }
 }

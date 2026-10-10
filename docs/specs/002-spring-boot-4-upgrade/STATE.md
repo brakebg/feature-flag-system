@@ -17,7 +17,7 @@ Keep under 150 lines.
 
 ## Red gates
 
-- not run yet at this checkpoint
+- none. `make verify-fast` PASS on wip (all of B1 done).
 
 ## wip/ branches
 
@@ -25,9 +25,9 @@ Keep under 150 lines.
 
 ## Next 3 steps
 
-1. B1 step 2: Jackson 3 in main code (`JacksonConfig`, `Json`), then run main app tests.
-2. B1 step 3: tests on Jackson 3 (`TestJson`, domain tests), Testcontainers 2 packages, JUnit 6.
-3. B1 step 4: security/web config until gate 5 green; then B4 squash to feature branch.
+1. B4: squash wip into `feature/spring-boot-4` (`git merge --squash`), verify-fast, push.
+2. Phase C: gates 6-8 (full `make verify`), Docker images, gates 10-13.
+3. C3: AC-UPG-1/2 tests, `.trivyignore`, VERSION 1.1.0, CHANGELOG, README.
 
 ## Open escalations
 

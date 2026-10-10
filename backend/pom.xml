@@ -28,6 +28,11 @@
     <pitest.version>1.30.0</pitest.version>
     <pitest-junit5.version>1.2.3</pitest-junit5.version>
     <archunit.version>1.5.1</archunit.version>
+    <!-- Patched versions over the Spring Boot BOM, same minor line (gate 10, Trivy HIGH/CRITICAL;
+         spec 002 D-4). -->
+    <jackson-bom.version>3.1.7</jackson-bom.version>
+    <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+    <tomcat.version>11.0.26</tomcat.version>
   </properties>
 
   <dependencies>
