@@ -136,7 +136,7 @@ and `CLAUDE.md` 6a for M9.
 | --- | --- | --- |
 | Project agents (`.claude/agents/`, part of the repo) | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` | Available. Use them as `docs/builder-agents.md` says |
 | Built-in agents | `Explore` | Available, search only |
-| Vendor agents (plugins) | `ecc:*` (for example `ecc:java-reviewer`), `pr-review-toolkit:*`, any other `<plugin>:<agent>` | **Do not exist. Do not call, look for, or install them** |
+| Vendor agents (plugins) | `ecc:*` (for example `ecc:java-reviewer`), `pr-review-toolkit:*`, any other `<plugin>:<agent>` | **Not in this session. Do not call or look for them** |
 
 - The Java / Spring review that `ecc:java-reviewer` gives in the local phase is done by the
   project agent `final-reviewer` with scope `backend` (git range of M9). Brief it per
