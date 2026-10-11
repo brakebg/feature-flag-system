@@ -218,8 +218,11 @@ deployment with minimum healthy percent 100 is the mixed-deployment case of 5.12
 
 ### 5.12 Upgrade from 1.1
 
-**OPEN** (section 9 item 3). A 1.1 instance writes no `cache_state` increment; a write through it
-during a mixed deployment is invisible to 1.2 instances until reconciliation.
+A 1.1 instance writes no `cache_state` increment, so a write through it during a mixed deployment
+is invisible to 1.2 instances until reconciliation. **Decided: stop the 1.1 instance before starting
+the first 1.2 instance** (a short outage, once). The README MUST state this for the 1.1 to 1.2
+upgrade. Rolling deployments between 1.2 and later versions are supported (both write the
+increment).
 
 ## 6. Acceptance criteria
 
@@ -267,11 +270,10 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
 2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block, compose-only override;
    the UI image keeps `BACKEND_URL` as its default** (5.11).
-3. **Upgrade from 1.1:** (a) stop the 1.1 instance before starting 1.2 (recommended for a one-time
-   upgrade; a short outage), or (b) allow a mixed deployment and accept that writes through 1.1
-   are invisible until the next reconciliation.
-4. **Retention** of `flag_change`: `P1D` (the log only has to cover how long an instance may lag
-   before a full reload is cheaper).
-5. **Release number:** 1.2.0 (no API change) or 2.0.0 (deployment changes)?
-6. **`LISTEN/NOTIFY` doorbell** to sync within milliseconds instead of up to 1 s: left out of
-   M10 (the poll stays the mechanism either way). Add later if 1 s matters.
+3. ~~Upgrade from 1.1~~ **Decided: stop the 1.1 instance before starting 1.2** (5.12).
+4. ~~Retention~~ **Decided: `P1D`.**
+5. ~~Release number~~ **Decided: 1.2.0.**
+6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M10; a later spec if the 1 s lag matters.**
+
+All questions are decided. The draft is ready for acceptance (remove the DRAFT marks, set decision
+0011 to Accepted, merge).
