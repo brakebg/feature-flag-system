@@ -21,7 +21,7 @@ Build a standalone Feature Flag Service: a Java 21 backend that stores boolean f
 - Multiple environments (dev/stage/prod) inside one instance. One deployment = one environment.
 - Client SDKs. Clients call the HTTP API directly.
 - Real-time push (SSE/WebSocket) to clients. Clients poll with ETag caching.
-- Distributed cache (Redis, Hazelcast or similar) and horizontal scaling. The cache lives inside the service process, so v1 runs as exactly one backend instance (see section 7.2).
+- Distributed cache (Redis, Hazelcast or similar). The cache lives inside the service process. Horizontal scaling (several backend instances) is in scope since spec 003 (release 1.2.0): see section 7.2 and `docs/specs/003-high-availability/SPEC.md`.
 - Rate limiting inside the service. It is done at the edge (CDN, API gateway or ingress), which sees the real client IP; see section 5.3 and decision `decisions/0002-rate-limiting-at-edge.md`.
 
 ### 1.3 Glossary
@@ -41,13 +41,14 @@ The agent MUST use these choices; it SHOULD use the latest patch release of each
 | Layer | Choice | Notes |
 | --- | --- | --- |
 | Language (backend) | Java 21 (LTS) | Use records, sealed types and pattern matching where natural. Virtual threads enabled (`spring.threads.virtual.enabled=true`). |
-| Framework | Spring Boot 3.x | Starters: web, validation, data-jpa, security, oauth2-resource-server, actuator. |
+| Framework | Spring Boot 4.1.x (spec 002; was 3.x in 1.0.0) | Starters: webmvc, validation, data-jpa, security, security-oauth2-resource-server, actuator, flyway. |
 | Build (backend) | Maven with wrapper (`mvnw`) | Single module. |
 | Database | PostgreSQL 16 | Schema managed by Flyway migrations. No `ddl-auto` in any profile except tests. |
 | Auth tokens | JWT (HS256) via `Spring Security NimbusJwtEncoder / NimbusJwtDecoder` | Stateless; validated by OAuth2 Resource Server. Admin login + OAuth 2.0 client credentials; see section 5. |
-| API docs | springdoc-openapi | Swagger UI at `/swagger-ui.html`, spec at `/v3/api-docs`. |
+| API docs | springdoc-openapi 3.x | Swagger UI at `/swagger-ui.html`, spec at `/v3/api-docs`. |
+| JSON | Jackson 3 (`tools.jackson.*`) | Annotations stay `com.fasterxml.jackson.annotation` (spec 002). |
 | Cache | Caffeine (in-process) | For the evaluation API. |
-| Backend tests | JUnit 5, AssertJ, Spring Boot Test, Testcontainers (PostgreSQL), MockMvc |  |
+| Backend tests | JUnit 6, AssertJ, Spring Boot Test, Testcontainers 2 (PostgreSQL), MockMvc | Versions as managed by Spring Boot 4.1 (spec 002). |
 | Language (UI) | TypeScript 5 (strict mode) | `"strict": true`, no `any` without a comment. |
 | UI framework | React 18 + Vite | SPA. |
 | Routing / data | React Router 6, TanStack Query 5 | Query handles caching, refetch and mutations. |
@@ -392,7 +393,7 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 
 **Write path (write-through after commit)**
 
-Every admin write publishes a `FlagsChangedEvent` describing what changed (keys and new values). A `@TransactionalEventListener(phase = AFTER_COMMIT)` applies it to the cache synchronously, before the HTTP response returns to the UI:
+**Since spec 003 (release 1.2.0, several instances):** every admin write increments the one-row `cache_state.revision` counter under its row lock as the last statements of its transaction and writes a `flag_change(revision, type, group_key)` row; each instance polls the counter every `FF_CACHE_SYNC_INTERVAL` (1 s) and reloads the named groups into an immutable snapshot; the writing instance syncs itself after commit, before the HTTP response returns. Full design, ETag rule, reconciliation lock and consistency bound: `docs/specs/003-high-availability/SPEC.md` section 5. The table below describes the resulting cache content per change; the `FlagsChangedEvent` payload of 1.0.0 is no longer applied directly.
 
 | Change in the UI | Cache update |
 | --- | --- |
@@ -404,7 +405,7 @@ Every admin write publishes a `FlagsChangedEvent` describing what changed (keys 
 
 - Applying only after commit means a rolled-back write never reaches the cache.
 - If applying an update fails, the listener invalidates the affected entries plus all-flags instead (logged at WARN), so the next read reloads them from the database.
-- Each applied change, including a group name or description edit, increments `revision` by 1 (a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
+- Each applied change, including a group name or description edit, increases `revision` (since spec 003: the database value `cache_state.revision`, commit-ordered, never reset; in 1.0.0 and 1.1.0: a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`. Monotonic rule across instances: spec 003 section 5.5.
 - All three Evaluation endpoints return the current `revision` as `ETag: "<revision>"` and `Cache-Control: no-cache` on 200 and 304. A 304 has no body and repeats the ETag. Rejected or failed writes and no-op writes (6.1) do not change `revision`.
 
 **Freshness safety net**
@@ -414,9 +415,9 @@ Every admin write publishes a `FlagsChangedEvent` describing what changed (keys 
 - Daily reconciliation: a `@Scheduled` job (cron from `FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`, server time zone) loads all groups and flags from the database, compares them with the cache and fixes every difference using the same copy-on-write updates as the write path. Each difference is logged at WARN with the key, cached value and database value; if any were found, `revision` increments. It also reports `ff_cache_reconcile_drift_total` and `ff_cache_reconcile_last_success_seconds`. A run that fails is logged at ERROR and leaves the cache as it was. There is no manual reconcile trigger in v1: an urgent direct database fix is picked up by the next nightly run, or immediately by restarting the service, which re-warms the cache.
 - `maximumSize` 100,000 entries per cache; `recordStats()` on, exported to Micrometer as `cache_gets_total{cache,result}`.
 
-**Scope: service-level cache only.** The cache lives in the memory of the backend process. A distributed cache (Redis, Hazelcast or similar) is explicitly out of scope for v1, and the agent MUST NOT add one, nor any messaging between instances.
+**Scope: service-level cache only.** The cache lives in the memory of each backend process. A distributed cache (Redis, Hazelcast or similar) is out of scope, and the agent MUST NOT add one, nor any messaging between instances. Instances coordinate only through the database (spec 003).
 
-Known limitation, accepted for v1: with more than one backend instance, a change made through one instance updates only that instance's cache, so other instances would serve old values until their daily reconciliation. Therefore v1 is deployed as exactly one backend instance (`replicas: 1` in docker-compose and any orchestrator), and the README MUST state this. The path to multiple instances is listed in section 13.
+Since spec 003 (release 1.2.0) the backend runs as any number of instances (N ≥ 2 in the HA tests; `replicas: 1` still works). Daily reconciliation runs on one instance under a PostgreSQL advisory lock and increments the revision when it finds drift. Upgrade from 1.1.0: stop the 1.1.0 instance before starting the first 1.2.0 instance; the README MUST state this.
 
 ### 7.3 Client usage (documented in README)
 
@@ -587,7 +588,7 @@ Implemented once in a `@RestControllerAdvice` (`GlobalExceptionHandler`). DB uni
 - Never log passwords, client secrets or JWTs. Evaluation requests log the consumer's client id (JWT sub).
 - Actuator: `/actuator/health` (with DB check, liveness and readiness groups), `/actuator/info`, `/actuator/prometheus` (Micrometer; admin token, see 5.4).
 - `GET /actuator/health` is public and returns 200 `{"status":"UP","components":{"db":{"status":"UP"}}}` (components are shown without authentication). `GET /actuator/health/liveness` and `/actuator/health/readiness` are public and return 200 `{"status":"UP"}`, or 503 `{"status":"DOWN"}`. `GET /actuator/info` is public and contains `build.version` and `git.commit.id`.
-- Custom metrics: `ff_evaluations_total{endpoint,result,client}` (`endpoint`: `all`, `group`, `flag`; `result`: `found`, `not_found`; `client`: the token `sub`), `ff_admin_writes_total{action}` (`action`: the audit action names).
+- Custom metrics: `ff_evaluations_total{endpoint,result,client}` (`endpoint`: `all`, `group`, `flag`; `result`: `found`, `not_found`; `client`: the token `sub`), `ff_admin_writes_total{action}` (`action`: the audit action names). Since spec 003: `ff_cache_revision` (gauge, per instance), `ff_cache_sync_age_seconds` (time since the last successful sync), `ff_cache_syncs_total{result=noop|partial|full|error}`.
 
 Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts.yml`, validated with `promtool check rules` in gate 1. Delivering alerts (Alertmanager, e-mail, chat) is not wired in v1.
 
@@ -598,6 +599,7 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 | `FFNotReady` | Readiness probe DOWN for more than 5 min | critical |
 | `FFHighErrorRate` | 5xx responses above 1 % of requests over 10 min | critical |
 | `FFSlowEvaluation` | Evaluation API p95 latency above 50 ms over 15 min | warning |
+| `FFCacheSyncStale` | `ff_cache_sync_age_seconds` above 30 s for 1 min on any instance (spec 003) | warning |
 
 ### 9.4 Configuration (environment variables)
 
@@ -614,6 +616,8 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 | `FF_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | UI origin(s) |
 | `FF_REQUIRE_HTTPS` | `false` (`true` in `prod`) | Reject login and token requests that did not arrive over HTTPS (10.2) |
 | `SERVER_PORT` | `8080` | HTTP port |
+| `FF_CACHE_SYNC_INTERVAL` | `PT1S` | Cache sync tick, each instance (spec 003) |
+| `FF_CHANGE_RETENTION` | `P1D` | Retention of `flag_change` rows (spec 003) |
 | `VITE_API_BASE_URL` (UI build) | `/api` | API base URL |
 
 ### 9.5 Backend code structure
@@ -633,7 +637,7 @@ Rules: controllers never touch repositories; services are `@Transactional`; enti
 
 - **Evaluation API compatibility:** `/api/v1` is a stable contract. Within v1 only additive changes are allowed: new endpoints and new optional response fields. Removing or renaming a field, changing a status code or changing meaning requires `/api/v2`, served alongside v1 for a deprecation period announced in the CHANGELOG. Consumers MUST ignore unknown response fields.
 - **Admin API:** used only by the bundled UI and released together with it; it still lives under `/api/v1/admin`.
-- **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`.
+- **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`; `1.1.0` is spec 002 (Spring Boot 4), `1.2.0` is spec 003 (high availability).
 - **Docker images:** both images are tagged `<version>` and `sha-<short commit>`, for example `feature-flag-backend:1.0.0` and `feature-flag-ui:1.0.0`. Deployment manifests never use `latest`. Each image can still be deployed on its own.
 - **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell. The footer element contains the text `v<version>` (for example `v1.0.0`). `build.version` is a SemVer `MAJOR.MINOR.PATCH` string, `git.commit.id` is a lower-case hex commit id (7 to 40 characters), and the UI footer shows `v` followed by the same `build.version`.
 - **CHANGELOG.md** in Keep a Changelog format: every chunk that changes behaviour adds a line under `Unreleased`; the final milestone moves them under `1.0.0`.
@@ -691,13 +695,13 @@ The backend keeps Spring Security's default security headers, except `Cache-Cont
 
 ### 10.3 docker-compose
 
-Services: `postgres` (16-alpine, volume `pgdata`, healthcheck), `backend` (depends on healthy postgres, port 8080), `frontend` (port 3000 → nginx 80, `BACKEND_URL=http://backend:8080`). `make up` builds and starts; UI at `http://localhost:3000`, login `admin` / `admin123`.
+Services: `postgres` (16-alpine, volume `pgdata`, healthcheck), `backend-1` and `backend-2` (same image, depend on healthy postgres; since spec 003, one `backend` on port 8080 before), `frontend` (port 3000 → nginx 80). The UI image keeps `BACKEND_URL` as its default; in compose an nginx `upstream` block listing both backends is mounted as a compose-only override (spec 003 section 5.11). `make up` builds and starts; UI at `http://localhost:3000`, login `admin` / `admin123`. The compose stack is the local stack and the test rig for the gates, not the deployment model.
 
-Acceptance check for `make up` (AC-OPS-1): the services `postgres`, `backend` and `frontend` are running, `postgres` and `backend` report healthy, and `GET /` on the UI port returns 200 `text/html`, within 90 seconds after the containers were started (image build time is not counted).
+Acceptance check for `make up` (AC-OPS-1): the services `postgres`, the backend services and `frontend` are running, `postgres` and every backend report healthy, and `GET /` on the UI port returns 200 `text/html`, within 90 seconds after the containers were started (image build time is not counted).
 
-For black-box tests, the harness that runs `make up` (the owner review script `scripts/owner-review.sh`) exports `FF_STACK_STARTED_AT` (ISO-8601 UTC, taken right after `docker compose up` returns) and `FF_COMPOSE_PROJECT` (the compose project name). The test passes when `docker compose -p $FF_COMPOSE_PROJECT ps` shows the three services running, `postgres` and `backend` healthy, and `GET /` on the UI port returns 200 `text/html`, all observed no later than `FF_STACK_STARTED_AT` + 90 s.
+For black-box tests, the harness that runs `make up` (the owner review script `scripts/owner-review.sh`) exports `FF_STACK_STARTED_AT` (ISO-8601 UTC, taken right after `docker compose up` returns) and `FF_COMPOSE_PROJECT` (the compose project name). The test passes when `docker compose -p $FF_COMPOSE_PROJECT ps` shows all services running, `postgres` and every backend healthy, and `GET /` on the UI port returns 200 `text/html`, all observed no later than `FF_STACK_STARTED_AT` + 90 s.
 
-`docker-compose.yml` passes every variable listed in 9.4 to the `backend` service as `${VAR:-<default from 9.4>}`. Host ports are `${FF_BACKEND_PORT:-8080}` for the backend and `${FF_UI_PORT:-3000}` for the UI, so several stacks (different `-p` project names) can run side by side, for example one with `FF_ADMIN_TOKEN_TTL=PT2S` or `FF_REQUIRE_HTTPS=true`.
+`docker-compose.yml` passes every variable listed in 9.4 to each backend service as `${VAR:-<default from 9.4>}`. Host ports are `${FF_BACKEND_PORT:-8080}` for the backend entry point (spec 003 section 5.11) and `${FF_UI_PORT:-3000}` for the UI, so several stacks (different `-p` project names) can run side by side, for example one with `FF_ADMIN_TOKEN_TTL=PT2S` or `FF_REQUIRE_HTTPS=true`.
 
 ### 10.4 Local development
 
@@ -767,10 +771,10 @@ Caching (verified with a spy on the repositories counting database queries)
 - [ ] After warm-up, 1,000 evaluation calls for existing flags run zero database queries.
 - [ ] Evicting one entry and reading it twice concurrently runs exactly one database query; the second read is a hit.
 - [ ] Reading an unknown key twice within 30 s runs one database query.
-- [ ] Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call.
+- [ ] Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call on the instance that made the change; on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), with zero database queries for the evaluation call itself (spec 003).
 - [ ] A write whose transaction rolls back leaves the cached value unchanged.
-- [ ] The readiness probe reports DOWN until warm-up has finished.
-- [ ] A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes.
+- [ ] The readiness probe reports DOWN until warm-up has finished, and stays UP when the database becomes unreachable after warm-up (spec 003).
+- [ ] A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes; every other instance returns the database value within 2 s (spec 003).
 - [ ] A reconciliation run with no differences logs no WARN and leaves the ETag unchanged.
 - [ ] Under the 9.2 load test the cache hit rate metric is ≥ 99 %.
 
@@ -819,14 +823,14 @@ Reason for every row: known, risk accepted by the owner (`decisions/0008`). Revi
 
 | # | CVE | Severity | Where | Package | Installed | Fixed in |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | CVE-2026-47884 | CRITICAL | not recorded | not recorded | not recorded | not recorded |
-| 2 | CVE-2026-47890 | CRITICAL | `backend/pom.xml` and backend image | spring-webmvc | 6.2.19 | 7.0.9 only |
+| 1 | ~~CVE-2026-47884~~ | CRITICAL | fixed in 1.1.0 (spec 002, Spring Framework 7.0.9); entry removed from `.trivyignore` | spring-webmvc | 6.2.19 | 7.0.9 |
+| 2 | ~~CVE-2026-47890~~ | CRITICAL | fixed in 1.1.0 (spec 002, Spring Framework 7.0.9); entry removed from `.trivyignore` | spring-webmvc | 6.2.19 | 7.0.9 |
 | 3 | CVE-2026-78667 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
 | 4 | CVE-2026-78669 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
 | 5 | CVE-2026-97031 | HIGH | backend image, `/usr/bin/pebble` | Go stdlib | 1.26.7 | 1.26.9 / 1.27.2 |
 | 6 | CVE-2026-4775 | HIGH | UI image (alpine 3.23.3) | tiff | 4.7.1-r0 | 4.7.2-r0 |
 
-`.trivyignore` format, one entry per vulnerability. The six entries for this table:
+`.trivyignore` format, one entry per vulnerability. The four open entries for this table (rows 3 to 6):
 
 ```
 # <reason> — "owner accepted, spec 11.3" or "no fixed version, DECISIONS.md #n"
@@ -909,6 +913,8 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 6. **M6 UI foundation** — API client, auth flow, routing, app shell, shared components, toasts. Done when: login/logout/redirect unit tests pass.
 7. **M7 UI features** — groups pane, flags table, modals, toggle, delete confirmations, audit page. Done when: frontend unit tests pass and coverage targets are met.
 8. **M8 Hardening** — Playwright e2e for every 11.2 scenario, Dockerfiles finalised (non-root, healthchecks), README (setup, env vars, API usage with curl examples, client polling guidance). Done when: the full CI pipeline is green and every 11.2 box is ticked.
+9. **M9 Spring Boot 4 upgrade** — spec 002, `docs/specs/002-spring-boot-4-upgrade/`, release 1.1.0. Done and merged.
+10. **M10 High availability** — spec 003, `docs/specs/003-high-availability/`, release 1.2.0.
 
 ### 12.3 Definition of done
 
@@ -1045,7 +1051,7 @@ These are out of scope for v1 but shape today's design so they can be added with
 | Real users, roles (viewer/editor), SSO/OIDC | `AdminAuthenticator` interface; `actor` already recorded in audit |
 | Environments (dev/stage/prod per flag) | Add `environment` table + `flag_value(flag_id, env_id, enabled)`; evaluation path gains `/{env}` |
 | Percentage rollouts and targeting rules | Add `rules JSONB` column to `feature_flag`; evaluation becomes `POST` with a context body |
-| Multi-instance backend | Broadcast cache updates between instances with Postgres `LISTEN/NOTIFY` |
+| Multi-instance backend | Done in spec 003 (database revision counter + per-instance poll). A `LISTEN/NOTIFY` doorbell to sync within milliseconds is a possible later spec |
 | Push updates to clients | SSE endpoint `/api/v1/evaluate/stream` emitting revisions |
 | Java/TS client SDKs | Wrap the polling + ETag logic from 7.3 |
 | Flag lifecycle (stale-flag reports, owner, expiry date) | Add nullable `owner`, `expires_at` columns |
