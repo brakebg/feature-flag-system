@@ -20,3 +20,4 @@ Not the same as `docs/DECISIONS.md`: that file holds the agent's own Level 1 dec
 | 0010 | [One folder per spec; parallel builder sessions](0010-spec-folders.md) | Accepted |
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.
+| 0011 | [Spec 003: high availability with per-instance caches and a database revision](0011-high-availability.md) | Accepted |
