@@ -5,7 +5,7 @@ Milestone: **M10**. Working branch: **`feature/high-availability`** (from `main`
 Spec folder (`<spec>` below): `docs/specs/003-high-availability/`.
 
 This is a change spec, executed by an autonomous builder session. Every "MUST" is a hard
-requirement. Section 9 records the owner's decisions.
+requirement. Section 10 records the owner's decisions.
 
 ## 1. Relation to `docs/SPEC.md`
 
@@ -15,13 +15,13 @@ names a part of `docs/SPEC.md`, this spec wins for M10.
 | `docs/SPEC.md` part | Change in M10 |
 | --- | --- |
 | 1.2 Non-goals: "Distributed cache … and horizontal scaling" | Horizontal scaling is in scope: the service MAY run as several instances. A distributed cache stays out of scope: each instance keeps its own Caffeine cache |
-| 4.1 Tables | Adds `cache_state` (one row) and `flag_change` (the change log), Flyway `V3` (5.1) |
-| 7.2 Caching: write path, `revision`, "Scope" and "Known limitation" paragraphs | Replaced by sections 5.2 to 5.6. Read path, warm-up, no-expiry and `maximumSize` rules stay |
-| 7.2 Daily reconciliation | One instance under an advisory lock; drift increments the database revision (5.7) |
-| 9.3 Observability | Adds the metrics and the alert of 5.9 |
-| 9.4 Configuration | Adds `FF_CACHE_SYNC_INTERVAL`, `FF_CHANGE_RETENTION` (5.10) |
-| 10.3 docker-compose | Two backend services; the UI proxy balances with an `upstream` block (5.11) |
-| 11.2 AC-CACHE-4, AC-CACHE-6, AC-CACHE-7 | Re-expressed (table in section 6). The owner extends `docs/acceptance-criteria.md` |
+| 4.1 Tables | Adds `cache_state` (one row) and `flag_change` (the change log), Flyway `V3` (4.2) |
+| 7.2 Caching: write path, `revision`, "Scope" and "Known limitation" paragraphs | Replaced by sections 4.3 to 4.7. Read path, warm-up, no-expiry and `maximumSize` rules stay |
+| 7.2 Daily reconciliation | One instance under an advisory lock; drift increments the database revision (4.8) |
+| 9.3 Observability | Adds the metrics and the alert of 4.10 |
+| 9.4 Configuration | Adds `FF_CACHE_SYNC_INTERVAL`, `FF_CHANGE_RETENTION` (4.11) |
+| 10.3 docker-compose | Two backend services; the UI proxy balances with an `upstream` block (4.12) |
+| 11.2 AC-CACHE-4, AC-CACHE-6, AC-CACHE-7 | Re-expressed (table in section 5). The owner extends `docs/acceptance-criteria.md` |
 | 13 "Multi-instance backend" row | The design hook becomes this spec |
 
 Not changed: gate 4 banned dependencies (no Redis, no broker), `backend/openapi.json`, tech stack.
@@ -38,7 +38,20 @@ format, security. No new component to run.
 Not in scope: Keycloak or other auth changes, targeting or rollouts, multiple environments, client
 SDKs, high availability of PostgreSQL.
 
-## 3. Architecture
+## 3. MUST stay the same
+
+1. Every acceptance criterion of spec 001 and spec 002 passes, except those re-expressed in
+   section 5.
+2. HTTP behaviour for clients, byte for byte: status codes, headers, problem details, JSON,
+   `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules.
+3. Security rules of spec 001 section 5. No new endpoint.
+4. `backend/openapi.json` unchanged.
+5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
+6. V1 and V2 migrations unchanged (same checksums).
+
+## 4. Design
+
+### 4.1 Architecture
 
 ```mermaid
 flowchart TD
@@ -62,20 +75,8 @@ flowchart TD
 4. Every Evaluation request is answered from the instance's snapshot. `ETag` is the snapshot's
    revision. Instances never talk to each other. Nothing is pushed; nothing can be missed.
 
-## 4. MUST stay the same
 
-1. Every acceptance criterion of spec 001 and spec 002 passes, except those re-expressed in
-   section 6.
-2. HTTP behaviour for clients, byte for byte: status codes, headers, problem details, JSON,
-   `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules.
-3. Security rules of spec 001 section 5. No new endpoint.
-4. `backend/openapi.json` unchanged.
-5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
-6. V1 and V2 migrations unchanged (same checksums).
-
-## 5. Design
-
-### 5.1 Tables (Flyway V3)
+### 4.2 Tables (Flyway V3)
 
 `cache_state`: columns `id smallint primary key` (always 1) and `revision bigint not null`.
 V3 inserts the single row with `revision = 0`.
@@ -112,7 +113,7 @@ of this lock, that is the Level 3 trigger in section 7; the follow-up would be a
 revision source (for example a sequence plus a "visible up to" marker), not a change to the
 read side. Not built in M10.
 
-### 5.2 Snapshot
+### 4.3 Snapshot
 
 Each instance holds one immutable `Snapshot { long revision; Map all; Map<group, Map> groups }`
 in a `volatile` field. A request reads that one reference, so its data and its `ETag` always come
@@ -121,7 +122,7 @@ the BF-1 workaround (`appliedSeq`, `loadedSeq`, `isLate`) in `FlagCacheService`.
 Caffeine caches of spec 7.2 stay as the read structure; a swap replaces their content under the
 existing `writeLock`.
 
-### 5.3 Syncer
+### 4.4 Syncer
 
 One per instance, one thread, started after warm-up.
 
@@ -139,13 +140,13 @@ One per instance, one thread, started after warm-up.
    snapshot. No backoff below 1 s, no backoff above 10 s.
 6. Warm-up (spec 7.2) is a full reload (step 3) and sets the initial local revision.
 
-### 5.4 Writing instance
+### 4.5 Writing instance
 
-After commit (the existing `AFTER_COMMIT` listener), the instance runs one sync (5.3 step 1 to 2)
+After commit (the existing `AFTER_COMMIT` listener), the instance runs one sync (4.4 step 1 to 2)
 synchronously, before the HTTP response returns. The `FlagsChangedEvent` payload is no longer
 applied directly; the sync reloads from the database. Read-your-write holds on that instance.
 
-### 5.5 ETag and the monotonic rule
+### 4.6 ETag and the monotonic rule
 
 - `ETag: "<revision>"` and body `revision` are the snapshot's revision. All instances give the
   same value for the same data; a restart gives the same value too.
@@ -157,15 +158,15 @@ applied directly; the sync reloads from the database. Read-your-write holds on t
   it has seen a newer one, whichever instance the load balancer picks.
 - An unparsable or weak `If-None-Match` is treated as no match (today's behaviour).
 
-### 5.6 Consistency bound
+### 4.7 Consistency bound
 
 Normal operation: a change is visible on the writing instance before the HTTP response returns
 and on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s with the default). An
 instance that cannot reach the database keeps serving its last snapshot; that data cannot be
 stale by a write it missed, because no write can commit without the database. The one stale case
-is an instance cut off from the database while the others are not; 5.9 alerts on it.
+is an instance cut off from the database while the others are not; 4.10 alerts on it.
 
-### 5.7 Daily reconciliation
+### 4.8 Daily reconciliation
 
 As spec 7.2, with these changes: one instance runs it, guarded by
 `pg_try_advisory_xact_lock(<constant>)` (others skip the run and log at INFO); it compares its
@@ -174,27 +175,27 @@ found it fixes the local snapshot and, in one transaction, increments `cache_sta
 inserts a `RECONCILE` row, so every instance does a full reload on its next tick and the `ETag`
 changes. No drift: no row, no revision change (AC-CACHE-8 unchanged).
 
-### 5.8 Readiness
+### 4.9 Readiness
 
 UP after warm-up, as today. It does **not** depend on the database afterwards: a database outage
 must not remove every instance from the load balancer while they can still serve correct data.
 `/actuator/health` body unchanged.
 
-### 5.9 Observability
+### 4.10 Observability
 
 New metrics: `ff_cache_revision` (gauge, per instance), `ff_cache_sync_age_seconds` (time since
 the last successful sync), `ff_cache_syncs_total{result=noop|partial|full|error}`. Alert rule in
 `ops/`: `ff_cache_sync_age_seconds > 30` for 1 min. Logs keep the ECS format; each partial or full
 sync logs at DEBUG with the revision range, each error at WARN.
 
-### 5.10 Configuration
+### 4.11 Configuration
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `FF_CACHE_SYNC_INTERVAL` | `PT1S` | Syncer tick |
 | `FF_CHANGE_RETENTION` | `P1D` | Retention of `flag_change` rows |
 
-### 5.11 Deployment
+### 4.12 Deployment
 
 **Images.** The product is the two images `feature-flag-backend` and `feature-flag-ui` plus a
 PostgreSQL. They run anywhere Docker runs; instances need only the database, never each other
@@ -227,9 +228,9 @@ service behind the ALB; its nginx forwards `/api/` to the backend target group's
 does the balancing and no `upstream` block is needed there. Database: RDS for PostgreSQL. Secrets:
 Secrets Manager or SSM into the task environment. Images: ECR, tagged as `make build-images` does.
 No `depends_on`: the backend retries the database at start and runs Flyway itself. Rolling
-deployment with minimum healthy percent 100 is the mixed-deployment case of 5.12.
+deployment with minimum healthy percent 100 is the mixed-deployment case of 4.13.
 
-### 5.12 Upgrade from 1.1
+### 4.13 Upgrade from 1.1
 
 A 1.1 instance writes no `cache_state` increment, so a write through it during a mixed deployment
 is invisible to 1.2 instances until reconciliation. **Decided: stop the 1.1 instance before starting
@@ -237,56 +238,80 @@ the first 1.2 instance** (a short outage, once). The README MUST state this for 
 upgrade. Rolling deployments between 1.2 and later versions are supported (both write the
 increment).
 
-## 6. Acceptance criteria
+## 5. Acceptance criteria
 
 Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 10`): AC-HA-1 to AC-HA-10. "N"
 there is any instance count ≥ 2; main code MUST NOT assume a fixed count. Tests use N = 3.
 
-**Spec 001 criteria that change** (the owner extends `docs/acceptance-criteria.md`):
+**Spec 001 criteria that change** (same ID, same position; the owner extends
+`docs/acceptance-criteria.md` after merge):
 
 | ID | Now | Becomes |
 | --- | --- | --- |
-| AC-CACHE-4 | Toggle, create, delete visible on the next evaluation call with zero database queries | Same on the writing instance; on any other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), zero database queries for the evaluation call itself |
-| AC-CACHE-6 | Readiness DOWN until warm-up has finished | Same; and readiness stays UP when the database becomes unreachable after warm-up |
-| AC-CACHE-7 | A direct database change keeps its old cached value until reconciliation; after a run, the next call returns the new value | Same; and after that run every other instance returns the new value within 2 s, and the `ETag` changed |
+| AC-CACHE-4 | Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call | Same on the writing instance; on any other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), zero database queries for the evaluation call itself |
+| AC-CACHE-6 | The readiness probe reports DOWN until warm-up has finished | Same; and readiness stays UP when the database becomes unreachable after warm-up |
+| AC-CACHE-7 | A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes | Same; and after that run every other instance returns the new value within 2 s, and the `ETag` changed |
 
 AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts queries on
 `EvaluationQueries`; the syncer MUST use its own repository so its tick is not counted.
 
-## 7. Process
+## 6. Test changes
+
+The tests that may change are listed in `<spec>/test-changes.md`.
+Allowed behaviour changes: AC-CACHE-4, AC-CACHE-6, AC-CACHE-7.
+Every other test may change only by the plumbing clause in that file. A change to any other
+test is a Level 3 escalation (section 8).
+
+## 7. Acceptance delta
+
+For the black-box acceptance suite (`docs/VALIDATION.md`):
+
+- Added: AC-HA-1 … AC-HA-10
+- Changed: AC-CACHE-4, AC-CACHE-6, AC-CACHE-7: the suite scenarios gain an N-instance variant (a change on one instance checked on the others; readiness checked with the database stopped; reconciliation checked on every instance)
+- Retired: none
+
+## 8. Process
 
 - Rules of spec 001 section 12 and `CLAUDE.md` apply. Commit messages `M10 <area>: <what>`, trailers
   `AC:` and `Spec: 003 §<n>`.
+- First commit: the memory files in `<spec>/` (`STATE.md`, `PROGRESS.md`, `DECISIONS.md`,
+  `BLOCKERS.md`, `MILESTONE` = `10`). After the first green chunk, one draft PR
+  `feature/high-availability` → `main`.
 - Phases, each chunk green: **A** V3 tables, the increment and `flag_change` insert in every write
   path, syncer and snapshot on one instance, BF-1 workaround removed (all old tests green);
   **B** monotonic ETag rule, reconciliation under the lock, metrics, multi-instance integration tests
   (three Spring contexts on one PostgreSQL; the count is a test parameter, never a constant in main code); **C** compose with two backend services, e2e and smoke gates,
   README, release 1.2.0 (`VERSION`, `CHANGELOG.md`).
-- Milestone audit: `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (backend).
+- Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
+  `security-reviewer`, `final-reviewer` (scope backend).
 
 **Level 3 triggers for M10** (in addition to spec 001 12.5)
 
-- A change would break an item of section 4.
+- A change would break an item of section 3.
+- A test outside `<spec>/test-changes.md` would need more than a plumbing change.
 - The only way to make a gate green is a new exception, exclusion or ignore entry.
 - The row-lock serialisation makes the admin p95 (spec 9.2) fail under gate 13.
 
-## 8. Definition of done
+## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates, with the multi-instance compose stack.
-- [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 6 changes) pass.
+- [ ] `make verify-all` passes, all 15 gates, with the multi-instance compose stack; report committed as `<spec>/verify-report.md`.
+- [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 5 changes) pass.
+- [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] `V1`, `V2` unchanged; `V3` only adds the two tables; `openapi.json` unchanged.
 - [ ] `VERSION` 1.2.0, `CHANGELOG.md` section, README section on several instances.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
-## 9. Owner decisions (all taken, 2026-10-11)
+## 10. Owner decisions
 
 1. ~~Redis / CDC~~ **Decided: no Redis, no Debezium.** Per-instance caches, 1 s revision poll,
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
 2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block, compose-only override;
-   the UI image keeps `BACKEND_URL` as its default** (5.11).
-3. ~~Upgrade from 1.1~~ **Decided: stop the 1.1 instance before starting 1.2** (5.12).
+   the UI image keeps `BACKEND_URL` as its default** (4.12).
+3. ~~Upgrade from 1.1~~ **Decided: stop the 1.1 instance before starting 1.2** (4.13).
 4. ~~Retention~~ **Decided: `P1D`.**
 5. ~~Release number~~ **Decided: 1.2.0.**
 6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M10; a later spec if the 1 s lag matters.**
+
+7. ~~Template~~ **Decided: spec re-shaped to the `/write-spec` template on 2026-10-11** (sections 6 and 7 added; design unchanged).
 
 Accepted by the owner on 2026-10-11.
