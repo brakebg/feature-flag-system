@@ -17,6 +17,16 @@ files.
 
 The owner adds a row for each new spec and gives it the next free milestone numbers.
 
+## Starting a spec
+
+The owner starts every new spec with `/write-spec` (`.claude/skills/write-spec/`). It gives the
+next free spec, milestone and decision numbers, writes the spec files from one template, adds
+the index rows, runs a two-reviewer challenge on the design and checks the folder.
+
+Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
+`test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs
+added, changed and retired for the black-box suite).
+
 ## Folder layout
 
 ```
@@ -24,6 +34,7 @@ docs/specs/<NNN-name>/
   spec.json                 owner   id, title, spec file, registry file, branch, milestones
   SPEC.md                   owner   the spec (spec 001: docs/SPEC.md instead)
   acceptance-criteria.md    owner   AC IDs of this spec, "Due milestone: <n>" (spec 001: docs/acceptance-criteria.md)
+  test-changes.md           owner   AC IDs whose tests may change; the fixed plumbing clause (new specs)
   STATE.md                  agent   where the work stands, next 3 steps (< 150 lines)
   PROGRESS.md               agent   one row per commit of this spec
   DECISIONS.md              agent   Level 1 decisions and escalation answers (D-1, D-2, ...)
