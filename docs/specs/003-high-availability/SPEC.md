@@ -20,7 +20,7 @@ names a part of `docs/SPEC.md`, this spec wins for M10.
 | 7.2 Daily reconciliation | One instance under an advisory lock; drift increments the database revision (5.7) |
 | 9.3 Observability | Adds the metrics and the alert of 5.9 |
 | 9.4 Configuration | Adds `FF_CACHE_SYNC_INTERVAL`, `FF_CHANGE_RETENTION` (5.10) |
-| 10.3 docker-compose | `backend` runs with two replicas; the UI proxy balances over both (5.11) |
+| 10.3 docker-compose | Two backend services; the UI proxy balances with an `upstream` block (5.11) |
 | 11.2 AC-CACHE-4, AC-CACHE-6, AC-CACHE-7 | Re-expressed (table in section 6). The owner extends `docs/acceptance-criteria.md` |
 | 13 "Multi-instance backend" row | The design hook becomes this spec |
 
@@ -183,9 +183,38 @@ sync logs at DEBUG with the revision range, each error at WARN.
 
 ### 5.11 Deployment
 
-`docker-compose.yml`: `backend` with `deploy.replicas: 2`; the UI proxy (nginx) balances over both
-(**OPEN**, section 9 item 2). README: the `replicas: 1` rule of spec 7.2 is replaced by "any number
-of instances; each needs memory for the full data set (spec 9.2)".
+**Images.** The product is the two images `feature-flag-backend` and `feature-flag-ui` plus a
+PostgreSQL. They run anywhere Docker runs; instances need only the database, never each other
+(AC-OPS-2 stays). `docker-compose.yml` is the local stack and the test rig for the gates and the
+acceptance suite, not the deployment model.
+
+**Compose (local, gates).** `backend` becomes two named services `backend-1` and `backend-2`
+(same image, same environment). The host port mapping `8080:8080` moves to the UI proxy path: direct
+API clients (k6, smoke) call `http://localhost:3000/api/...` or a new `backend-lb` nginx service
+publishing 8080. The UI's nginx balances with an explicit `upstream` block:
+
+```
+upstream backend {
+    server backend-1:8080 max_fails=2 fail_timeout=5s;
+    server backend-2:8080 max_fails=2 fail_timeout=5s;
+}
+location /api/ { proxy_pass http://backend; ... }
+```
+
+Round-robin; a backend that fails twice is skipped for 5 s. Chosen over DNS-based resolution
+because nginx resolves a name once at start and keeps a stale IP after a container restart unless
+a `resolver` with a short TTL is configured. `BACKEND_URL` is removed from the UI image config in
+favour of the `upstream` block (**OPEN** if the single-backend UI image must keep working standalone:
+then keep `BACKEND_URL` as the default and the `upstream` as a compose-only override).
+
+**ECS / Fargate (production reference, not built or tested in M10).** Backend: one task definition,
+one service with `desiredCount ≥ 2`, an ALB target group with health check
+`/actuator/health/readiness`, container health check `/actuator/health/liveness`. UI: its own
+service behind the ALB; its nginx forwards `/api/` to the backend target group's name, so the ALB
+does the balancing and no `upstream` block is needed there. Database: RDS for PostgreSQL. Secrets:
+Secrets Manager or SSM into the task environment. Images: ECR, tagged as `make build-images` does.
+No `depends_on`: the backend retries the database at start and runs Flyway itself. Rolling
+deployment with minimum healthy percent 100 is the mixed-deployment case of 5.12.
 
 ### 5.12 Upgrade from 1.1
 
@@ -236,8 +265,9 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
 
 1. ~~Redis / CDC~~ **Decided: no Redis, no Debezium.** Per-instance caches, 1 s revision poll,
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
-2. **Load balancing in compose:** nginx `upstream` with both backends listed, or DNS-based? The
-   builder needs one answer.
+2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block** (5.11). Sub-question
+   open: keep `BACKEND_URL` as the standalone default of the UI image, with the `upstream` as a
+   compose-only override?
 3. **Upgrade from 1.1:** (a) stop the 1.1 instance before starting 1.2 (recommended for a one-time
    upgrade; a short outage), or (b) allow a mixed deployment and accept that writes through 1.1
    are invisible until the next reconciliation.
