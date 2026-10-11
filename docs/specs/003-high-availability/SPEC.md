@@ -31,7 +31,7 @@ agent never edits them or this file.
 
 ## 2. Goal
 
-Run the backend as two or more instances behind a load balancer, so a crash, a deploy or a restart
+Run the backend as any number of instances (N ≥ 2) behind a load balancer, so a crash, a deploy or a restart
 of one instance does not interrupt clients. **No change for clients**: same API, payloads, `ETag`
 format, security. No new component to run.
 
@@ -226,7 +226,8 @@ increment).
 
 ## 6. Acceptance criteria
 
-Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 10`): AC-HA-1 to AC-HA-10.
+Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 10`): AC-HA-1 to AC-HA-10. "N"
+there is any instance count ≥ 2; main code MUST NOT assume a fixed count. Tests use N = 3.
 
 **Spec 001 criteria that change** (the owner extends `docs/acceptance-criteria.md`):
 
@@ -245,8 +246,8 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
   `AC:` and `Spec: 003 §<n>`.
 - Phases, each chunk green: **A** V3 tables, the increment and `flag_change` insert in every write
   path, syncer and snapshot on one instance, BF-1 workaround removed (all old tests green);
-  **B** monotonic ETag rule, reconciliation under the lock, metrics, two-instance integration tests
-  (two Spring contexts on one PostgreSQL); **C** compose with two replicas, e2e and smoke gates,
+  **B** monotonic ETag rule, reconciliation under the lock, metrics, multi-instance integration tests
+  (three Spring contexts on one PostgreSQL; the count is a test parameter, never a constant in main code); **C** compose with two backend services, e2e and smoke gates,
   README, release 1.2.0 (`VERSION`, `CHANGELOG.md`).
 - Milestone audit: `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (backend).
 
@@ -258,7 +259,7 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
 
 ## 8. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates, with the two-instance stack.
+- [ ] `make verify-all` passes, all 15 gates, with the multi-instance compose stack.
 - [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 6 changes) pass.
 - [ ] `V1`, `V2` unchanged; `V3` only adds the two tables; `openapi.json` unchanged.
 - [ ] `VERSION` 1.2.0, `CHANGELOG.md` section, README section on several instances.
