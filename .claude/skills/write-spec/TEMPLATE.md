@@ -82,7 +82,7 @@ Not in scope: <list>.
 2. <HTTP behaviour for clients: status codes, headers, problem details, JSON — or say what changes.>
 3. Security rules of spec 001 section 5.
 4. <`backend/openapi.json` unchanged — or name the exact change.>
-5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
+5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. <Existing Flyway migrations unchanged (same checksums).>
 
 <!-- Each item is something a reviewer can check. Breaking one is a Level 3 trigger (section 8). -->
@@ -157,7 +157,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 ## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates; report committed as `<spec>/verify-report.md`.
+- [ ] `make verify-all` passes, all 16 gates; report committed as `<spec>/verify-report.md`.
 - [ ] <AC-XXX-1> to <AC-XXX-n> and every spec 001 criterion (with section 5 changes) pass.
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] `VERSION` <X.Y.Z>, `CHANGELOG.md` section<, README section>.

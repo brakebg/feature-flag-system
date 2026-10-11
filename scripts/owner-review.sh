@@ -195,6 +195,19 @@ removed=$(git log -M -p --format='@@COMMIT %h %s' "$SINCE..$REF" -- "${TEST_PATH
 if [ -n "$removed" ]; then warn "commits that removed assertion lines (count, commit) — read these diffs:"; printf '%s\n' "$removed" | sed 's/^/    /' | tee -a "$REPORT"
 else pass "no assertion lines removed"; fi
 
+# ---------------------------------------------------------------- 3b. Test changes (gate 16, main's copy)
+# Every changed test outside the spec's test-changes.md must be plumbing only (spec 004).
+log ""
+log "## 3b. Test changes (gate 16, scripts/check-test-changes.mjs from main)"
+tc_args=(--base "$SINCE" --head "$REF")
+[ -n "$SPEC_DIR" ] && tc_args+=(--spec "$SPEC_ID")
+if tc_out=$(node scripts/check-test-changes.mjs "${tc_args[@]}" 2>&1); then
+  pass "only allowed tests changed beyond plumbing ($(printf '%s\n' "$tc_out" | tail -1))"
+else
+  fail "tests changed beyond plumbing outside test-changes.md:"
+  printf '%s\n' "$tc_out" | sed 's/^/    /' | tee -a "$REPORT"
+fi
+
 # ---------------------------------------------------------------- 4. Black-box acceptance suite
 # Starts three stacks from the build under review (spec 10.3: compose passes 9.4 variables,
 # host ports from FF_BACKEND_PORT / FF_UI_PORT), then runs the suite's 5 phases

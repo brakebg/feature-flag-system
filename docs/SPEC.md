@@ -795,7 +795,7 @@ Operations
 
 ### 11.3 Automated quality gates
 
-One command, `make verify`, runs every gate below in order and is the agent's single source of truth for "done": it exits non-zero on the first failing gate and writes `build/verify-report.json` and `build/verify-report.md` (per gate: status, duration, failing test names, first 30 lines of each error, affected acceptance-criterion IDs). `make verify-all` runs every gate even after a failure; `make verify-fast` runs only the gates that need no Docker (1–6, 9, 10, 14, 15) for the inner edit loop.
+One command, `make verify`, runs every gate below in order and is the agent's single source of truth for "done": it exits non-zero on the first failing gate and writes `build/verify-report.json` and `build/verify-report.md` (per gate: status, duration, failing test names, first 30 lines of each error, affected acceptance-criterion IDs). `make verify-all` runs every gate even after a failure; `make verify-fast` runs only the gates that need no Docker (1–6, 9, 10, 14, 15, 16) for the inner edit loop.
 
 | # | Gate | Tool / command | Fails when | Active from |
 | --- | --- | --- | --- | --- |
@@ -812,8 +812,9 @@ One command, `make verify`, runs every gate below in order and is the agent's si
 | 11 | Docker smoke test | `scripts/smoke.sh` against `docker compose up` | Any step fails: health UP within 90 s → admin login → client token → evaluate seeded `orders.new-checkout` = true → toggle via Admin API → evaluate returns false → readiness was DOWN before warm-up → every UI security header from 10.2 present (HSTS only when the request has `X-Forwarded-Proto: https`, 10.2) | M5 |
 | 12 | End-to-end | Playwright, `--repeat-each=2`, retries 0 | Any failure, including a test that passes once and fails once (flaky), or any Content-Security-Policy violation reported in the browser console | M8 |
 | 13 | Performance | k6 script `perf/evaluate.js`, 200 req/s for 60 s against compose | Any error, or cache hit rate < 99 %. The p95 is measured and reported against the 50 ms target but does not fail the gate (9.2, decision 0007) | M8 |
-| 14 | Traceability | `scripts/check-traceability.mjs` (section 11.4) | Any acceptance criterion without a passing test, or a test tagged with an unknown ID | M1 |
+| 14 | Traceability | `scripts/check-traceability.mjs` (section 11.4); runs the gate 16 self-test first (`scripts/test/check-test-changes.test.mjs`, spec 004) | Any acceptance criterion without a passing test, or a test tagged with an unknown ID | M1 |
 | 15 | Test integrity | `scripts/check-integrity.mjs` | Any `@Disabled`, `assumeTrue(false)`, `.skip(`, `.only(`, `xit(`, `test.fixme`; any `eslint-disable` or `@SuppressWarnings` without a `// reason:` comment; thresholds in config files differing from this spec; coverage, mutation, lint or ArchUnit exclusions not listed in `<spec>/DECISIONS.md` | M1 |
+| 16 | Test changes | `scripts/check-test-changes.mjs` (spec 004, decision 0012) | A test changed against `main` beyond the plumbing clause, unless one of its tags on `main` is listed in the active spec's `<spec>/test-changes.md`; a deleted test file or a removed tag; a changed `docs/acceptance-criteria.md` line whose AC ID is not listed | M1 |
 
 A gate not yet active passes trivially but is already wired into `make verify` from M1, so later milestones only add tests, never plumbing.
 
@@ -915,10 +916,11 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 8. **M8 Hardening** — Playwright e2e for every 11.2 scenario, Dockerfiles finalised (non-root, healthchecks), README (setup, env vars, API usage with curl examples, client polling guidance). Done when: the full CI pipeline is green and every 11.2 box is ticked.
 9. **M9 Spring Boot 4 upgrade** — spec 002, `docs/specs/002-spring-boot-4-upgrade/`, release 1.1.0. Done and merged.
 10. **M10 High availability** — spec 003, `docs/specs/003-high-availability/`, release 1.2.0.
+11. **M11 Test-changes gate** — spec 004, `docs/specs/004-test-changes-gate/`, gate 16. Built by the owner (decision 0012). Done.
 
 ### 12.3 Definition of done
 
-- [ ] `make verify-all` passes from a fresh clone (`git clean -xfd`), all 15 gates green.
+- [ ] `make verify-all` passes from a fresh clone (`git clean -xfd`), all 16 gates green.
 - [ ] The traceability matrix shows every acceptance criterion and every error case covered by at least one passing test.
 - [ ] Gate 15 reports no integrity violations; thresholds equal the values in this spec.
 - [ ] README documents setup, configuration, the single-instance rule, Admin and Evaluation API with curl examples.
@@ -932,7 +934,7 @@ Failed tests drive the work: the agent changes production code until the gates p
 
 1. Work in small steps. After each change run `make verify-fast`; before every milestone commit run `make verify`. A milestone is done only when every gate active for it is green.
 2. On failure, open `build/verify-report.md`, start with the first failing gate, read the failing test and the acceptance criterion it is tagged with, then fix the production code.
-3. Forbidden ways to turn a gate green: deleting, skipping or disabling tests; weakening or removing assertions; lowering thresholds; adding exclusions; editing `docs/acceptance-criteria.md` or the banned-dependency lists; swallowing exceptions; adding test-only branches to production code. Gate 15 catches most of these; the rest are rules.
+3. Forbidden ways to turn a gate green: deleting, skipping or disabling tests; weakening or removing assertions; lowering thresholds; adding exclusions; editing `docs/acceptance-criteria.md` or the banned-dependency lists; swallowing exceptions; adding test-only branches to production code. Gates 15 and 16 catch most of these; the rest are rules.
 4. A test may be changed only when it contradicts this spec. The agent records the AC ID, the old expectation, the spec section that proves it wrong, and the fix in `<spec>/DECISIONS.md`.
 5. Stuck rule: if the same gate fails with the same error after 5 attempts, revert to the last green commit and try a different approach. After 3 different approaches, record the gate, the error and what was tried in `<spec>/BLOCKERS.md`, continue with work that does not depend on it, and list the blocker in the final summary. A milestone with a red gate is never marked done.
 6. Determinism: inject `Clock`; no `Thread.sleep` in tests (use Awaitility); pin Testcontainers image tags; no random data without a fixed seed. An intermittently failing test is a bug to fix, never something to retry.

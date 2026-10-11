@@ -514,11 +514,14 @@ function cmdCheck(args) {
 
 // ---------------------------------------------------------------------------------- main
 
-const [cmd, ...rest] = process.argv.slice(2);
-if (cmd === 'next') cmdNext(rest);
-else if (cmd === 'tests') cmdTests(rest);
-else if (cmd === 'check') cmdCheck(rest);
-else {
-  console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 17).join('\n'));
-  process.exit(USAGE);
+// Only when run as a command: gate 16 (scripts/check-test-changes.mjs) imports PLUMBING and idsIn.
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const [cmd, ...rest] = process.argv.slice(2);
+  if (cmd === 'next') cmdNext(rest);
+  else if (cmd === 'tests') cmdTests(rest);
+  else if (cmd === 'check') cmdCheck(rest);
+  else {
+    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 17).join('\n'));
+    process.exit(USAGE);
+  }
 }

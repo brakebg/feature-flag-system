@@ -16,7 +16,7 @@ Rule: the thing that decides "done" must be outside the builder agent's control.
 ## 2. The model in one line
 
 The builder builds everything and validates every small chunk with its own tests and the
-15 gates. A black-box acceptance suite, written before the build by a separate tester
+16 gates. A black-box acceptance suite, written before the build by a separate tester
 session that never sees the code, decides whether the result is accepted.
 
 Trade-off accepted: full autonomy for the builder; a weakness in its own tests is found
@@ -69,7 +69,7 @@ sequenceDiagram
   loop M1 to M8, every chunk up to about 300 lines
     B->>B: Test first, implement, make verify-fast
     B->>R: Green only - commit and push to feature branch
-    Note over B,R: Each milestone end - make verify 15 gates, M n complete, PR summary
+    Note over B,R: Each milestone end - make verify 16 gates, M n complete, PR summary
   end
   R->>R: locked-files-guard runs from main
   loop Until the suite passes, max 3 rounds per AC
@@ -93,7 +93,7 @@ flowchart TD
   A["Startup ritual<br/>CLAUDE.md, STATE.md, owner PR comments"] --> B["Pick next step from STATE.md<br/>name spec section + AC IDs"]
   B --> C["Write the test first, tagged AC ID<br/>run it - it must FAIL"]
   C --> D["Implement production code"]
-  D --> E{"make verify-fast<br/>gates 1-6, 9, 10, 14, 15"}
+  D --> E{"make verify-fast<br/>gates 1-6, 9, 10, 14, 15, 16"}
   E -->|red| F["Read build/verify-report.md<br/>fix production code, never the test"]
   F --> G{"Same error 5 times?"}
   G -->|no| E
@@ -103,7 +103,7 @@ flowchart TD
   I --> J["Update STATE.md + PROGRESS.md<br/>commit with AC trailer, push"]
   J --> K{"Milestone done?"}
   K -->|no| B
-  K -->|yes| L{"make verify<br/>all 15 gates"}
+  K -->|yes| L{"make verify<br/>all 16 gates"}
   L -->|red| F
   L -->|green| M["Commit M n complete<br/>PR summary comment"]
   M --> B
@@ -112,7 +112,7 @@ flowchart TD
 | Check | Who runs it | When | Decides |
 | --- | --- | --- | --- |
 | `make verify-fast` | Builder | Every chunk, before commit | Chunk may be committed |
-| `make verify` (15 gates) | Builder | Every milestone end | Milestone may be marked complete |
+| `make verify` (16 gates) | Builder | Every milestone end | Milestone may be marked complete |
 | Agent CI on the PR | GitHub, from the agent's branch | Every push | Signal only; the agent can edit it |
 | `locked-files-guard` | GitHub, from `main` | Every push to the PR | Alert comment if locked files changed (does not block) |
 | Owner review + black-box acceptance suite | Owner, from `main` | After M8 (optional: earlier, 4.3) | Build accepted, or bug reports |
@@ -133,7 +133,7 @@ flowchart TD
 | --- | --- | --- |
 | Builder's unit / integration / e2e tests (spec 11) | Builder | Code does what the builder understood |
 | Mutation testing, PIT (spec gate 7) | Tool | Builder's backend tests really assert something |
-| Traceability + integrity gates (spec gates 14, 15) | Builder, checked by owner review | Every AC has a test; no skipped tests or lowered thresholds |
+| Traceability + integrity gates (spec gates 14, 15, 16) | Builder, checked by owner review | Every AC has a test; no skipped tests or lowered thresholds; only tests listed in `test-changes.md` change beyond plumbing |
 | Black-box acceptance suite | Tester session, reviewed by owner | Running system meets spec 11.2, independent of the builder |
 | Owner review script | Owner, from `main` | Locked files and values unchanged, no weakened tests, suite passes |
 | Planted bugs | Owner, at review | Builder's tests catch real bugs |

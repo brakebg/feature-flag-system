@@ -99,6 +99,10 @@ How to write tests:
 - Tag every test with the IDs it proves: JUnit `@Tag("AC-FLAG-3")`, Vitest/Playwright
   title contains `[AC-FLAG-3]`. Error cases use `ERR-<METHOD>-<path>-<status>`.
 
+Gate 16 checks test changes: a test that your spec's `<spec>/test-changes.md` does not list may
+change only by the plumbing clause in that file. A blocked plumbing change is a `DECISIONS.md`
+note and a Level 3 escalation, never an edit of the gate.
+
 A test may change ONLY when it contradicts the spec. Then record in `<spec>/DECISIONS.md`:
 AC ID, old expectation, spec section that proves it wrong, the fix. Same commit.
 
@@ -166,8 +170,8 @@ Follow `docs/builder-agents.md`. In short:
 
 | Command | Use |
 | --- | --- |
-| `make verify-fast` | Gates without Docker (1–6, 9, 10, 14, 15). After every change. |
-| `make verify` | All 15 gates, stops on first failure. Before every milestone commit. |
+| `make verify-fast` | Gates without Docker (1–6, 9, 10, 14, 15, 16). After every change. |
+| `make verify` | All 16 gates, stops on first failure. Before every milestone commit. |
 | `make verify-all` | All gates even after failure. Same command as CI. |
 | `make up` / `make down` | Local stack via docker-compose. |
 
