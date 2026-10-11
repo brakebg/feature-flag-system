@@ -1,7 +1,10 @@
 # Acceptance criteria registry
 
-Verbatim copy of `docs/SPEC.md` section 11.2, with stable IDs (spec 11.4).
-Created once in M1. Read-only for the builder afterwards.
+Verbatim copy of `docs/SPEC.md` section 11.2, with stable IDs (spec 11.4), plus one section per
+change spec with its new IDs, heading `## <Title> (spec NNN, due milestone M)`, added by the
+spec PR itself (`docs/specs/README.md`, "The registry"). This file is the complete registry of
+the product; the black-box acceptance suite is built from it alone. Created once in M1.
+Read-only for the builder afterwards.
 
 Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 
@@ -67,3 +70,18 @@ Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 - [ ] **AC-OPS-2** · Backend image runs standalone with only env vars set (no UI needed); UI image runs standalone pointed at any `BACKEND_URL`.
 - [ ] **AC-OPS-3** · `/actuator/health` reports UP with DB status.
 - [ ] **AC-OPS-4** · With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`).
+
+## High availability (spec 003, due milestone 10)
+
+"N" below is any number of instances ≥ 2. Nothing in the code may assume a fixed count.
+
+- [ ] **AC-HA-1** · N backend instances on one database serve the same flags from all three Evaluation endpoints, with the same `ETag`, for N = 3 in the test.
+- [ ] **AC-HA-2** · A change made through one instance is visible on every other instance within 2 s (p99), with zero database queries for their evaluation calls.
+- [ ] **AC-HA-3** · The revision in the database follows commit order with no gaps: two overlapping admin writes on different instances get consecutive revisions, and a rolled-back write leaves the revision unchanged.
+- [ ] **AC-HA-4** · Monotonic ETag: a client that got `ETag "<n>"` from one instance and sends `If-None-Match: "<n>"` to another instance that is still behind gets either `304` or a `200` with a revision ≥ n. It never gets older data.
+- [ ] **AC-HA-5** · With the database unreachable, every instance keeps answering every Evaluation call from its snapshot with the same `ETag` as before; readiness stays UP; admin writes fail as today.
+- [ ] **AC-HA-6** · An instance restarted after changes were made on other instances serves the new state and the current revision as soon as it is ready. A new instance added to a running set does the same.
+- [ ] **AC-HA-7** · An instance that lags by more than the retention of `flag_change` does a full reload and ends at the current revision with the current data.
+- [ ] **AC-HA-8** · During a rolling restart of all instances, one at a time, a client polling the Evaluation API through the UI proxy gets no 5xx and never a lower revision than it already has.
+- [ ] **AC-HA-9** · The revision of an instance never decreases, also across restart and full reload.
+- [ ] **AC-HA-10** · Reconciliation runs on exactly one instance per schedule, whichever N; when it finds drift, every instance returns the corrected value within 2 s and the `ETag` changed.

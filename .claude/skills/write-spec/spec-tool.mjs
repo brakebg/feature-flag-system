@@ -158,7 +158,8 @@ function decisionsAt(ref) {
 /** IDs known before this spec: docs/acceptance-criteria.md and every other spec's file. */
 function knownAcs(exceptFolder) {
   const known = new Map();
-  for (const a of acIds(path.join(ROOT, 'docs/acceptance-criteria.md'))) known.set(a.id, { ...a, source: 'docs/acceptance-criteria.md' });
+  // Registry IDs of this spec's own section are not "known elsewhere": the spec PR appends them (issue #31).
+  for (const a of acIds(path.join(ROOT, 'docs/acceptance-criteria.md'))) if (!(a.spec && exceptFolder.startsWith(`${a.spec}-`))) known.set(a.id, { ...a, source: 'docs/acceptance-criteria.md' });
   for (const s of localSpecs()) {
     if (s.name === exceptFolder || !s.acceptance || s.acceptance === 'docs/acceptance-criteria.md' || !exists(s.acceptance)) continue;
     for (const a of acIds(path.join(ROOT, s.acceptance))) if (!known.has(a.id)) known.set(a.id, { ...a, source: s.acceptance });
@@ -493,8 +494,20 @@ function cmdCheck(args) {
   if (git(['rev-parse', '--verify', '--quiet', base]) === null) warn(`scope not checked: ref ${base} not found (use --base <ref>)`);
   else {
     const decFile = dec ? `decisions/${dec[1]}-${dec[2]}.md` : null;
-    const ok = (f) => f.startsWith(`${dir}/`) || f === decFile || f === 'decisions/README.md' || f === 'docs/specs/README.md';
-    for (const f of changed.filter((f) => !ok(f))) err(`scope: ${f} changed; a spec PR changes only its folder, its decision file and the two index files`);
+    const ok = (f) => f.startsWith(`${dir}/`) || f === decFile || f === 'decisions/README.md' || f === 'docs/specs/README.md' || f === 'docs/acceptance-criteria.md';
+    for (const f of changed.filter((f) => !ok(f))) err(`scope: ${f} changed; a spec PR changes only its folder, its decision file, the two index files and docs/acceptance-criteria.md`);
+    // 7. Registry section (issue #31): the new IDs must be in docs/acceptance-criteria.md under this spec's heading, verbatim
+    const reg = acIds(path.join(ROOT, 'docs/acceptance-criteria.md')).filter((a) => a.spec === meta.id);
+    const regIds = reg.map((a) => a.id);
+    for (const id of specAcIds) if (!regIds.includes(id)) err(`docs/acceptance-criteria.md: ${id} missing under a heading "## <Title> (spec ${meta.id}, due milestone <M>)" (the spec PR appends its new IDs)`);
+    for (const a of reg) {
+      if (!specAcIds.includes(a.id)) err(`docs/acceptance-criteria.md: ${a.id} is under the spec ${meta.id} heading but not in ${meta.acceptance}`);
+      if (!milestones.includes(a.due)) err(`docs/acceptance-criteria.md: spec ${meta.id} section says due milestone ${a.due}, spec.json has ${milestones.join(', ')}`);
+    }
+    if (specAcIds.length && meta.acceptance && exists(meta.acceptance)) {
+      const regText = read('docs/acceptance-criteria.md');
+      for (const l of read(meta.acceptance).split('\n')) if (/^- \[[ x]\] \*\*AC-/.test(l) && !regText.includes(l)) err(`docs/acceptance-criteria.md: line differs from ${meta.acceptance}: ${l.slice(0, 60)}… (copy verbatim)`);
+    }
   }
 
   // Report
