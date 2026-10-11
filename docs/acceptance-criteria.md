@@ -48,10 +48,10 @@ Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 - [ ] **AC-CACHE-1** · After warm-up, 1,000 evaluation calls for existing flags run zero database queries.
 - [ ] **AC-CACHE-2** · Evicting one entry and reading it twice concurrently runs exactly one database query; the second read is a hit.
 - [ ] **AC-CACHE-3** · Reading an unknown key twice within 30 s runs one database query.
-- [ ] **AC-CACHE-4** · Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call.
+- [ ] **AC-CACHE-4** · Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call on the instance that made the change; on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), with zero database queries for the evaluation call itself (spec 003).
 - [ ] **AC-CACHE-5** · A write whose transaction rolls back leaves the cached value unchanged.
-- [ ] **AC-CACHE-6** · The readiness probe reports DOWN until warm-up has finished.
-- [ ] **AC-CACHE-7** · A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes.
+- [ ] **AC-CACHE-6** · The readiness probe reports DOWN until warm-up has finished, and stays UP when the database becomes unreachable after warm-up (spec 003).
+- [ ] **AC-CACHE-7** · A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes; every other instance returns the database value within 2 s (spec 003).
 - [ ] **AC-CACHE-8** · A reconciliation run with no differences logs no WARN and leaves the ETag unchanged.
 - [ ] **AC-CACHE-9** · Under the 9.2 load test the cache hit rate metric is ≥ 99 %.
 
