@@ -94,8 +94,13 @@ V3 inserts the single row with `revision = 0`.
   `UPDATE cache_state SET revision = revision + 1 WHERE id = 1 RETURNING revision`, then insert
   the `flag_change` row with that value. Rejected, failed and no-op writes do neither. A rollback
   rolls back both.
-- The row lock serialises admin writes. `lock_timeout` for this statement: 5 s; on timeout the
-  write fails with the existing 500 problem detail (it is an operational fault, not client input).
+- **Lock span.** The row lock is held from the `UPDATE cache_state` statement to the commit and
+  not longer. The increment and the `flag_change` insert MUST be the last two statements of the
+  transaction: validation, the flag or group writes and the audit row run before them, in parallel
+  across writers, and nothing may run between the increment and the commit. So writers are
+  serialised only for the commit tail (a few ms), not for the whole transaction. `lock_timeout`
+  for the increment: 5 s; on timeout the write fails with the existing 500 problem detail (an
+  operational fault, not client input). Gate 13's admin p95 is the check that the span stays small.
 - Retention: a daily job deletes `flag_change` rows older than `FF_CHANGE_RETENTION` (default
   `P1D`). `cache_state` is never reset.
 
