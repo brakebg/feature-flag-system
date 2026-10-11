@@ -203,9 +203,9 @@ location /api/ { proxy_pass http://backend; ... }
 
 Round-robin; a backend that fails twice is skipped for 5 s. Chosen over DNS-based resolution
 because nginx resolves a name once at start and keeps a stale IP after a container restart unless
-a `resolver` with a short TTL is configured. `BACKEND_URL` is removed from the UI image config in
-favour of the `upstream` block (**OPEN** if the single-backend UI image must keep working standalone:
-then keep `BACKEND_URL` as the default and the `upstream` as a compose-only override).
+a `resolver` with a short TTL is configured. The UI image keeps `BACKEND_URL` as its default (one backend, AC-OPS-2 unchanged); the
+`upstream` block is a compose-only override, mounted as the nginx config of the `frontend` service
+in `docker-compose.yml`. The image itself does not change.
 
 **ECS / Fargate (production reference, not built or tested in M10).** Backend: one task definition,
 one service with `desiredCount ≥ 2`, an ALB target group with health check
@@ -265,9 +265,8 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
 
 1. ~~Redis / CDC~~ **Decided: no Redis, no Debezium.** Per-instance caches, 1 s revision poll,
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
-2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block** (5.11). Sub-question
-   open: keep `BACKEND_URL` as the standalone default of the UI image, with the `upstream` as a
-   compose-only override?
+2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block, compose-only override;
+   the UI image keeps `BACKEND_URL` as its default** (5.11).
 3. **Upgrade from 1.1:** (a) stop the 1.1 instance before starting 1.2 (recommended for a one-time
    upgrade; a short outage), or (b) allow a mixed deployment and accept that writes through 1.1
    are invisible until the next reconciliation.
