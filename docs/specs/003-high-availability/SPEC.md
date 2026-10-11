@@ -243,8 +243,8 @@ rolling-restart test (AC-HA-8) runs in the Docker smoke or e2e gate, not in unit
 **Level 3 triggers for M10** (in addition to spec 001 12.5)
 
 - A change would break an item of section 4.
-- Debezium Server cannot produce the entry format of 5.3 (then the owner decides: a small
-  transformation, a polling publisher, or another sink).
+- Neither the outbox event router nor the raw change event (fallback, section 9 item 2) can be
+  mapped to the entry format of 5.3 (then the owner decides: a polling publisher or another sink).
 - The only way to make a gate green is a new exception, exclusion or ignore entry.
 
 ## 8. Definition of done
@@ -262,8 +262,12 @@ rolling-restart test (AC-HA-8) runs in the Docker smoke or e2e gate, not in unit
    option. The image is pinned to one version, run unmodified and as a separate container (no
    patches to Redis, so no source-sharing duty). Open check: confirm the licence text of the
    pinned version and that the Debezium Redis sink works with it (first M10 chunk of phase C).
-2. **Stream entry format:** Debezium's outbox event router can shape the entry. Accept it
-   if it can produce 5.3, or define the format around what Debezium emits natively?
+2. ~~Stream entry format~~ **Decided by the owner: A, with fallback B.** The builder first tests
+   Debezium's outbox event router with the Redis sink and the entry format of 5.3. If it cannot
+   produce that format, the builder falls back to the raw change event: the service reads the
+   `after` part of Debezium's JSON and maps it to the same three fields (`revision`, `type`,
+   `payload`). The fallback is a Level 1 decision, recorded in `<spec>/DECISIONS.md` with the
+   test result. Only if neither works is it a Level 3 escalation.
 3. **Staleness bound:** is 2 s normal and 15 s degraded acceptable?
 4. **Retention** of `flag_change`: `P7D` is a guess.
 5. **Load balancing in compose:** how does the UI proxy (nginx) balance two backends (DNS
