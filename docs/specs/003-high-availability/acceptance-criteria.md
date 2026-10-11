@@ -1,6 +1,6 @@
 # Acceptance criteria — spec 003
 
-DRAFT for owner review. Owner-authored, locked once accepted. IDs for gate 14 (traceability).
+Owner-authored, locked. IDs for gate 14 (traceability).
 
 Due milestone: 10
 

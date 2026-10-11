@@ -1,8 +1,8 @@
 # 0011 · Spec 003: high availability with per-instance caches and a database revision
 
-Status: **Proposed** (draft for owner review). Owner-authored.
+Status: **Accepted** (2026-10-11). Owner-authored.
 
-## Decision (proposed)
+## Decision
 
 Run the backend as several instances. Each keeps its own in-process cache, as today. A one-row
 `cache_state.revision` counter in PostgreSQL is incremented under its row lock inside every

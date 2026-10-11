@@ -1,11 +1,11 @@
 # Spec 003 — High availability with per-instance caches (release 1.2.0)
 
-**DRAFT for owner review.** Not yet accepted. Decision: `decisions/0011-high-availability.md`.
+Owner-authored, locked. Decision: `decisions/0011-high-availability.md`.
 Milestone: **M10**. Working branch: **`feature/high-availability`** (from `main`), one PR to `main`.
 Spec folder (`<spec>` below): `docs/specs/003-high-availability/`.
 
 This is a change spec, executed by an autonomous builder session. Every "MUST" is a hard
-requirement. Items marked **OPEN** are decisions for the owner (section 9).
+requirement. Section 9 records the owner's decisions.
 
 ## 1. Relation to `docs/SPEC.md`
 
@@ -278,7 +278,7 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
 - [ ] `VERSION` 1.2.0, `CHANGELOG.md` section, README section on several instances.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
-## 9. Open questions for the owner
+## 9. Owner decisions (all taken, 2026-10-11)
 
 1. ~~Redis / CDC~~ **Decided: no Redis, no Debezium.** Per-instance caches, 1 s revision poll,
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
@@ -289,5 +289,4 @@ AC-CACHE-1, 2, 3, 5, 8, 9 unchanged. Note for the builder: AC-CACHE-1 counts que
 5. ~~Release number~~ **Decided: 1.2.0.**
 6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M10; a later spec if the 1 s lag matters.**
 
-All questions are decided. The draft is ready for acceptance (remove the DRAFT marks, set decision
-0011 to Accepted, merge).
+Accepted by the owner on 2026-10-11.
