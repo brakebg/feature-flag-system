@@ -104,6 +104,14 @@ V3 inserts the single row with `revision = 0`.
 - Retention: a daily job deletes `flag_change` rows older than `FF_CHANGE_RETENTION` (default
   `P1D`). `cache_state` is never reset.
 
+**Known limit (owner note).** The single counter row is a serialisation point for all admin
+writes. With a commit tail of a few ms it carries roughly a few hundred writes per second before
+the queue grows; an admin UI stays far below that. It becomes a bottleneck only with intensive
+automated updates on a large flag set. If gate 13 shows the admin p95 (spec 9.2) failing because
+of this lock, that is the Level 3 trigger in section 7; the follow-up would be a different
+revision source (for example a sequence plus a "visible up to" marker), not a change to the
+read side. Not built in M10.
+
 ### 5.2 Snapshot
 
 Each instance holds one immutable `Snapshot { long revision; Map all; Map<group, Map> groups }`
