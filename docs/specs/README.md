@@ -14,6 +14,7 @@ files.
 | 001 | [001-feature-flag-service](001-feature-flag-service/) | `docs/SPEC.md` (the product spec) | M1–M8 | `feature/feature-flag-service` | Done, merged (PR #3), release 1.0.0 |
 | 002 | [002-spring-boot-4-upgrade](002-spring-boot-4-upgrade/) | `SPEC.md` | M9 | `feature/spring-boot-4` | Ready |
 | 003 | [003-high-availability](003-high-availability/) | `SPEC.md` | M10 | `feature/high-availability` | Ready |
+| 005 | [005-ui-redesign](005-ui-redesign/) | `SPEC.md` | M12 | `feature/ui-redesign` | Draft |
 
 The owner adds a row for each new spec and gives it the next free milestone numbers.
 

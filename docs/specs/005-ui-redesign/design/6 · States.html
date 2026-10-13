@@ -1,0 +1,242 @@
+<!doctype html>
+<!--
+  Spec 005 · design 6 · States. Redesign C, balanced colours.
+  The states that designs 1 to 5 do not show. Plain HTML and CSS: read the exact values below.
+  The Google Fonts link is only for viewing this file; the app bundles the fonts (spec 001 section 10.2).
+  Texts are the spec 001 section 8 texts; names are sample data. This sheet is a reference only:
+  it is not a screen and it gets no screenshot baseline.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Tokens: spec 005 section 4.2 */
+  :root {
+    --color-bg: #f1f2f4;
+    --color-surface: #ffffff;
+    --color-text: #1c2433;
+    --color-text-soft: #3d4556;
+    --color-text-muted: #5b6475;
+    --color-border: #dde0e6;
+    --color-primary: #3d59a8;
+    --color-primary-dark: #2d4486;
+    --color-primary-soft: #dfe5f3;
+    --color-ink: #1c2433;
+    --color-ink-raised: #2c3547;
+    --color-sage: #8fb3a6;
+    --color-sage-soft: #e3eeea;
+    --color-apricot: #e8a87c;
+    --color-danger: #b5473a;
+    --color-danger-text: #9a3a2f;
+    --color-danger-soft: #f5e0dc;
+    --color-danger-border: #e6bdb6;
+    --color-switch-off: #cdd2db;
+    --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --radius-field: 16px;
+    --radius-banner: 18px;
+    
+    --radius-row: 22px;
+    --radius-panel: 28px;
+    --radius-dialog: 36px;
+    --radius-pill: 999px;
+    --shadow-dialog: 0 24px 60px rgba(28, 36, 51, 0.35);
+    --shadow-toast: 0 12px 32px rgba(28, 36, 51, 0.22);
+    --shadow-knob: 0 1px 3px rgba(28, 36, 51, 0.25);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 14px; }
+
+  .sheet { padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .cell { display: flex; flex-direction: column; gap: 12px; }
+  .cell-title { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+  .card { background: var(--color-surface); border-radius: var(--radius-panel); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Empty state: a decorative ring + half circle, the text, an optional primary action */
+  .empty { padding: 36px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; color: var(--color-text-muted); }
+  .empty-shapes { display: flex; align-items: flex-end; gap: 6px; }
+  .empty-shapes .ring { width: 40px; height: 40px; border-radius: var(--radius-pill); border: 3px solid var(--color-border); }
+  .empty-shapes .half { width: 40px; height: 20px; border-radius: 20px 20px 0 0; background: var(--color-sage-soft); }
+  .empty-text { margin: 0; font-size: 15px; }
+  .empty.small { padding: 20px; }
+  .rule { height: 1px; background: var(--color-bg); }
+
+  /* Buttons */
+  .button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 48px; padding: 0 22px; border-radius: var(--radius-pill); font: inherit; font-weight: 500; cursor: pointer; }
+  .button.primary { border: 0; background: var(--color-primary); color: #ffffff; font-weight: 600; }
+  .button.secondary { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+  .button.danger { border: 0; background: var(--color-danger); color: #ffffff; font-weight: 600; }
+  .button.dark { border: 0; background: var(--color-ink); color: #ffffff; font-weight: 600; }
+  .button:disabled { opacity: 0.75; cursor: progress; }
+  .spinner { width: 16px; height: 16px; border-radius: var(--radius-pill); border: 2px solid currentColor; border-right-color: transparent; }
+
+  /* Toasts: bottom right, 3 s (spec 8.5). Leading shape is aria-hidden. */
+  .toasts { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .toast { min-width: 260px; max-width: 420px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 12px; padding: 14px 18px 14px 14px; border-radius: var(--radius-banner); box-shadow: var(--shadow-toast); font-weight: 500; color: #ffffff; }
+  .toast.success { background: var(--color-ink); }
+  .toast.success .glyph { width: 14px; height: 14px; flex-shrink: 0; border-radius: var(--radius-pill); background: var(--color-sage); }
+  .toast.toast-error { background: var(--color-danger); }
+  .toast.toast-error .glyph { width: 13px; height: 13px; flex-shrink: 0; border-radius: 3px; background: #ffffff; }
+
+  /* Sign-in error (role="alert"), between the fields and the button */
+  .alert { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 14px; border-radius: var(--radius-banner); background: var(--color-danger-soft); color: var(--color-danger-text); font-size: 14px; font-weight: 500; }
+  .alert .glyph { width: 12px; height: 12px; flex-shrink: 0; border-radius: 3px; background: var(--color-danger); }
+
+  /* Fields */
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .label { font-weight: 500; }
+  .optional { font-weight: 400; color: var(--color-text-muted); }
+  .input { height: 52px; padding: 0 18px; border: 1.5px solid var(--color-border); border-radius: var(--radius-field); background: var(--color-surface); font: inherit; font-size: 15px; color: var(--color-text); }
+  .input.mono { font-family: var(--font-mono); }
+  .input[aria-invalid='true'] { border-color: var(--color-danger); }
+  .input[readonly] { background: var(--color-bg); color: var(--color-text-muted); }
+  textarea.input { height: auto; padding: 14px 16px; resize: vertical; }
+  .error { font-size: 13px; color: var(--color-danger-text); }
+
+  /* Dialog sample (Edit flag) and confirm sample (Delete flag) */
+  .dialog { position: relative; overflow: hidden; background: var(--color-surface); border-radius: var(--radius-dialog); box-shadow: var(--shadow-dialog); display: flex; flex-direction: column; }
+  .dialog .corner { position: absolute; top: 0; right: 0; width: 96px; height: 96px; border-radius: 0 0 0 96px; background: var(--color-sage); }
+  .dialog .close { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border: 0; border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text); display: flex; align-items: center; justify-content: center; }
+  .dialog-header { padding: 28px 120px 4px 28px; }
+  .dialog-title { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.1; }
+  .dialog-body { padding: 18px 28px 4px; display: flex; flex-direction: column; gap: 18px; }
+  .dialog-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 20px 28px 26px; }
+  .confirm-top { padding: 28px 28px 0; display: flex; flex-direction: column; gap: 14px; }
+  .cluster { display: flex; align-items: center; gap: 8px; }
+  .cluster .square { width: 48px; height: 48px; border-radius: 14px; background: var(--color-danger); color: #ffffff; display: flex; align-items: center; justify-content: center; }
+  .cluster .half { width: 24px; height: 48px; border-radius: 0 48px 48px 0; background: var(--color-apricot); }
+  .confirm-text { margin: 0; color: var(--color-text-soft); font-size: 15px; line-height: 1.5; }
+
+  /* Switch while its request runs (disabled) */
+  .switch-row { display: flex; align-items: center; gap: 10px; }
+  .track { position: relative; width: 54px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--color-switch-off); }
+  .track[aria-checked='true'] { background: var(--color-primary); }
+  .track:disabled { opacity: 0.6; cursor: progress; }
+  .knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: var(--radius-pill); background: #ffffff; box-shadow: var(--shadow-knob); }
+  .track[aria-checked='true'] .knob { transform: translateX(24px); box-shadow: none; }
+
+  /* Focus ring for every interactive element */
+  .focus-demo { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+  /* 404 */
+  .notfound { position: relative; overflow: hidden; min-height: 240px; border-radius: var(--radius-panel); background: var(--color-surface); padding: 32px; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px; }
+  .notfound .shape-ring { position: absolute; right: -30px; top: -30px; width: 160px; height: 160px; border-radius: var(--radius-pill); border: 3px solid var(--color-border); }
+  .notfound .shape-quarter { position: absolute; right: 40px; top: 40px; width: 70px; height: 70px; border-radius: 0 70px 0 0; background: var(--color-apricot); }
+  .notfound h1 { position: relative; margin: 0; font-family: var(--font-display); font-size: 56px; font-weight: 600; line-height: 1; }
+  .notfound a { position: relative; color: var(--color-primary); font-weight: 600; }
+  .notfound a:hover { color: var(--color-primary-dark); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="cell">
+    <h2 class="cell-title">Empty states · EmptyState</h2>
+    <div class="card" style="padding: 0">
+      <div class="empty">
+        <span class="empty-shapes" aria-hidden="true"><span class="ring"></span><span class="half"></span></span>
+        <p class="empty-text">No flags in this group</p>
+        <button type="button" class="button primary">Add flag</button>
+      </div>
+      <div class="rule"></div>
+      <div class="empty">
+        <span class="empty-shapes" aria-hidden="true"><span class="ring"></span><span class="half"></span></span>
+        <p class="empty-text">No groups yet</p>
+        <button type="button" class="button primary">Create your first group</button>
+      </div>
+      <div class="rule"></div>
+      <div class="empty small"><p class="empty-text">No flags match this filter.</p></div>
+      <div class="rule"></div>
+      <div class="empty small"><p class="empty-text">No groups match your search</p></div>
+      <div class="rule"></div>
+      <div class="empty small"><p class="empty-text">Select a group or create one</p></div>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2 class="cell-title">Toasts · bottom right, 24 px from the edges</h2>
+    <div class="toasts">
+      <div class="toast success" role="status"><span class="glyph" aria-hidden="true"></span>Flag orders.free-shipping-banner created</div>
+      <div class="toast success" role="status"><span class="glyph" aria-hidden="true"></span>Group orders and 4 flags deleted</div>
+      <div class="toast toast-error" role="alert"><span class="glyph" aria-hidden="true"></span>This item was changed by someone else</div>
+      <div class="toast toast-error" role="alert"><span class="glyph" aria-hidden="true"></span>Could not update flag orders.new-checkout</div>
+    </div>
+
+    <h2 class="cell-title" style="margin-top: 16px">Sign in · error and busy</h2>
+    <div class="card">
+      <div class="field">
+        <label for="s-pass" class="label">Password</label>
+        <input id="s-pass" type="password" class="input" value="wrongpass">
+      </div>
+      <div class="alert" role="alert"><span class="glyph" aria-hidden="true"></span>Invalid username or password</div>
+      <button type="button" class="button dark" disabled style="width: 100%; height: 56px"><span class="spinner" aria-hidden="true"></span>Sign in</button>
+    </div>
+
+    <h2 class="cell-title" style="margin-top: 16px">Field error · TextField</h2>
+    <div class="card">
+      <div class="field">
+        <label for="s-key" class="label">Key</label>
+        <input id="s-key" class="input mono" value="Orders" aria-invalid="true" aria-describedby="s-key-err">
+        <span id="s-key-err" class="error">Use 2 to 50 lowercase letters, digits or hyphens, starting with a letter</span>
+      </div>
+    </div>
+
+    <h2 class="cell-title" style="margin-top: 16px">Switch in flight · focus</h2>
+    <div class="card" style="flex-direction: row; align-items: center; gap: 28px">
+      <div class="switch-row"><button type="button" class="track" role="switch" aria-checked="true" aria-label="Toggle orders.new-checkout" disabled><span class="knob"></span></button><span style="font-weight: 600">On</span></div>
+      <button type="button" class="button secondary focus-demo">Edit group</button>
+    </div>
+  </div>
+
+  <div class="cell">
+    <h2 class="cell-title">Edit flag · read-only Key</h2>
+    <div class="dialog" role="dialog" aria-labelledby="s-edit-title">
+      <span class="corner" aria-hidden="true"></span>
+      <button type="button" class="close" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="dialog-header"><h2 class="dialog-title" id="s-edit-title">Edit flag</h2></div>
+      <div class="dialog-body">
+        <div class="field">
+          <label for="s-ro" class="label">Key</label>
+          <input id="s-ro" class="input mono" readonly value="orders.new-checkout">
+        </div>
+        <div class="field">
+          <label for="s-desc" class="label">Description <span class="optional">(optional)</span></label>
+          <textarea id="s-desc" class="input" rows="2">New one-page checkout flow</textarea>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="button secondary">Cancel</button>
+        <button type="button" class="button primary">Save changes</button>
+      </div>
+    </div>
+
+    <h2 class="cell-title" style="margin-top: 16px">Delete flag · ConfirmDialog</h2>
+    <div class="dialog" role="alertdialog" aria-labelledby="s-del-title" aria-describedby="s-del-text">
+      <div class="confirm-top">
+        <div class="cluster" aria-hidden="true"><span class="square"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><span class="half"></span></div>
+        <h2 class="dialog-title" id="s-del-title" style="font-size: 28px">Delete flag orders.new-checkout?</h2>
+        <p class="confirm-text" id="s-del-text">Services reading it will get 404.</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="button secondary">Cancel</button>
+        <button type="button" class="button danger">Delete</button>
+      </div>
+    </div>
+
+    <h2 class="cell-title" style="margin-top: 16px">404 · NotFoundPage</h2>
+    <div class="notfound">
+      <span class="shape-ring" aria-hidden="true"></span><span class="shape-quarter" aria-hidden="true"></span>
+      <h1>Page not found</h1>
+      <a href="#">Back to flags</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
