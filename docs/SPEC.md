@@ -21,7 +21,7 @@ Build a standalone Feature Flag Service: a Java 21 backend that stores boolean f
 - Multiple environments (dev/stage/prod) inside one instance. One deployment = one environment.
 - Client SDKs. Clients call the HTTP API directly.
 - Real-time push (SSE/WebSocket) to clients. Clients poll with ETag caching.
-- Distributed cache (Redis, Hazelcast or similar). The cache lives inside the service process. Horizontal scaling (several backend instances) is in scope since spec 003 (release 1.2.0): see section 7.2 and `docs/specs/003-high-availability/SPEC.md`.
+- Distributed cache (Redis, Hazelcast or similar). The cache lives inside the service process. Horizontal scaling (several backend instances) is in scope since spec 003: see section 7.2 and `docs/specs/003-high-availability/SPEC.md`.
 - Rate limiting inside the service. It is done at the edge (CDN, API gateway or ingress), which sees the real client IP; see section 5.3 and decision `decisions/0002-rate-limiting-at-edge.md`.
 
 ### 1.3 Glossary
@@ -393,7 +393,7 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 
 **Write path (write-through after commit)**
 
-**Since spec 003 (release 1.2.0, several instances):** every admin write increments the one-row `cache_state.revision` counter under its row lock as the last statements of its transaction and writes a `flag_change(revision, type, group_key)` row; each instance polls the counter every `FF_CACHE_SYNC_INTERVAL` (1 s) and reloads the named groups into an immutable snapshot; the writing instance syncs itself after commit, before the HTTP response returns. Full design, ETag rule, reconciliation lock and consistency bound: `docs/specs/003-high-availability/SPEC.md` section 5. The table below describes the resulting cache content per change; the `FlagsChangedEvent` payload of 1.0.0 is no longer applied directly.
+**Since spec 003 (several instances):** every admin write increments the one-row `cache_state.revision` counter under its row lock as the last statements of its transaction and writes a `flag_change(revision, type, group_key)` row; each instance polls the counter every `FF_CACHE_SYNC_INTERVAL` (1 s) and reloads the named groups into an immutable snapshot; the writing instance syncs itself after commit, before the HTTP response returns. Full design, ETag rule, reconciliation lock and consistency bound: `docs/specs/003-high-availability/SPEC.md` section 5. The table below describes the resulting cache content per change; the `FlagsChangedEvent` payload of 1.0.0 is no longer applied directly.
 
 | Change in the UI | Cache update |
 | --- | --- |
@@ -417,7 +417,7 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 
 **Scope: service-level cache only.** The cache lives in the memory of each backend process. A distributed cache (Redis, Hazelcast or similar) is out of scope, and the agent MUST NOT add one, nor any messaging between instances. Instances coordinate only through the database (spec 003).
 
-Since spec 003 (release 1.2.0) the backend runs as any number of instances (N ≥ 2 in the HA tests; `replicas: 1` still works). Daily reconciliation runs on one instance under a PostgreSQL advisory lock and increments the revision when it finds drift. Upgrade from 1.1.0: stop the 1.1.0 instance before starting the first 1.2.0 instance; the README MUST state this.
+Since spec 003 the backend runs as any number of instances (N ≥ 2 in the HA tests; `replicas: 1` still works). Daily reconciliation runs on one instance under a PostgreSQL advisory lock and increments the revision when it finds drift. Upgrade to the spec 003 release: stop the old instance before starting the first new instance; the README MUST state this.
 
 ### 7.3 Client usage (documented in README)
 
@@ -637,7 +637,7 @@ Rules: controllers never touch repositories; services are `@Transactional`; enti
 
 - **Evaluation API compatibility:** `/api/v1` is a stable contract. Within v1 only additive changes are allowed: new endpoints and new optional response fields. Removing or renaming a field, changing a status code or changing meaning requires `/api/v2`, served alongside v1 for a deprecation period announced in the CHANGELOG. Consumers MUST ignore unknown response fields.
 - **Admin API:** used only by the bundled UI and released together with it; it still lives under `/api/v1/admin`.
-- **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`; `1.1.0` is spec 002 (Spring Boot 4), `1.2.0` is spec 003 (high availability).
+- **Version numbers:** one Semantic Versioning number (`MAJOR.MINOR.PATCH`) for the repository, kept in the file `VERSION` and tagged in git as `v<version>`. The first release is `1.0.0`; `1.1.0` is spec 002 (Spring Boot 4). A change spec names no version number: each builder PR releases the next free minor version. The builder reads `VERSION` on `main` when it merges `origin/main` before marking its PR ready, adds one minor, and writes it to `VERSION` and a `CHANGELOG.md` section. After merging a release PR, the owner tags the merge commit on `main` as `v<version>` and pushes the tag; the builder never creates tags.
 - **Docker images:** both images are tagged `<version>` and `sha-<short commit>`, for example `feature-flag-backend:1.0.0` and `feature-flag-ui:1.0.0`. Deployment manifests never use `latest`. Each image can still be deployed on its own.
 - **Version visibility:** the backend reports its version and commit in `/actuator/info` (Spring Boot build info); the UI shows its version in the footer of the app shell. The footer element contains the text `v<version>` (for example `v1.0.0`). `build.version` is a SemVer `MAJOR.MINOR.PATCH` string, `git.commit.id` is a lower-case hex commit id (7 to 40 characters), and the UI footer shows `v` followed by the same `build.version`.
 - **CHANGELOG.md** in Keep a Changelog format: every chunk that changes behaviour adds a line under `Unreleased`; the final milestone moves them under `1.0.0`.
@@ -920,7 +920,8 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 8. **M8 Hardening** — Playwright e2e for every 11.2 scenario, Dockerfiles finalised (non-root, healthchecks), README (setup, env vars, API usage with curl examples, client polling guidance). Done when: the full CI pipeline is green and every 11.2 box is ticked.
 9. **M9 Spring Boot 4 upgrade** — spec 002, `docs/specs/002-spring-boot-4-upgrade/`, release 1.1.0. Done and merged.
 10. **M10 Test-changes gate** — spec 004, `docs/specs/004-test-changes-gate/`, gate 16. Built by the owner (decision 0012). Done.
-11. **M11 High availability** — spec 003, `docs/specs/003-high-availability/`, release 1.2.0.
+11. **M11 High availability** — spec 003, `docs/specs/003-high-availability/`, release: the next free minor version.
+12. **M12 UI redesign** — spec 005, `docs/specs/005-ui-redesign/`, release: the next free minor version.
 
 ### 12.3 Definition of done
 

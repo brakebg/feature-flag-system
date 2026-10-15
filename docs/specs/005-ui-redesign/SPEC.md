@@ -1,4 +1,4 @@
-# Spec 005 — UI redesign (release 1.3.0)
+# Spec 005 — UI redesign
 
 Owner-authored, locked. Decision: `decisions/0013-ui-redesign.md`.
 Milestone: **M12**. Working branch: **`feature/ui-redesign`** (from `main`), one PR to `main`.
@@ -60,8 +60,8 @@ change, accessibility tooling (axe, still parked in spec 001).
 
 ### 4.1 Visual reference
 
-The designs are in `<spec>/design/` (section 10 item 3 decides whether they move to
-`docs/design/`). Each screen has `N · <screen>.html` (plain HTML and CSS: read the exact values
+The designs are in `docs/design/` (copied there from `<spec>/design/` by the owner, section 10
+item 3). Each screen has `N · <screen>.html` (plain HTML and CSS: read the exact values
 there) and `N · <screen>.png` (how it looks, 1440 px wide at 2×).
 
 | File | Screen |
@@ -302,7 +302,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   and AC-UI-9; **B** screens: shell, sign-in, workspace (pie, row cards), dialogs, audit
   (labels), tests for AC-UI-4 to AC-UI-6; **C** states of design 6, layout and long data
   (AC-UI-7, AC-UI-8), the five baselines re-recorded with `<spec>/DECISIONS.md` entries,
-  `docs/design-compare/` regenerated, release 1.3.0 (`VERSION`, `CHANGELOG.md`).
+  `docs/design-compare/` regenerated, release: the next free minor version (`VERSION`, `CHANGELOG.md`; `docs/SPEC.md` 9.6).
 - Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   `design-checker` (against the designs of section 4.1), `final-reviewer` (scope frontend).
 
@@ -321,7 +321,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] The five screenshot baselines re-recorded, each recording with a `<spec>/DECISIONS.md` entry; `docs/design-compare/` shows the built screens next to the spec 005 designs.
 - [ ] No backend change; `backend/openapi.json` unchanged; one new package only (section 4.7).
-- [ ] `VERSION` 1.3.0, `CHANGELOG.md` section.
+- [ ] `VERSION` is the next free minor version (`docs/SPEC.md` 9.6), `CHANGELOG.md` section.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
 ## 10. Owner decisions
@@ -333,18 +333,19 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
    11.4 and the registry list it, `style.spec.ts` carries `[AC-STYLE-1]` on `main`, and spec 005
    re-expresses it (section 5) and allows its test change (section 6). Gate 16 reads tags from
    `main` and allows only listed IDs, so this is the only way the builder may rewrite the file.
-3. **Open:** where the designs live. `CLAUDE.md`, the design-checker agent and
+3. ~~Where the designs live~~ **Decided: (a), the owner copied `<spec>/design/` over
+   `docs/design/` (owner PR, 2026-10-15).** Background: `CLAUDE.md`, the design-checker agent and
    `scripts/design-compare.sh` read `docs/design/`, which is locked; `<spec>/design/` is not, and a
    spec PR may not change `docs/design/` (write-spec scope check). Options: (a) right after this
    spec PR is merged, the owner copies `<spec>/design/` over `docs/design/` (same file names;
    design 6 is new) and updates `docs/design/README.md`, before the builder starts; the builder and
    the design-checker then use `docs/design/` / (b) the designs stay in `<spec>/design/` until the
    builder PR is merged, and the owner adds `docs/specs/*/design/**` to
-   `scripts/locked-paths.txt`. Proposal: (a).
-4. **Open:** the new font package (section 4.7). Options: (a) add
+   `scripts/locked-paths.txt`.
+4. ~~The new font package~~ **Decided: (a), add `@fontsource/ibm-plex-sans-condensed` 5.3.0**
+   (owner, 2026-10-15). Background (section 4.7), the options were: (a) add
    `@fontsource/ibm-plex-sans-condensed` 5.3.0 / (b) no new package: titles use IBM Plex Sans 600;
    then `--font-display`, section 4.7, the 10.2 row and the Condensed parts of AC-UI-1 fall away.
-   Proposal: (a).
-5. **Open:** release number. Options: (a) 1.3.0, after spec 003 releases 1.2.0 / (b) the next
-   free minor when the builder PR merges. Proposal: (b), so the order of specs 003 and 005 does
-   not matter.
+5. ~~Release number~~ **Decided: the next free minor version** (owner, 2026-10-15). The builder
+   reads `VERSION` on `main` at its final merge of `origin/main` and adds one minor
+   (`docs/SPEC.md` 9.6). The order of specs 003 and 005 does not matter.

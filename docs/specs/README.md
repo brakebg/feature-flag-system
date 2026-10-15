@@ -15,7 +15,7 @@ files.
 | 002 | [002-spring-boot-4-upgrade](002-spring-boot-4-upgrade/) | `SPEC.md` | M9 | `feature/spring-boot-4` | Ready |
 | 003 | [003-high-availability](003-high-availability/) | `SPEC.md` | M11 | `feature/high-availability` | Ready |
 | 004 | [004-test-changes-gate](004-test-changes-gate/) | `SPEC.md` | M10 | `feature/test-changes-gate` | Done, built by the owner (issue #22) |
-| 005 | [005-ui-redesign](005-ui-redesign/) | `SPEC.md` | M12 | `feature/ui-redesign` | Draft |
+| 005 | [005-ui-redesign](005-ui-redesign/) | `SPEC.md` | M12 | `feature/ui-redesign` | Ready |
 
 The owner adds a row for each new spec and gives it the next free milestone numbers.
 
