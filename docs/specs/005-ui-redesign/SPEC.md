@@ -19,7 +19,8 @@ names. Where it names a part of `docs/SPEC.md`, this spec wins for M12.
 | 8.3 App shell | Same content; the top bar becomes a floating white pill (designs 2 and 5). Appearance only |
 | 8.4, 8.5, 8.6 | Appearance only: group pie, row cards, shape-coded audit labels, new dialog, toast and empty-state look (sections 4.4 to 4.6). Every text, rule and state stays |
 | 10.2 Docker images, "Security headers" paragraph | Fonts come from three `@fontsource` packages: adds `@fontsource/ibm-plex-sans-condensed` (section 4.7). Headers and CSP unchanged |
-| 11.6 UI testing, "Matching the design" | Item 1: the style checks assert the values of AC-UI-1 and AC-UI-2. Item 2: the five baselines are re-recorded in phase C and after any later visual change, each recording with its own `<spec>/DECISIONS.md` entry per screen. Item 3: the gallery compares with the new designs |
+| 11.2 AC-STYLE-1 | Re-expressed (table in section 5). The owner extends `docs/acceptance-criteria.md` |
+| 11.6 UI testing, "Matching the design" | Item 1: the style checks (AC-STYLE-1) assert the spec 005 values. Item 2: the five baselines are re-recorded in phase C and after any later visual change, each recording with its own `<spec>/DECISIONS.md` entry per screen. Item 3: the gallery compares with the new designs |
 
 Not changed: the backend and `backend/openapi.json`, every route, text, role, accessible name and
 behaviour of spec 001 section 8, gate 4 banned dependencies, the tech stack (CSS Modules plus CSS
@@ -41,8 +42,8 @@ change, accessibility tooling (axe, still parked in spec 001).
 
 ## 3. MUST stay the same
 
-1. Every acceptance criterion of spec 001 and of every merged spec passes. No criterion is
-   re-expressed.
+1. Every acceptance criterion of spec 001 and of every merged spec passes, except AC-STYLE-1,
+   which is re-expressed in section 5.
 2. Every route, text, role, accessible name, ARIA state, focus order and keyboard behaviour of
    spec 001 section 8. Landmarks, their names and heading levels stay as in the current code. The
    design markup shows appearance only; where it differs from section 8.7 or the current code's
@@ -241,7 +242,7 @@ two Plex packages already used) and import weight 600 in `src/main.tsx`. No othe
 `frontend/src/styles/tokens.css`, `global.css`; the CSS modules and markup of `components/`
 (`Button`, `TextField`, `Toggle`, `Modal`, `ConfirmDialog`, `Toast`, `EmptyState`, `FlagLogo`,
 `Spinner`) and of `features/` (`shell`, `auth`, `groups`, `flags`, `audit`); `src/main.tsx`;
-`frontend/package.json` and lock file; `frontend/e2e/style.spec.ts` (section 10 item 2); new
+`frontend/package.json` and lock file; `frontend/e2e/style.spec.ts` (AC-STYLE-1); new
 tests for AC-UI-1 to AC-UI-9; the five screenshot baselines; `docs/design-compare/`.
 `GroupsPage.test.tsx` checks `aria-hidden` on the plus `svg`; section 4.4 keeps it true.
 
@@ -259,25 +260,33 @@ Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 12`): AC-UI-1 to 
 - **AC-UI-8** · Long data wraps, header text never meets a shape, the delete dialog scrolls on a short window
 - **AC-UI-9** · Visible 2 px focus ring on every focused element, white inside ink surfaces
 
-None. No spec 001 criterion changes.
+**Spec 001 criteria that change** (same ID, same position; the owner extends
+`docs/acceptance-criteria.md` after merge):
+
+| ID | Now | Becomes |
+| --- | --- | --- |
+| AC-STYLE-1 | The style checks of 11.6 item 1: on `/login` the `Sign in` button background is `#2350C8`, the body font is IBM Plex Sans, and the Username and Password inputs are 44 px high with a 6 px border radius; on a group page the top bar background is `#15181D` and its height 60 px, full keys use IBM Plex Mono, and a switch that is on and the `New flag` button have the background `#2350C8` | The style checks of 11.6 item 1, with the spec 005 values: on `/login` the `Sign in` button background is `#1C2433`, the body font is IBM Plex Sans, and the Username and Password inputs are 52 px high with a 16 px border radius; on a group page the top bar background is `#FFFFFF`, its border radius at least half its height and its height at least 64 px, full keys use IBM Plex Mono, and a switch that is on and the `New flag` button have the background `#3D59A8` |
+
+AC-AUTH, AC-GRP, AC-FLAG, AC-EVAL, AC-CACHE, AC-AUD and AC-OPS unchanged.
 
 ## 6. Test changes
 
 The tests that may change are listed in `<spec>/test-changes.md`.
-Allowed behaviour changes: none.
+Allowed behaviour changes: AC-STYLE-1.
 Every other test may change only by the plumbing clause in that file. A change to any other
 test is a Level 3 escalation (section 8).
 
-The five screenshot baselines change under spec 001 section 11.6 item 2 (a `<spec>/DECISIONS.md`
-entry per screen and recording, checked by gate 15); that is not a test-code change. The untagged
-`frontend/e2e/style.spec.ts` asserts the old design values: section 10 item 2.
+`frontend/e2e/style.spec.ts` carries `[AC-STYLE-1]` on `main`, so gate 16 lets the builder rewrite
+it to the new values. The five screenshot baselines change under spec 001 section 11.6 item 2 (a
+`<spec>/DECISIONS.md` entry per screen and recording, checked by gate 15); that is not a
+test-code change.
 
 ## 7. Acceptance delta
 
 For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 - Added: AC-UI-1, AC-UI-2, AC-UI-3, AC-UI-4, AC-UI-5, AC-UI-6, AC-UI-7, AC-UI-8, AC-UI-9
-- Changed: none
+- Changed: AC-STYLE-1: the suite's style check asserts the spec 005 values
 - Retired: none
 
 ## 8. Process
@@ -289,7 +298,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   `feature/ui-redesign` → `main`.
 - Phases, each chunk green: **A** before any visual change, record the ARIA snapshots of the
   screens from the current code (AC-UI-6); then the font package, tokens, global styles and the
-  shared components of 4.4, the style checks of section 10 item 2, tests for AC-UI-1 to AC-UI-3
+  shared components of 4.4, the style checks (AC-STYLE-1), tests for AC-UI-1 to AC-UI-3
   and AC-UI-9; **B** screens: shell, sign-in, workspace (pie, row cards), dialogs, audit
   (labels), tests for AC-UI-4 to AC-UI-6; **C** states of design 6, layout and long data
   (AC-UI-7, AC-UI-8), the five baselines re-recorded with `<spec>/DECISIONS.md` entries,
@@ -308,8 +317,8 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 ## 9. Definition of done
 
 - [ ] `make verify-all` passes, all 15 gates; report committed as `<spec>/verify-report.md`.
-- [ ] AC-UI-1 to AC-UI-9 and every spec 001 criterion pass.
-- [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing, plus what section 10 item 2 decides.
+- [ ] AC-UI-1 to AC-UI-9 and every spec 001 criterion (with the section 5 change) pass.
+- [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] The five screenshot baselines re-recorded, each recording with a `<spec>/DECISIONS.md` entry; `docs/design-compare/` shows the built screens next to the spec 005 designs.
 - [ ] No backend change; `backend/openapi.json` unchanged; one new package only (section 4.7).
 - [ ] `VERSION` 1.3.0, `CHANGELOG.md` section.
@@ -319,12 +328,11 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 1. ~~Direction~~ **Decided: "Redesign C · balanced colours"**, chosen by the owner from three
    variants (calm, bold, balanced) on 2026-10-13. Shapes as in all three variants.
-2. **Open:** `frontend/e2e/style.spec.ts` has no AC ID and asserts the old values (`#2350C8`,
-   top bar `#15181D` 60 px high, 6 px input radius). The test-change rules let no untagged test
-   change, and `test-changes.md` can list only AC IDs. Options: (a) this decision allows it: the
-   builder rewrites `style.spec.ts` to the values of AC-UI-1 and AC-UI-2, tags its tests
-   `[AC-UI-1]` and `[AC-UI-2]`, and names this item in `<spec>/DECISIONS.md` / (b) the builder adds
-   new style tests and the owner removes `style.spec.ts` in an owner commit. Proposal: (a).
+2. ~~`frontend/e2e/style.spec.ts` has no AC ID and asserts the old values~~ **Decided: the style
+   checks get their own spec 001 ID, AC-STYLE-1** (owner PR, 2026-10-15). `docs/SPEC.md` 11.2 and
+   11.4 and the registry list it, `style.spec.ts` carries `[AC-STYLE-1]` on `main`, and spec 005
+   re-expresses it (section 5) and allows its test change (section 6). Gate 16 reads tags from
+   `main` and allows only listed IDs, so this is the only way the builder may rewrite the file.
 3. **Open:** where the designs live. `CLAUDE.md`, the design-checker agent and
    `scripts/design-compare.sh` read `docs/design/`, which is locked; `<spec>/design/` is not, and a
    spec PR may not change `docs/design/` (write-spec scope check). Options: (a) right after this

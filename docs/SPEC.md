@@ -793,6 +793,10 @@ Operations
 
 * [ ] With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`).
 
+Design
+
+- [ ] The style checks of 11.6 item 1: on `/login` the `Sign in` button background is `#2350C8`, the body font is IBM Plex Sans, and the Username and Password inputs are 44 px high with a 6 px border radius; on a group page the top bar background is `#15181D` and its height 60 px, full keys use IBM Plex Mono, and a switch that is on and the `New flag` button have the background `#2350C8`.
+
 ### 11.3 Automated quality gates
 
 One command, `make verify`, runs every gate below in order and is the agent's single source of truth for "done": it exits non-zero on the first failing gate and writes `build/verify-report.json` and `build/verify-report.md` (per gate: status, duration, failing test names, first 30 lines of each error, affected acceptance-criterion IDs). `make verify-all` runs every gate even after a failure; `make verify-fast` runs only the gates that need no Docker (1–6, 9, 10, 14, 15, 16) for the inner edit loop.
@@ -847,7 +851,7 @@ The `exp:` date is the review date. When it passes, Trivy reports the vulnerabil
 
 ### 11.4 Acceptance-criteria traceability
 
-Every checkbox in 11.2 gets a stable ID by group and position: `AC-AUTH-1…6`, `AC-GRP-1…5`, `AC-FLAG-1…6`, `AC-EVAL-1…7`, `AC-CACHE-1…9`, `AC-AUD-1…3`, `AC-OPS-1…4` (for example, the first Groups checkbox is `AC-GRP-1`).
+Every checkbox in 11.2 gets a stable ID by group and position: `AC-AUTH-1…6`, `AC-GRP-1…5`, `AC-FLAG-1…6`, `AC-EVAL-1…7`, `AC-CACHE-1…9`, `AC-AUD-1…3`, `AC-OPS-1…4`, `AC-STYLE-1` (for example, the first Groups checkbox is `AC-GRP-1`).
 
 A checkbox marked `[Removed — decision NNNN]` keeps its ID so later IDs do not shift. It needs no test, and `check-traceability.mjs` skips it. Currently removed: `AC-AUTH-5` (decision 0002).
 
@@ -888,7 +892,7 @@ In the black-box suite, API tests run once in an `api` project; UI tests run in 
 
 **Matching the design**
 
-1. Style checks: Playwright reads computed styles and asserts the key design values, for example the primary button background `#2350C8`, top bar background `#15181D`, body font IBM Plex Sans, keys in IBM Plex Mono, 44 px login inputs, and the switch colour when on. Design values live once in `frontend/src/styles/tokens.css`; tests compare against the values taken from `docs/design/`, not against `tokens.css`.
+1. Style checks: Playwright reads computed styles and asserts the key design values, for example the primary button background `#2350C8`, top bar background `#15181D`, body font IBM Plex Sans, keys in IBM Plex Mono, 44 px login inputs, and the switch colour when on. Design values live once in `frontend/src/styles/tokens.css`; tests compare against the values taken from `docs/design/`, not against `tokens.css`. These checks are AC-STYLE-1 (11.2, Design).
 2. Screenshot regression: from M7, `toHaveScreenshot` baselines for all five screens on `chromium-desktop` are committed (`maxDiffPixelRatio` 0.01). Changing a baseline requires a `<spec>/DECISIONS.md` entry naming the screen and the reason; gate 15 checks that every changed baseline file is listed there.
 3. Review gallery: the final run writes `docs/design-compare/index.html`, showing each screen's screenshot next to its design PNG at the same size, for the owner's final review. There is no automated pixel comparison against the design PNGs, because font rendering and sample data differences would cause constant false failures.
 

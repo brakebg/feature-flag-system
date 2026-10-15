@@ -19,8 +19,8 @@ balanced one (muted, related colours). The bold one was too loud for an admin to
 the calm one had a single accent and little structure. The balanced one keeps the shape language
 of both and passes WCAG AA for every text pair (spec 005 section 4.2).
 
-Behaviour is not touched, so no acceptance criterion changes; nine new criteria (AC-UI-1 to
-AC-UI-9) make the look testable.
+Behaviour is not touched. Nine new criteria (AC-UI-1 to AC-UI-9) make the look testable; the one
+changed criterion is AC-STYLE-1, the old style check, which now asserts the new values.
 
 Two-reviewer challenge (2026-10-13, simplicity and robustness bias): 20 findings, most of them
 shared. Fixed in the draft:
@@ -44,13 +44,15 @@ Kept for the owner: section 10 items 2 to 5.
 
 - `docs/SPEC.md` section 8 "Visual reference", 8.3 to 8.6 appearance, 10.2 font packages, 11.6
   style checks and baselines (spec 005 section 1).
-- No re-expressed AC IDs.
+- AC-STYLE-1 is re-expressed (spec 005 section 5). It is the spec 001 style check of 11.6 item 1,
+  which had no ID until the owner PR of 2026-10-15 gave it one, so that gate 16 can allow the
+  rewrite of `frontend/e2e/style.spec.ts`.
 - New spec folder `docs/specs/005-ui-redesign/` (milestone M12), with the design files.
 
 ## Consequences
 
 - One new frontend package (`@fontsource/ibm-plex-sans-condensed`, same publisher as the Plex
   packages already used).
-- The five screenshot baselines and the untagged style test must be updated (spec 005
-  section 10 item 2).
+- The five screenshot baselines (gate 15) and the style test (AC-STYLE-1, gate 16) are updated by
+  the builder.
 - `docs/design/` must be replaced by the new designs (owner step, spec 005 section 10 item 3).
