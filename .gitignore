@@ -6,6 +6,8 @@
 
 # Personal Claude Code settings (project settings.json stays tracked)
 .claude/settings.local.json
+# Claude Code worktrees: full repo copies with old CLAUDE.md and agents
+.claude/worktrees/
 
 # Backend
 backend/target/
