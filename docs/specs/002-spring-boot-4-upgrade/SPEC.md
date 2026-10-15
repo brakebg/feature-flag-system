@@ -77,7 +77,7 @@ The upgrade is proven by these. Breaking one is a bug in the upgrade.
    `frontend/src/api/schema.d.ts` compiles with the UI code unchanged.
 4. Logs keep the 9.3 content: ECS JSON, one line per request with method, path, status,
    duration and correlation id.
-5. All 15 gates, every threshold and the banned-dependency lists stay as they are. If a gate
+5. All 16 gates, every threshold and the banned-dependency lists stay as they are. If a gate
    tool (PIT, JaCoCo, ArchUnit, Spotless, Enforcer, Trivy, gitleaks) does not support the new
    platform, that is a Level 3 escalation; the gate is never dropped, skipped or weakened.
 6. No new Flyway migration. V1 and V2 apply unchanged (same checksums) on an empty database
@@ -195,7 +195,7 @@ and `CLAUDE.md` 6a for M9.
 
 ## 8. Definition of done
 
-- [ ] `make verify-all` passes from a fresh clone, all 15 gates green, on Spring Boot 4.1.x;
+- [ ] `make verify-all` passes from a fresh clone, all 16 gates green, on Spring Boot 4.1.x;
       report committed as `<spec>/verify-report.md`.
 - [ ] Traceability shows every criterion (including AC-UPG-1 and AC-UPG-2) and every error-case
       ID with at least one passing test.

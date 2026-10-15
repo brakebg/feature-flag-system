@@ -7,7 +7,7 @@
 //   node .claude/skills/write-spec/spec-tool.mjs check <spec-folder> [--allow-open] [--base <ref>]
 //
 // next   Next free spec id, milestone and decision number. Scans the working tree, origin/main
-//        and every owner/* branch (local and origin), so numbers taken by an open spec PR are skipped.
+//        and every other branch (local and origin), so numbers taken by an open spec PR are skipped.
 // tests  Every test that carries the IDs in a string: JUnit @Tag("ID"), a Vitest / Playwright /
 //        script test title (same ID pattern as gate 14). --md prints the list for test-changes.md.
 //        Warns on an ID with no test.
@@ -128,10 +128,12 @@ function localDecisions() {
     .map((f) => ({ n: f.slice(0, 4), file: f, ref: 'working tree' }));
 }
 
-/** origin/main (if present) and every owner/* branch, local and origin. */
+/** origin/main (if present) first, then every other branch, local and origin. */
 function scanRefs() {
   const main = git(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main']) ? ['origin/main'] : [];
-  return [...main, ...lines(git(['for-each-ref', '--format=%(refname:short)', 'refs/heads/owner', 'refs/remotes/origin/owner']))];
+  const others = lines(git(['for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/remotes/origin']))
+    .filter((r) => r !== 'origin/main' && r !== 'origin' && !r.endsWith('/HEAD'));
+  return [...main, ...others];
 }
 
 function specsAt(ref) {
@@ -184,7 +186,7 @@ function cmdNext(args) {
   const maxId = Math.max(0, ...specs.map((s) => Number(s.id)));
   const maxM = Math.max(0, ...specs.flatMap((s) => s.milestones.map(Number)));
   const maxD = Math.max(0, ...decisions.map((d) => Number(d.n)));
-  // Numbers above the working tree's highest are held by an open owner branch; older ones are history.
+  // Numbers above the working tree's highest are held by another branch; older ones are history.
   const local = localSpecs();
   const topId = Math.max(0, ...local.map((s) => Number(s.id)));
   const topM = Math.max(0, ...local.flatMap((s) => s.milestones.map(Number)));
@@ -192,7 +194,7 @@ function cmdNext(args) {
   console.log(`next spec:      ${String(maxId + 1).padStart(3, '0')}`);
   console.log(`next milestone: M${maxM + 1}`);
   console.log(`next decision:  ${String(maxD + 1).padStart(4, '0')}`);
-  console.log(`scanned: working tree + ${refs.filter((r) => r === 'origin/main').length ? 'origin/main + ' : ''}${refs.filter((r) => r !== 'origin/main').length} owner/* branch(es)`);
+  console.log(`scanned: working tree + ${refs.filter((r) => r === 'origin/main').length ? 'origin/main + ' : ''}${refs.filter((r) => r !== 'origin/main').length} other branch(es)`);
   const elsewhere = uniq([
     ...specs.filter((s) => s.ref !== 'working tree' && (Number(s.id) > topId || s.milestones.some((m) => m > topM))).map((s) => `spec ${s.name} (M${s.milestones.join(', M')}) on ${s.ref}`),
     ...decisions.filter((d) => d.ref !== 'working tree' && Number(d.n) > topD).map((d) => `decision ${d.file} on ${d.ref}`),
@@ -321,11 +323,11 @@ function cmdCheck(args) {
   if (!exists(`${dir}/test-changes.md`)) err(`${dir}/test-changes.md does not exist`);
   const milestones = Array.isArray(meta.milestones) ? meta.milestones : [];
   if (!milestones.length || !milestones.every((m) => Number.isInteger(m) && m > 0)) err('spec.json: "milestones" must be a non-empty list of positive integers');
-  if (typeof meta.branch === 'string' && (/^(main|owner\/|wip\/)/.test(meta.branch))) err(`spec.json: branch "${meta.branch}" must be a builder branch (not main, owner/*, wip/*)`);
+  if (typeof meta.branch === 'string' && (/^(main|spec\/|wip\/)/.test(meta.branch))) err(`spec.json: branch "${meta.branch}" must be a builder branch (not main, spec/*, wip/*)`);
   const agentFiles = ['STATE.md', 'PROGRESS.md', 'DECISIONS.md', 'BLOCKERS.md', 'MILESTONE', 'escalations', 'reviews', 'verify-report.md'];
   for (const f of agentFiles) if (exists(`${dir}/${f}`)) err(`${dir}/${f}: builder memory file; a new spec must not create it`);
 
-  // 2. Unique across all specs (working tree and owner/* branches)
+  // 2. Unique across all specs (working tree and all branches)
   const others = [...localSpecs(), ...scanRefs().flatMap(specsAt)].filter((s) => s.name !== folder);
   for (const s of others) {
     if (s.id === meta.id) err(`spec id ${meta.id} is also used by ${s.name} (${s.ref})`);

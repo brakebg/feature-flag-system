@@ -12,7 +12,7 @@ hashes. The job always passes and is not a required status check.
 
 ## 2. Why
 
-1. A block can be worked around (for example a branch named `owner/*`), so it is not a
+1. A block can be worked around (for example by naming a branch so the check skips it), so it is not a
    real guarantee.
 2. Only the owner merges. A clear alert on the PR gives the owner the same information.
 3. Blocking also gets in the way of the owner's own spec changes.

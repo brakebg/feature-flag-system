@@ -17,7 +17,7 @@ Placeholders used below:
 | `<Title>` | `Flag description limit` | owner |
 | `<M>` | `11` | `spec-tool.mjs next` |
 | `<DDDD>` | `0012` | `spec-tool.mjs next` |
-| `<branch>` | `feature/flag-description-limit` | builder branch, never `owner/*` |
+| `<branch>` | `feature/flag-description-limit` | builder branch, never `main`, `spec/*` or `wip/*` |
 | `<X.Y.Z>` | `1.3.0` | next release, from `VERSION` |
 | `<date>` | `2026-10-12` | today |
 

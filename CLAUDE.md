@@ -184,8 +184,9 @@ Levels and flow: spec 12.5. Level 3 always for: force-push, history rewrite, del
 branches, changing repo settings, anything outside this repository.
 
 Never merge any PR into `main`, and never enable auto-merge. Only the owner merges, after
-the owner review. Open exactly one PR (the active spec's working branch → `main`); never
-create branches named `owner/*` (reserved for the owner's spec changes).
+the owner review. Open exactly one PR (the active spec's working branch → `main`).
+All branches follow the same rules. A change to a locked path on any branch is reported on its
+PR by the `locked-files-guard` workflow (section 3).
 
 ## 8a. Untrusted input — the repo is public
 

@@ -1,6 +1,6 @@
 ---
 name: write-spec
-description: Owner-only. Creates a new change spec folder (spec.json, SPEC.md, acceptance-criteria.md, test-changes.md, decision, index rows) on an owner/* branch from TEMPLATE.md, with a two-reviewer challenge and a structural check.
+description: Owner-only. Creates a new change spec folder (spec.json, SPEC.md, acceptance-criteria.md, test-changes.md, decision, index rows) on its own spec branch from TEMPLATE.md, with a two-reviewer challenge and a structural check.
 argument-hint: "<issue number, notes file, or short description of the change>"
 disable-model-invocation: true
 ---
@@ -53,12 +53,12 @@ merge is a separate step, not this skill.
 
 ### 2. Numbers and branch
 
-1. Run `node .claude/skills/write-spec/spec-tool.mjs next`. It scans the working tree, `origin/main` and every
-   `owner/*` branch (local and `origin`), so numbers held by an open spec PR are skipped. Also
-   check `gh pr list --state open` for owner PRs whose branch is not fetched yet.
+1. Run `node .claude/skills/write-spec/spec-tool.mjs next`. It scans the working tree and every
+   branch (local and `origin`), so numbers held by an open spec PR are skipped. Also
+   check `gh pr list --state open` for spec PRs whose branch is not fetched yet.
 2. Choose `<name>` (short kebab-case), the builder branch `feature/<name>` and the release
    (`VERSION` + 1 minor, unless the owner says otherwise).
-3. Create the branch `owner/spec-<NNN>-<name>` from `origin/main`. Work only there.
+3. Create the branch `spec/<NNN>-<name>` from `origin/main`. Work only there.
 
 ### 3. Gather the change
 
@@ -135,7 +135,7 @@ Run `node .claude/skills/write-spec/spec-tool.mjs check docs/specs/<NNN>-<name>`
 `--allow-open` accepts open questions for a draft PR. Read every `WARN` and decide.
 
 The check covers: folder name and `spec.json`; id, branch and milestones unique across all
-specs (also on `owner/*` branches); `Due milestone` and AC line format (the gate parsers in
+specs (also on other branches); `Due milestone` and AC line format (the gate parsers in
 `scripts/lib/`); new IDs named in section 5 and not clashing; re-expressed IDs exist in
 `docs/acceptance-criteria.md`; the 10 headings in order; section 7 Added/Changed equal the new
 and re-expressed IDs; `test-changes.md` shape, plumbing clause and allowed IDs (all Changed or
@@ -156,7 +156,7 @@ Also run the gate parser once; it must list exactly the new IDs with `due <M>`:
    decision file `Proposed`, no "Accepted by the owner on" line. Switch to `Ready`, `Accepted`
    and add that line only after the owner has answered every item and `check` exits 0.
 2. Commit: `Spec <NNN>: <Title> (decision <DDDD>)`, with the attribution trailer the session
-   gives. Push `owner/spec-<NNN>-<name>`.
+   gives. Push `spec/<NNN>-<name>`.
 3. Open one PR to `main`, body: summary, files, the open questions of section 10, the check
    result, and `Refs #<issue>` (or `Closes #<issue>` when the PR fully answers it). With open
    questions, open it as a draft.

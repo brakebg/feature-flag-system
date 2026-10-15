@@ -52,7 +52,7 @@ change, accessibility tooling (axe, still parked in spec 001).
    nothing from other origins: fonts stay self-hosted. The Google Fonts `<link>` in the design files
    is only for viewing them and MUST NOT be copied.
 4. No backend file changes; `backend/openapi.json` unchanged.
-5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
+5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. Styling stays CSS Modules plus CSS variables. No UI component library, no CSS framework, no
    CSS-in-JS. The only new dependency is the one in section 4.7.
 
@@ -316,9 +316,9 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 ## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates; report committed as `<spec>/verify-report.md`.
-- [ ] AC-UI-1 to AC-UI-9 and every spec 001 criterion (with the section 5 change) pass.
-- [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
+- [ ] `make verify-all` passes, all 16 gates; report committed as `<spec>/verify-report.md`.
+- [ ] AC-UI-1 to AC-UI-9 and every spec 001 criterion pass.
+- [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing, plus what section 10 item 2 decides.
 - [ ] The five screenshot baselines re-recorded, each recording with a `<spec>/DECISIONS.md` entry; `docs/design-compare/` shows the built screens next to the spec 005 designs.
 - [ ] No backend change; `backend/openapi.json` unchanged; one new package only (section 4.7).
 - [ ] `VERSION` is the next free minor version (`docs/SPEC.md` 9.6), `CHANGELOG.md` section.

@@ -46,7 +46,7 @@ SDKs, high availability of PostgreSQL.
    `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules.
 3. Security rules of spec 001 section 5. No new endpoint.
 4. `backend/openapi.json` unchanged.
-5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
+5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. V1 and V2 migrations unchanged (same checksums).
 
 ## 4. Design
@@ -295,7 +295,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 ## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates, with the multi-instance compose stack; report committed as `<spec>/verify-report.md`.
+- [ ] `make verify-all` passes, all 16 gates, with the multi-instance compose stack; report committed as `<spec>/verify-report.md`.
 - [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 5 changes) pass.
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] `V1`, `V2` unchanged; `V3` only adds the two tables; `openapi.json` unchanged.
