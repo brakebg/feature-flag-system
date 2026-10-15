@@ -5,7 +5,7 @@ import { keyFor } from './support/api';
 const PRIMARY = 'rgb(35, 80, 200)'; // #2350C8
 const TOP_BAR = 'rgb(21, 24, 29)'; // #15181D
 
-test.describe('design values (spec 11.6)', () => {
+test.describe('[AC-STYLE-1] design values (spec 11.6)', () => {
   test('sign-in page: primary button, fonts and 44 px inputs', async ({ page }) => {
     await page.goto('/login');
     const button = page.getByRole('button', { name: 'Sign in' });
