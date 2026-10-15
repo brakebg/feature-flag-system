@@ -29,14 +29,16 @@ Files of this skill:
 | `docs/specs/<NNN>-<name>/acceptance-criteria.md` | new AC IDs, `Due milestone: <M>` |
 | `docs/specs/<NNN>-<name>/test-changes.md` | allowed AC IDs + fixed plumbing clause |
 | `decisions/<DDDD>-<name>.md` | the owner decision |
+| section in `docs/acceptance-criteria.md` | the new IDs, verbatim, under `## <Title> (spec <NNN>, due milestone <M>)`; re-expressed IDs updated in place (File 6, issue #31) |
 | row in `docs/specs/README.md` | Index table |
 | row in `decisions/README.md` | inside the table, above "Status values" |
 
 Never code, never a builder file. Do not create `STATE.md`, `PROGRESS.md`, `DECISIONS.md`,
 `BLOCKERS.md`, `MILESTONE`, `escalations/`, `reviews/` or `verify-report.md`: the builder creates
-them in its first commit. Never edit `docs/SPEC.md`, `docs/acceptance-criteria.md`, `CLAUDE.md`,
-another spec's folder or any gate script. The `docs/SPEC.md` follow-up after merge is a
-separate step, not this skill.
+them in its first commit. Never edit `docs/SPEC.md`, `CLAUDE.md`, another spec's folder or any
+gate script. `docs/acceptance-criteria.md` changes only as File 6 says (the registry is the one
+complete list the black-box suite is built from; issue #31). The `docs/SPEC.md` follow-up after
+merge is a separate step, not this skill.
 
 ## Procedure
 
@@ -69,7 +71,7 @@ separate step, not this skill.
 
 ### 4. Draft from `TEMPLATE.md`
 
-Fill File 1 to File 5 and both index rows. Rules:
+Fill File 1 to File 6 and both index rows. Rules:
 
 - Every behaviour change names an AC ID: a new ID in `acceptance-criteria.md` and section 5, or
   a re-expressed spec 001 ID in the section 5 table.
@@ -83,6 +85,9 @@ Fill File 1 to File 5 and both index rows. Rules:
 - Acceptance delta (section 7): Added = all new IDs; Changed = all re-expressed IDs, with what
   the black-box scenario gains; Retired = removed IDs with a reason each, or `none`.
   Changed: all IDs on one line; name no other IDs in that line. The same for Added and Retired.
+- File 6: append the new IDs to `docs/acceptance-criteria.md` as one section, each AC line byte
+  for byte the same as in `acceptance-criteria.md`; replace each re-expressed line in place with
+  its "Becomes" text (same ID, same position). `check` compares both.
 - Leave no `<!--` and no `<word>` placeholder outside code; only `<spec>`, `<n>`, `<area>`,
   `<what>` may stay.
 
@@ -136,8 +141,10 @@ specs (also on `owner/*` branches); `Due milestone` and AC line format (the gate
 and re-expressed IDs; `test-changes.md` shape, plumbing clause and allowed IDs (all Changed or
 Retired); section 10 items marked; decision file and both index rows inside their tables;
 placeholders and comments left; status (Draft / Proposed, no "Accepted by the owner on")
-while items are Open; scope (only this spec's folder, its decision file and the two README
-files changed against `origin/main`).
+while items are Open; the registry section (every new ID present under this spec's heading,
+verbatim, with the spec's milestone; nothing else under that heading); scope (only this spec's
+folder, its decision file, the two README files and `docs/acceptance-criteria.md` changed
+against `origin/main`).
 
 Also run the gate parser once; it must list exactly the new IDs with `due <M>`:
 `FF_SPEC=<NNN> node -e "import('./scripts/lib/trace-registry.mjs').then(m=>console.log(m.specAcs().filter(a=>a.spec==='<NNN>').map(a=>a.id+' due '+a.due).join(', ')))"`

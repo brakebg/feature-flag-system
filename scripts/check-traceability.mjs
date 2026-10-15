@@ -74,7 +74,7 @@ function decode(s) {
 }
 
 const registry = new Map();
-for (const { id, removed } of acIds()) registry.set(id, { due: removed ? null : acDue[id], removed });
+for (const { id, removed, due } of acIds()) registry.set(id, { due: removed ? null : (due ?? acDue[id]), removed });
 for (const [id, due] of Object.entries(errIds)) registry.set(id, { due, removed: false });
 for (const { id, removed, due } of specAcs()) registry.set(id, { due: removed ? null : due, removed });
 

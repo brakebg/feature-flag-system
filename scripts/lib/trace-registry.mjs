@@ -1,8 +1,11 @@
 // ID registry for gate 14 (spec 11.4).
 //
-// - AC IDs come from docs/acceptance-criteria.md (verbatim copy of spec 11.2), plus the
-//   acceptance-criteria.md of every later spec that is active or has started
-//   (docs/specs/<id>/, "Due milestone: <n>" in that file; docs/specs/README.md).
+// - AC IDs come from docs/acceptance-criteria.md: the verbatim copy of spec 11.2 (due from
+//   acDue below), plus one section per merged change spec, heading
+//   "## <Title> (spec NNN, due milestone M)", whose IDs are due at M (issue #31). Before the
+//   spec has merged, its IDs come from docs/specs/<id>/acceptance-criteria.md instead
+//   ("Due milestone: <n>" there) for the active or started spec; an ID the registry already
+//   holds is not counted twice.
 // - ERR IDs: one per status code in the Errors column of spec 6.1, plus the auth and
 //   evaluation endpoints of spec 5 and 7. Format ERR-<METHOD>-<path>-<status>, path
 //   relative to /api/v1 (or the actuator path).
@@ -19,8 +22,16 @@ import { activeSpec, specs } from './active-spec.mjs';
 export function acIds(file = 'docs/acceptance-criteria.md') {
   const text = readFileSync(file, 'utf8');
   const ids = [];
-  for (const m of text.matchAll(/^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* · (.*)$/gm)) {
-    ids.push({ id: m[1], removed: m[2].startsWith('[Removed') });
+  let section = {}; // { spec, due } of the current "(spec NNN, due milestone M)" heading
+  for (const line of text.split('\n')) {
+    const h = /^## .*\(spec (\d{3}), due milestone (\d+)\)\s*$/.exec(line);
+    if (h) {
+      section = { spec: h[1], due: Number(h[2]) };
+      continue;
+    }
+    if (/^## /.test(line)) section = {};
+    const m = /^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* · (.*)$/.exec(line);
+    if (m) ids.push({ id: m[1], removed: m[2].startsWith('[Removed'), ...section });
   }
   return ids;
 }
@@ -41,7 +52,8 @@ export function specAcs(root = '.') {
     const text = readFileSync(file, 'utf8');
     const due = Number(/^Due milestone: (\d+)\s*$/m.exec(text)?.[1]);
     if (!due) throw new Error(`${s.acceptance}: missing "Due milestone: <n>"`);
-    for (const a of acIds(file)) out.push({ ...a, due, spec: s.id });
+    const inRegistry = new Set(acIds(`${root}/docs/acceptance-criteria.md`).filter((a) => a.spec).map((a) => a.id));
+    for (const a of acIds(file)) if (!inRegistry.has(a.id)) out.push({ ...a, due, spec: s.id });
   }
   return out;
 }

@@ -15,6 +15,7 @@ files.
 | 002 | [002-spring-boot-4-upgrade](002-spring-boot-4-upgrade/) | `SPEC.md` | M9 | `feature/spring-boot-4` | Ready |
 | 003 | [003-high-availability](003-high-availability/) | `SPEC.md` | M10 | `feature/high-availability` | Ready |
 | 004 | [004-test-changes-gate](004-test-changes-gate/) | `SPEC.md` | M11 | `feature/test-changes-gate` | Done, built by the owner (issue #22) |
+| 005 | [005-ui-redesign](005-ui-redesign/) | `SPEC.md` | M12 | `feature/ui-redesign` | Draft |
 
 The owner adds a row for each new spec and gives it the next free milestone numbers.
 
@@ -27,6 +28,21 @@ the index rows, runs a two-reviewer challenge on the design and checks the folde
 Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
 `test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs
 added, changed and retired for the black-box suite).
+
+## The registry: `docs/acceptance-criteria.md`
+
+That file is the one complete list of the product's criteria; the black-box acceptance suite
+(`docs/VALIDATION.md`) is built from it alone. **The spec PR itself** keeps it complete
+(`/write-spec` File 6): the spec's new IDs are appended as a section
+"<Title> (spec NNN, due milestone M)", copied verbatim from `<spec>/acceptance-criteria.md`, and
+re-expressed IDs are replaced in place (same ID, same position). Gate 14 reads the due milestone
+from the heading, so the IDs are "pending" until that milestone and never counted twice.
+
+## After a spec is merged (owner)
+
+1. Apply the spec's section 1 table to `docs/SPEC.md`.
+2. Update the acceptance suite from the registry diff and tag it `spec-NNN` (acceptance repo,
+   issue #29). The suite is ready before the builder session starts (#24).
 
 ## Folder layout
 

@@ -20,5 +20,6 @@ Not the same as `docs/DECISIONS.md`: that file holds the agent's own Level 1 dec
 | 0010 | [One folder per spec; parallel builder sessions](0010-spec-folders.md) | Accepted |
 | 0011 | [Spec 003: high availability with per-instance caches and a database revision](0011-high-availability.md) | Accepted |
 | 0012 | [Spec 004: gate 16 enforces test-changes.md](0012-test-changes-gate.md) | Accepted |
+| 0013 | [Spec 005: redesign the admin UI with balanced colours and a shape language](0013-ui-redesign.md) | Proposed |
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.

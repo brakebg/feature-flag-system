@@ -1,0 +1,219 @@
+<!doctype html>
+<!--
+  Spec 005 · design 5 · Audit log. Redesign C, balanced colours.
+  Plain HTML and CSS: read the exact values below.
+  The Google Fonts link is only for viewing this file; the app bundles the fonts (spec 001 section 10.2). Names, times and texts in the markup are sample data.
+  Behaviour, texts, roles and accessible names: docs/SPEC.md section 8 (unchanged).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audit log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Tokens: spec 005 section 4.2 */
+  :root {
+    --color-bg: #f1f2f4;
+    --color-surface: #ffffff;
+    --color-text: #1c2433;
+    --color-text-soft: #3d4556;
+    --color-text-muted: #5b6475;
+    --color-border: #dde0e6;
+    --color-primary: #3d59a8;
+    --color-primary-dark: #2d4486;
+    --color-primary-soft: #dfe5f3;
+    --color-ink: #1c2433;
+    --color-ink-text-muted: #b9c0ce;
+    --color-sage: #8fb3a6;
+    --color-apricot: #e8a87c;
+    --color-apricot-soft: #f8e6da;
+    --color-apricot-text: #8a4b26;
+    --color-neutral-soft: #eceef1;
+    --color-danger: #b5473a;
+    --color-danger-text: #9a3a2f;
+    --color-danger-soft: #f5e0dc;
+    --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --radius-row: 22px;
+    --radius-hero: 32px;
+    --radius-pill: 999px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 14px; }
+
+  /* App shell: same as design 2 */
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+  .bar-wrap { padding: 20px 24px 0; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 10px 10px 10px 20px; background: var(--color-surface); border-radius: var(--radius-pill); }
+  .left { display: flex; flex-wrap: wrap; align-items: center; gap: 28px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; }
+  .nav { display: flex; gap: 4px; padding: 4px; background: var(--color-bg); border-radius: var(--radius-pill); }
+  .link { padding: 9px 18px; border-radius: var(--radius-pill); color: var(--color-text-muted); font-weight: 500; text-decoration: none; }
+  .link.active { background: var(--color-ink); color: #ffffff; }
+  .right { display: flex; align-items: center; gap: 12px; }
+  .user { display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); }
+  .avatar { width: 32px; height: 32px; border-radius: var(--radius-pill); background: var(--color-sage); color: var(--color-ink); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+  .footer { padding: 0 32px 16px; font-size: 12px; color: var(--color-text-muted); text-align: right; }
+  .button { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 20px; border-radius: var(--radius-pill); font: inherit; font-weight: 500; cursor: pointer; }
+  .button.secondary { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+  .button.dark { height: 48px; padding: 0 28px; border: 0; background: var(--color-ink); color: #ffffff; }
+
+  /* Page */
+  .main { flex-grow: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 20px 24px 28px; display: flex; flex-direction: column; gap: 18px; }
+  /* Header: dark card with decorative shapes (aria-hidden) */
+  .hero { position: relative; overflow: hidden; padding: 30px 32px; border-radius: var(--radius-hero); background: var(--color-ink); color: #ffffff; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .hero .shape { position: absolute; display: block; }
+  .hero .circle { right: 380px; top: -70px; width: 180px; height: 180px; border-radius: var(--radius-pill); background: var(--color-primary); }
+  .hero .half { right: 120px; bottom: -1px; width: 200px; height: 100px; border-radius: 100px 100px 0 0; background: var(--color-sage); }
+  .hero .square { right: 590px; bottom: 30px; width: 30px; height: 30px; border-radius: 6px; background: var(--color-apricot); transform: rotate(16deg); }
+  /* The text column never enters the right 640 px, where the shapes are */
+  .heading { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: calc(100% - 640px); }
+  .title { margin: 0; font-family: var(--font-display); font-size: 56px; font-weight: 600; line-height: 1; }
+  .subtitle { margin: 0; color: var(--color-ink-text-muted); font-size: 15px; }
+  .search { position: relative; display: block; }
+  .search svg { position: absolute; left: 16px; top: 50%; margin-top: -8px; }
+  .search input { width: 340px; max-width: 100%; height: 48px; padding: 0 18px 0 42px; border: 0; border-radius: var(--radius-pill); background: var(--color-surface); font: inherit; color: var(--color-text); }
+
+  /* Audit table: rows are cards; table roles stay (spec 8.7) */
+  .table-scroll { overflow-x: auto; }
+  .table { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: grid; grid-template-columns: 170px 100px 170px minmax(0, 1.1fr) minmax(0, 1.5fr); align-items: center; gap: 16px; padding: 16px 22px; background: var(--color-surface); border-radius: var(--radius-row); }
+  .row.head { padding: 4px 22px; background: transparent; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+  .time { display: flex; flex-direction: column; gap: 2px; }
+  .time .absolute { font-weight: 500; }
+  .ago { font-size: 12px; color: var(--color-text-muted); }
+  .soft { color: var(--color-text-soft); }
+  .target { font-family: var(--font-mono); font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+  .details { color: var(--color-text-soft); overflow-wrap: anywhere; }
+  .more { display: flex; justify-content: center; padding-top: 4px; }
+
+  /* Action labels: pill + leading shape (aria-hidden). Spec 005 section 4.5 */
+  .label { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .glyph { width: 12px; height: 12px; flex-shrink: 0; border-radius: var(--radius-pill); }
+  .label.created { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+  .label.created .glyph { background: var(--color-primary); }
+  .label.updated { background: var(--color-neutral-soft); color: var(--color-text-soft); }
+  .label.updated .glyph { border: 2px solid var(--color-text-soft); }
+  .label.toggled { background: var(--color-apricot-soft); color: var(--color-apricot-text); }
+  .label.toggled .glyph { background: linear-gradient(90deg, var(--color-apricot) 50%, var(--color-ink) 50%); }
+  .label.deleted { background: var(--color-danger-soft); color: var(--color-danger-text); }
+  .label.deleted .glyph { width: 11px; height: 11px; border-radius: 3px; background: var(--color-danger); }
+
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+  /* On ink surfaces the focus ring is white (contrast) */
+  .hero :focus-visible { outline-color: #ffffff; }
+
+  /* Below 1100 px: header-card shapes hidden, the text column takes the full width */
+  @media (max-width: 1100px) {
+    .hero .shape { display: none; }
+    .heading { max-width: none; }
+  }
+  /* Below 860 px: Time and Actor hidden (spec 8.6) */
+  @media (max-width: 860px) {
+    .row { grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr); }
+    .hide-sm { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bar-wrap">
+    <header class="topbar">
+      <div class="left">
+        <div class="brand">
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="12" cy="16" r="12" fill="#3D59A8"/><path d="M16 0a12 12 0 0 1 12 12H16z" fill="#E8A87C"/></svg>
+          <span>Feature Flags</span>
+        </div>
+        <nav class="nav" aria-label="Main">
+          <a class="link" href="#">Flags</a>
+          <a class="link active" href="#" aria-current="page">Audit log</a>
+        </nav>
+      </div>
+      <div class="right">
+        <div class="user"><span class="avatar" aria-hidden="true">A</span><span>admin</span></div>
+        <button type="button" class="button secondary">Sign out</button>
+      </div>
+    </header>
+  </div>
+
+  <main class="main">
+    <section class="hero">
+      <span class="shape circle" aria-hidden="true"></span><span class="shape half" aria-hidden="true"></span><span class="shape square" aria-hidden="true"></span>
+      <div class="heading">
+        <h1 class="title">Audit log</h1>
+        <p class="subtitle">Every change to groups and flags, newest first.</p>
+      </div>
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6475" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input aria-label="Filter by target key" placeholder="Filter by target key, e.g. orders.">
+      </label>
+    </section>
+
+    <div class="table-scroll">
+      <div class="table" role="table" aria-label="Audit events">
+        <div class="row head" role="row">
+          <span role="columnheader" class="hide-sm">Time</span><span role="columnheader" class="hide-sm">Actor</span>
+          <span role="columnheader">Action</span><span role="columnheader">Target</span><span role="columnheader">Details</span>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Oct 1, 14:32</span><span class="ago">12 minutes ago</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label toggled"><span class="glyph" aria-hidden="true"></span>Flag toggled</span></div>
+          <div role="cell" class="target">orders.new-checkout</div>
+          <div role="cell" class="details">false → true</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Oct 1, 14:05</span><span class="ago">39 minutes ago</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label created"><span class="glyph" aria-hidden="true"></span>Flag created</span></div>
+          <div role="cell" class="target">orders.guest-reorder</div>
+          <div role="cell" class="details">Created off</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Oct 1, 11:47</span><span class="ago">3 hours ago</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label updated"><span class="glyph" aria-hidden="true"></span>Group updated</span></div>
+          <div role="cell" class="target">notifications</div>
+          <div role="cell" class="details">Name: “Notify” → “Notifications”</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Oct 1, 09:15</span><span class="ago">5 hours ago</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label deleted"><span class="glyph" aria-hidden="true"></span>Flag deleted</span></div>
+          <div role="cell" class="target">payments.paypal-express</div>
+          <div role="cell" class="details">Was on</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Sep 30, 17:20</span><span class="ago">Yesterday</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label deleted"><span class="glyph" aria-hidden="true"></span>Group deleted</span></div>
+          <div role="cell" class="target">legacy</div>
+          <div role="cell" class="details">3 flags deleted: legacy.old-cart, legacy.v1-api, legacy.beta-banner</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Sep 30, 16:02</span><span class="ago">Yesterday</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label toggled"><span class="glyph" aria-hidden="true"></span>Flag toggled</span></div>
+          <div role="cell" class="target">search.semantic-search</div>
+          <div role="cell" class="details">true → false</div>
+        </div>
+        <div class="row" role="row">
+          <div role="cell" class="time hide-sm"><span class="absolute">Sep 30, 15:58</span><span class="ago">Yesterday</span></div>
+          <div role="cell" class="soft hide-sm">admin</div>
+          <div role="cell"><span class="label created"><span class="glyph" aria-hidden="true"></span>Group created</span></div>
+          <div role="cell" class="target">search</div>
+          <div role="cell" class="details">Name: Search</div>
+        </div>
+      </div>
+    </div>
+    <div class="more"><button type="button" class="button dark">Load more</button></div>
+  </main>
+  <footer class="footer">v1.1.0</footer>
+</div>
+</body>
+</html>

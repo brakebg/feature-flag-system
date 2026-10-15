@@ -66,8 +66,9 @@ names. Where it names a part of `docs/SPEC.md`, this spec wins for M<M>.
 
 Not changed: <for example gate 4 banned dependencies, `backend/openapi.json`, tech stack>.
 
-After the PR is merged, the owner updates `docs/SPEC.md` and `docs/acceptance-criteria.md`. The
-agent never edits them or this file.
+After the PR is merged, the owner updates `docs/SPEC.md` and `docs/acceptance-criteria.md`
+(re-expressed IDs in place, new IDs appended as a section; `docs/specs/README.md` "After a spec
+is merged"). The agent never edits them or this file.
 
 ## 2. Goal
 
@@ -253,6 +254,28 @@ Status: **Proposed** (<date>). Owner-authored.
 ```
 
 Set `Status: **Accepted**` only when the owner accepts and no section 10 item is Open.
+
+---
+
+## File 6: section in `docs/acceptance-criteria.md` (append at the end of the file)
+
+The registry is the one complete list of the product's criteria; the black-box suite is built
+from it alone (issue #31). The spec PR adds its new IDs there, so one merge brings both files up
+to date.
+
+```markdown
+## <Title> (spec <NNN>, due milestone <M>)
+
+<optional one-line note, for example a definition the criteria share>
+
+- [ ] **<AC-XXX-1>** · <the same line as in File 3, byte for byte>
+- [ ] **<AC-XXX-2>** · <...>
+```
+
+Rules: the heading format is fixed (`check` and gate 14 parse `(spec <NNN>, due milestone <M>)`);
+every AC line is copied from File 3 unchanged; nothing but this spec's new IDs goes under the
+heading. Re-expressed spec 001 IDs are not added here: their existing line is replaced in place
+with the "Becomes" text of section 5 (same ID, same position). No new IDs: no section.
 
 ---
 
