@@ -17,6 +17,13 @@ RUN if [ -n "$GIT_COMMIT" ]; then \
  && cp target/feature-flag-service-*.jar /src/app.jar
 
 FROM eclipse-temurin:21-jre
+# Gate 10 (spec 11.3): the base image may lag Ubuntu security updates (issue #38, CVE-2026-92392 in
+# curl). Upgrade the OS packages so the runtime image carries the fixed versions; curl stays
+# installed for the HEALTHCHECK below. Base image tag unchanged (spec 002 section 3).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends --only-upgrade curl libcurl4t64 \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --no-create-home app
 WORKDIR /app
 COPY --from=build --chown=app:app /src/app.jar /app/app.jar
