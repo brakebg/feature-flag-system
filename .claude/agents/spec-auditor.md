@@ -1,6 +1,6 @@
 ---
 name: spec-auditor
-description: Checks that what was built matches docs/SPEC.md - nothing missing, nothing extra, exact values right, no drift. Use at the end of every milestone and in the final review. Read-only.
+description: Checks that what was built matches the active spec (docs/SPEC.md or docs/specs/<NNN-name>/SPEC.md) - nothing missing, nothing extra, exact values right, no drift. Use at the end of every milestone and in the final review. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---

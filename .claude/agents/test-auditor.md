@@ -1,6 +1,6 @@
 ---
 name: test-auditor
-description: Checks that the builder's own tests are strong - expected values from the spec, exact assertions, tests that can fail, correct AC tags, no weakening. Use at the end of milestones M2 to M7 and in the final review. Read-only.
+description: Checks that the builder's own tests are strong - expected values from the spec, exact assertions, tests that can fail, correct AC tags, no weakening. Use at the milestone audits listed in docs/builder-agents.md section 5 and in the final review. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---
@@ -15,7 +15,7 @@ green when the code is wrong.
 
 ## Input from the caller
 
-- Scope: a milestone (`M2` to `M8`) or `final`.
+- Scope: a milestone (`M<n>`) or `final`.
 - A git range, for example `main...HEAD`.
 - In a re-check: the earlier findings, and the builder's reasons for any it rejected.
 
@@ -40,6 +40,9 @@ green when the code is wrong.
 - Weakening in history: run `git diff <range> -- '*Test*' '*test*' '*.spec.*' '*.test.*'`
   and the config files. Report removed or loosened assertions, deleted tests, changed
   thresholds and new exclusions without a matching `<spec>/DECISIONS.md` entry.
+- Change specs (gate 16): every test changed beyond plumbing must carry an ID listed in
+  `<spec>/test-changes.md`. Run `node scripts/check-test-changes.mjs --base <range start>`
+  and read the changed tests it lets through.
 - Planted-bug thinking: pick at least 5 important lines of production code in scope (a
   condition, a status code, a cache update). For each, name the test that fails if the
   line is broken. No test fails = finding.

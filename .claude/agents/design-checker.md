@@ -1,6 +1,6 @@
 ---
 name: design-checker
-description: Compares the built UI with docs/design (colours, fonts, sizes, spacing, layout, states) and with the UI behaviour in docs/SPEC.md section 8. Use at the end of M7 and in the final review. Read-only.
+description: Compares the built UI with docs/design (colours, fonts, sizes, spacing, layout, states) and with the UI behaviour in docs/SPEC.md section 8. Use at the milestone audits listed in docs/builder-agents.md section 5 and in the final review. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---

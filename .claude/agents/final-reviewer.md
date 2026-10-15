@@ -1,6 +1,6 @@
 ---
 name: final-reviewer
-description: Senior code reviewer for the Feature Flag Service. Finds real bugs in one scope (backend, frontend or infra) - correctness, error handling, concurrency, transactions, cache consistency, contract mismatches, silent failures. Use in the final review after M8 and to re-check fixes. Read-only.
+description: Senior code reviewer for the Feature Flag Service. Finds real bugs in one scope (backend, frontend or infra) - correctness, error handling, concurrency, transactions, cache consistency, contract mismatches, silent failures. Use in the final review, at the milestone audits listed in docs/builder-agents.md section 5, and to re-check fixes. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---

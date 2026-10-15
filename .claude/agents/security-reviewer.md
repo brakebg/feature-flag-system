@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Security review of the Feature Flag Service against the spec's security model (sections 5 and 10.2) and the OWASP Top 10 - auth, JWT, scopes, input handling, secrets, headers, containers. Use at the end of M3, M4, M5 and in the final review. Read-only.
+description: Security review of the Feature Flag Service against the spec's security model (sections 5 and 10.2) and the OWASP Top 10 - auth, JWT, scopes, input handling, secrets, headers, containers. Use at the milestone audits listed in docs/builder-agents.md section 5 and in the final review. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---
