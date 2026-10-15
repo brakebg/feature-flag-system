@@ -3,7 +3,7 @@
 //
 //   node scripts/verify.mjs verify      all gates, stop at the first failure (make verify)
 //   node scripts/verify.mjs all         all gates, also after a failure    (make verify-all)
-//   node scripts/verify.mjs fast        gates 1-6, 9, 10, 14, 15           (make verify-fast)
+//   node scripts/verify.mjs fast        gates 1-6, 9, 10, 14, 15, 16       (make verify-fast)
 //   node scripts/verify.mjs only 5 14   only the listed gates (inner loop; not a gate result)
 //
 // A gate that is not yet active (milestone < activeFrom) passes trivially. The milestone comes

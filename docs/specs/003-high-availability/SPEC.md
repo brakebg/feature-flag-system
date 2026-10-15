@@ -1,7 +1,7 @@
 # Spec 003 — High availability with per-instance caches (release 1.2.0)
 
 Owner-authored, locked. Decision: `decisions/0011-high-availability.md`.
-Milestone: **M10**. Working branch: **`feature/high-availability`** (from `main`), one PR to `main`.
+Milestone: **M11**. Working branch: **`feature/high-availability`** (from `main`), one PR to `main`.
 Spec folder (`<spec>` below): `docs/specs/003-high-availability/`.
 
 This is a change spec, executed by an autonomous builder session. Every "MUST" is a hard
@@ -10,9 +10,9 @@ requirement. Section 10 records the owner's decisions.
 ## 1. Relation to `docs/SPEC.md`
 
 `docs/SPEC.md` (spec 001) and spec 002 still apply. This spec changes only what it names. Where it
-names a part of `docs/SPEC.md`, this spec wins for M10.
+names a part of `docs/SPEC.md`, this spec wins for M11.
 
-| `docs/SPEC.md` part | Change in M10 |
+| `docs/SPEC.md` part | Change in M11 |
 | --- | --- |
 | 1.2 Non-goals: "Distributed cache … and horizontal scaling" | Horizontal scaling is in scope: the service MAY run as several instances. A distributed cache stays out of scope: each instance keeps its own Caffeine cache |
 | 4.1 Tables | Adds `cache_state` (one row) and `flag_change` (the change log), Flyway `V3` (4.2) |
@@ -111,7 +111,7 @@ the queue grows; an admin UI stays far below that. It becomes a bottleneck only 
 automated updates on a large flag set. If gate 13 shows the admin p95 (spec 9.2) failing because
 of this lock, that is the Level 3 trigger in section 7; the follow-up would be a different
 revision source (for example a sequence plus a "visible up to" marker), not a change to the
-read side. Not built in M10.
+read side. Not built in M11.
 
 ### 4.3 Snapshot
 
@@ -221,7 +221,7 @@ a `resolver` with a short TTL is configured. The UI image keeps `BACKEND_URL` as
 `upstream` block is a compose-only override, mounted as the nginx config of the `frontend` service
 in `docker-compose.yml`. The image itself does not change.
 
-**ECS / Fargate (production reference, not built or tested in M10).** Backend: one task definition,
+**ECS / Fargate (production reference, not built or tested in M11).** Backend: one task definition,
 one service with `desiredCount ≥ 2`, an ALB target group with health check
 `/actuator/health/readiness`, container health check `/actuator/health/liveness`. UI: its own
 service behind the ALB; its nginx forwards `/api/` to the backend target group's name, so the ALB
@@ -240,7 +240,7 @@ increment).
 
 ## 5. Acceptance criteria
 
-Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 10`): AC-HA-1 to AC-HA-10. "N"
+Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 11`): AC-HA-1 to AC-HA-10. "N"
 there is any instance count ≥ 2; main code MUST NOT assume a fixed count. Tests use N = 3.
 
 **Spec 001 criteria that change** (same ID, same position; the owner extends
@@ -272,7 +272,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 ## 8. Process
 
-- Rules of spec 001 section 12 and `CLAUDE.md` apply. Commit messages `M10 <area>: <what>`, trailers
+- Rules of spec 001 section 12 and `CLAUDE.md` apply. Commit messages `M11 <area>: <what>`, trailers
   `AC:` and `Spec: 003 §<n>`.
 - First commit: the memory files in `<spec>/` (`STATE.md`, `PROGRESS.md`, `DECISIONS.md`,
   `BLOCKERS.md`, `MILESTONE` = `10`). After the first green chunk, one draft PR
@@ -285,7 +285,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 - Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   `security-reviewer`, `final-reviewer` (scope backend).
 
-**Level 3 triggers for M10** (in addition to spec 001 12.5)
+**Level 3 triggers for M11** (in addition to spec 001 12.5)
 
 - A change would break an item of section 3.
 - A test outside `<spec>/test-changes.md` would need more than a plumbing change.
@@ -310,7 +310,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 3. ~~Upgrade from 1.1~~ **Decided: stop the 1.1 instance before starting 1.2** (4.13).
 4. ~~Retention~~ **Decided: `P1D`.**
 5. ~~Release number~~ **Decided: 1.2.0.**
-6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M10; a later spec if the 1 s lag matters.**
+6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M11; a later spec if the 1 s lag matters.**
 
 7. ~~Template~~ **Decided: spec re-shaped to the `/write-spec` template on 2026-10-11** (sections 6 and 7 added; design unchanged).
 

@@ -178,8 +178,8 @@ Quality gates (spec 11.3); the report goes to `build/verify-report.md`:
 
 ```bash
 make verify-fast   # gates without Docker: lint, types, architecture, tests, coverage, secrets
-make verify        # all 15 gates, stops at the first failure
-make verify-all    # all 15 gates, same as CI
+make verify        # all 16 gates, stops at the first failure
+make verify-all    # all 16 gates, same as CI
 ```
 
 Gate tools (gitleaks, trivy, promtool, k6) are downloaded by `make tools`. End-to-end tests run

@@ -1,8 +1,8 @@
-// The 15 quality gates of spec 11.3, in order. Read by scripts/verify.mjs.
+// The 16 quality gates of spec 11.3, in order. Read by scripts/verify.mjs.
 //
 // activeFrom: the milestone from which the gate (or step) runs (spec 11.3 column
 // "Active from"). Before that it passes trivially. Gate 15 checks these values against
-// the spec. `fast: true` marks the gates of `make verify-fast` (1-6, 9, 10, 14, 15).
+// the spec. `fast: true` marks the gates of `make verify-fast` (1-6, 9, 10, 14, 15, 16).
 // A step with `fullOnly: true` runs only in `make verify` / `make verify-all`.
 
 const mvn = './mvnw -B -ntp';
@@ -174,7 +174,11 @@ export const gates = [
     name: 'Traceability',
     activeFrom: 1,
     fast: true,
-    steps: [{ name: 'check-traceability', cmd: 'node scripts/check-traceability.mjs' }],
+    steps: [
+      // Self-test of gate 16 (spec 004, AC-TC-1, AC-TC-2); its results feed check-traceability.
+      { name: 'check-test-changes self-test', cmd: 'node scripts/test/check-test-changes.test.mjs' },
+      { name: 'check-traceability', cmd: 'node scripts/check-traceability.mjs' },
+    ],
   },
   {
     id: 15,
@@ -182,5 +186,12 @@ export const gates = [
     activeFrom: 1,
     fast: true,
     steps: [{ name: 'check-integrity', cmd: 'node scripts/check-integrity.mjs' }],
+  },
+  {
+    id: 16,
+    name: 'Test changes',
+    activeFrom: 1,
+    fast: true,
+    steps: [{ name: 'check-test-changes', cmd: 'node scripts/check-test-changes.mjs' }],
   },
 ];

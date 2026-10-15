@@ -2,7 +2,7 @@
 
 Owner-authored, locked. IDs for gate 14 (traceability).
 
-Due milestone: 10
+Due milestone: 11
 
 "N" below is any number of instances ≥ 2. Nothing in the code may assume a fixed count. The
 integration tests run with N = 3; the compose stack runs with N = 2.

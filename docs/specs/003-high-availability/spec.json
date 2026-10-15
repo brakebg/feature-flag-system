@@ -4,5 +4,5 @@
   "spec": "docs/specs/003-high-availability/SPEC.md",
   "acceptance": "docs/specs/003-high-availability/acceptance-criteria.md",
   "branch": "feature/high-availability",
-  "milestones": [10]
+  "milestones": [11]
 }

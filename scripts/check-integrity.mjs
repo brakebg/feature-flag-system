@@ -118,9 +118,9 @@ for (const e of exclusions) {
 }
 
 // 5. Gate activation and verify-fast set equal spec 11.3.
-const specActive = { 1: 1, 2: 1, 3: 2, 4: 1, 5: 2, 6: 2, 7: 4, 8: 4, 9: 6, 10: 1, 11: 5, 12: 8, 13: 8, 14: 1, 15: 1 };
-const specFast = [1, 2, 3, 4, 5, 6, 9, 10, 14, 15];
-expect(gates.length === 15 && gates.every((g, i) => g.id === i + 1), 'scripts/gates.mjs: must define gates 1-15 in order');
+const specActive = { 1: 1, 2: 1, 3: 2, 4: 1, 5: 2, 6: 2, 7: 4, 8: 4, 9: 6, 10: 1, 11: 5, 12: 8, 13: 8, 14: 1, 15: 1, 16: 1 };
+const specFast = [1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16];
+expect(gates.length === 16 && gates.every((g, i) => g.id === i + 1), 'scripts/gates.mjs: must define gates 1-16 in order');
 for (const g of gates) {
   expect(g.activeFrom === specActive[g.id], `scripts/gates.mjs: gate ${g.id} activeFrom M${g.activeFrom}, spec says M${specActive[g.id]}`);
   expect(!!g.fast === specFast.includes(g.id), `scripts/gates.mjs: gate ${g.id} fast=${!!g.fast}, spec says ${specFast.includes(g.id)}`);

@@ -1,0 +1,332 @@
+#!/usr/bin/env node
+// Gate 16 (spec 004): test changes. A test may change beyond plumbing only when the active
+// spec's test-changes.md lists one of its IDs (issue #22, decision 0012).
+//
+// Usage: node scripts/check-test-changes.mjs [--base <ref>] [--head <ref>] [--spec <id>] [--root <dir>]
+//   --base  compare from the merge base of this ref and the head (default: origin/main, else main)
+//   --head  the commit to check (default: the working tree, committed and uncommitted changes)
+//   --spec  the spec whose test-changes.md applies (default: the active spec,
+//           scripts/lib/active-spec.mjs). No spec or no test-changes.md: nothing is allowed.
+//   --root  the git repository to check (default: this one; the self-test uses a fixture repo)
+//
+// Paths: backend/src/test/**, frontend/src/**/*.test.*, frontend/e2e/**, docs/acceptance-criteria.md.
+//
+// 1. A changed test file passes when its tags on the base include an allowed ID. Tags are the
+//    gate-14 IDs in string literals: JUnit @Tag("ID"), "[ID]" in Vitest / Playwright titles.
+//    Tags added on the branch do not count.
+// 2. Any other changed test file: every changed or removed line must be plumbing (the clause in
+//    test-changes.md): an import, an annotation without arguments (not @Tag, not a test
+//    annotation), a comment, a helper signature, a field or variable type, or an identifier-only
+//    change that keeps every literal, operator and assertion method. Added lines are free.
+// 3. A deleted test file, or a tag that disappears from a file: FAIL.
+// 4. docs/acceptance-criteria.md: every changed line must name only allowed AC IDs. Exception
+//    (issue #31): the active spec's own section, heading "(spec <id>, due milestone <M>)" and
+//    the AC lines of its new IDs, may be added; it is the spec PR appending its criteria.
+// Tuned towards false blocks: a blocked plumbing change is a DECISIONS.md note and an
+// escalation, never an edit of this script.
+//
+// Exit 0 = pass. Exit 1 = violations, one "FAIL <file>:<line>: <reason>" line each. Exit 2 = usage.
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+process.chdir(HERE); // spec-tool.mjs reads this repo's registry
+const { activeSpec } = await import('./lib/active-spec.mjs');
+const { PLUMBING, idsIn } = await import('../.claude/skills/write-spec/spec-tool.mjs');
+
+const USAGE = 2;
+const ID_RE = /\b(?:AC|ERR)-[A-Za-z0-9{}/._-]*[A-Za-z0-9}]/g; // gate 14
+const PATHS = [':(glob)backend/src/test/**', ':(glob)frontend/src/**/*.test.*', ':(glob)frontend/e2e/**', 'docs/acceptance-criteria.md'];
+const REGISTRY = 'docs/acceptance-criteria.md';
+
+// ------------------------------------------------------------------------------ arguments
+
+const opts = {};
+const argv = process.argv.slice(2);
+for (let i = 0; i < argv.length; i++) {
+  const k = argv[i].replace(/^--/, '');
+  if (!['base', 'head', 'spec', 'root'].includes(k) || !argv[i].startsWith('--') || !argv[i + 1]) {
+    console.error('usage: check-test-changes.mjs [--base <ref>] [--head <ref>] [--spec <id>] [--root <dir>]');
+    process.exit(USAGE);
+  }
+  opts[k] = argv[++i];
+}
+const ROOT = path.resolve(opts.root ?? HERE);
+
+function git(args) {
+  try {
+    return execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 256 << 20 });
+  } catch {
+    return null;
+  }
+}
+const commit = (ref) => git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])?.trim() || null;
+
+const problems = [];
+const fail = (file, line, why) => problems.push(`FAIL ${file}${line ? `:${line}` : ''}: ${why}`);
+
+// ------------------------------------------------------------------------------ base, head
+
+const head = opts.head ? commit(opts.head) : null;
+if (opts.head && !head) {
+  console.error(`check-test-changes: --head ${opts.head} is not a commit`);
+  process.exit(USAGE);
+}
+const baseRef = opts.base ?? (commit('origin/main') ? 'origin/main' : 'main');
+if (!commit(baseRef)) {
+  console.log(`FAIL base ${baseRef} not found: nothing can be compared (git fetch origin main)`);
+  process.exit(1);
+}
+const from = git(['merge-base', baseRef, head ?? 'HEAD'])?.trim();
+if (!from) {
+  console.log(`FAIL no merge base of ${baseRef} and ${head ?? 'HEAD'}`);
+  process.exit(1);
+}
+
+// ------------------------------------------------------------------------------ allowed IDs
+
+if (opts.spec) process.env.FF_SPEC = opts.spec;
+let spec;
+try {
+  spec = activeSpec(ROOT);
+} catch (e) {
+  console.error(`check-test-changes: ${e.message}`);
+  process.exit(USAGE);
+}
+
+function section(text, title) {
+  const m = new RegExp(`^## ${title}[ \\t]*$`, 'm').exec(text);
+  if (!m) return null;
+  const rest = text.slice(m.index + m[0].length);
+  const end = rest.search(/^## /m);
+  return (end < 0 ? rest : rest.slice(0, end)).trim();
+}
+
+const allowed = new Set();
+let source = 'no active spec';
+if (spec) {
+  const rel = `${spec.dir}/test-changes.md`;
+  source = `spec ${spec.id}, no test-changes.md`;
+  if (existsSync(path.join(ROOT, rel))) {
+    source = `spec ${spec.id}, ${rel}`;
+    const text = readFileSync(path.join(ROOT, rel), 'utf8');
+    const body = section(text, 'Allowed behaviour changes');
+    if (body === null) fail(rel, 0, 'section "## Allowed behaviour changes" is missing');
+    if (section(text, 'Plumbing allowed everywhere') !== PLUMBING) fail(rel, 0, 'the plumbing clause differs from the fixed text (spec-tool.mjs PLUMBING)');
+    for (const id of [...idsIn(body ?? ''), ...((body ?? '').match(ID_RE) ?? []).filter((x) => x.startsWith('ERR-'))]) allowed.add(id);
+  }
+}
+
+/** The active spec's own new IDs (its acceptance-criteria.md): their registry section may be added (issue #31). */
+const ownIds = new Set();
+if (spec?.acceptance && spec.acceptance !== REGISTRY && existsSync(path.join(ROOT, spec.acceptance))) {
+  for (const m of readFileSync(path.join(ROOT, spec.acceptance), 'utf8').matchAll(/^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\*/gm)) ownIds.add(m[1]);
+}
+const ownHeading = spec ? new RegExp(`^## .*\\(spec ${spec.id}, due milestone \\d+\\)\\s*$`) : null;
+
+// ------------------------------------------------------------------------------ diff
+
+const range = head ? [from, head] : [from];
+const show = (ref, file) => git(['show', `${ref}:${file}`]);
+const headText = (file) => (head ? show(head, file) : existsSync(path.join(ROOT, file)) ? readFileSync(path.join(ROOT, file), 'utf8') : null);
+
+/** Changed and removed lines of one file, grouped by hunk: [{ del: [{n, text}], add: [{n, text}] }]. */
+function hunks(oldFile, newFile) {
+  const out = [];
+  let cur;
+  let o = 0;
+  let n = 0;
+  const diff = git(['diff', '-U0', '-M', '--no-color', '--no-ext-diff', ...range, '--', ...new Set([oldFile, newFile])]) ?? '';
+  for (const line of diff.split('\n')) {
+    const h = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
+    if (h) {
+      cur = { del: [], add: [] };
+      out.push(cur);
+      o = Number(h[1]);
+      n = Number(h[2]);
+    } else if (!cur || line.startsWith('---') || line.startsWith('+++')) continue;
+    else if (line.startsWith('-')) cur.del.push({ n: o++, text: line.slice(1) });
+    else if (line.startsWith('+')) cur.add.push({ n: n++, text: line.slice(1) });
+  }
+  return out;
+}
+
+const LIT_RE = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
+/** Gate-14 IDs inside string literals: @Tag("ID"), "[ID] ..." titles. */
+const tagsIn = (text) => new Set((text.match(LIT_RE) ?? []).flatMap((lit) => lit.match(ID_RE) ?? []));
+
+const TOKEN_RE = /\/\/.*$|\/\*.*?\*\/|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`|\d[\w.]*|[A-Za-z_$][\w$]*|\S/g;
+const KEYWORDS = new Set(['true', 'false', 'null', 'undefined', 'new', 'return', 'throw', 'throws', 'typeof', 'instanceof', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'default', 'break', 'continue', 'try', 'catch', 'finally', 'await', 'async']);
+const ASSERT_RE = /^(assert|expect|verify|fail$|should|to[A-Z]|is[A-Z]|has[A-Z]|contains|doesNot|startsWith|endsWith|matches|satisf|extracting|then[A-Z]|times$|never$|atLeast|atMost|equalTo|andExpect|exactly|resolves$|rejects$|not$)/;
+const isIdent = (t) => /^[A-Za-z_$][\w$]*$/.test(t);
+/** Generic type arguments (List<Flag>, new Foo<>()) are types: dropped. "a < b" keeps its spaces. */
+const noGenerics = (text) => text.replace(/([\w$])<[\w$?,.\s<>[\]]*>/g, '$1');
+const tokens = (text) => (noGenerics(text).match(TOKEN_RE) ?? []).filter((t) => !t.startsWith('//') && !t.startsWith('/*'));
+/**
+ * Identifiers become "ID"; literals, operators, keywords and assertion methods stay. A run of
+ * identifiers joined by "," or "." (or side by side, "Type name") becomes one "ID", so a renamed
+ * type or an identifier argument added or dropped (a helper signature change) is plumbing.
+ */
+function skeleton(text) {
+  const out = [];
+  for (const t of tokens(text)) {
+    const id = isIdent(t) && !KEYWORDS.has(t) && !ASSERT_RE.test(t);
+    const n = out.length;
+    if (id && out[n - 1] === 'ID') continue;
+    if (id && (out[n - 1] === ',' || out[n - 1] === '.') && out[n - 2] === 'ID') {
+      out.pop();
+      continue;
+    }
+    out.push(id ? 'ID' : t);
+  }
+  return out.join(' ');
+}
+const asserts = (text) => tokens(text).filter((t) => isIdent(t) && ASSERT_RE.test(t)).join(' ');
+const literals = (text) => tokens(text).filter((t) => !isIdent(t) && /^['"`\d]/.test(t)).join(' ');
+
+const TEST_ANNOTATION = /^@(Tag|Tags|Test|ParameterizedTest|RepeatedTest|TestFactory|TestTemplate|Nested)\b/;
+
+/** Line numbers (1-based) of import statements, also the inner lines of a multi-line TS import. */
+function importLines(text) {
+  const out = new Set();
+  let open = false;
+  (text ?? '').split('\n').forEach((l, i) => {
+    const t = l.trim();
+    if (open || /^(import|package)\b/.test(t)) {
+      out.add(i + 1);
+      open = !/;\s*$|\bfrom\s+['"]|^import\s+['"]/.test(t) && !/^package\b/.test(t);
+    }
+  });
+  return out;
+}
+
+/** Changes that are plumbing on their own: blank, comment, import, annotation without arguments. */
+function neutral(line, imports) {
+  const t = line.text.trim();
+  if (!t || /^(\/\/|\/\*|\*)/.test(t) || imports.has(line.n)) return true;
+  return /^@[\w.]+\s*(\(\s*\))?$/.test(t) && !TEST_ANNOTATION.test(t);
+}
+
+/** A removed field without a value ("@Autowired ObjectMapper json;") or its constructor assignment. */
+function unusedField(text) {
+  const t = text.trim().replace(/^(@[\w.]+\s+)+/, '');
+  const d = DECL.exec(t);
+  return (d && (d[3] === undefined || d[3] === ';') && !NOT_DECL.test(t)) || /^(this\.)?[\w$]+\s*=\s*[\w$]+;$/.test(t);
+}
+
+const SIGNATURE = /^(?:(?:public|protected|private|static|final|abstract|synchronized|export|async|default)\s+)*(?:function\s*\*?\s*[\w$]+|(?:<[^>]*>\s*)?[\w$.]+(?:<.*>)?(?:\[\])*\??\s+[\w$]+|[A-Z][\w$]*)\s*\(/;
+const NOT_DECL = /^(return|new|throw|await|else|case)\b/;
+/** A method or function header: the parameters may change, literals and assertions may not. */
+const signatureOk = (a, b) =>
+  [a, b].every((x) => SIGNATURE.test(x.trim()) && !NOT_DECL.test(x.trim()) && !asserts(x)) && literals(a) === literals(b);
+
+const DECL = /^((?:(?:private|protected|public|static|final|readonly)\s+)*)(?:var|let|const|[\w$.]+(?:<.*>)?(?:\[\])*\??)\s+([\w$]+)\s*(?::\s*[^=;]+?)?\s*(=.*|;)?$/;
+/** A field or variable declaration: the type may change, the name and value may not (beyond identifiers). */
+function declOk(a, b) {
+  const x = DECL.exec(a.trim());
+  const y = DECL.exec(b.trim());
+  if (!x || !y || NOT_DECL.test(a.trim()) || NOT_DECL.test(b.trim())) return false;
+  return skeleton(`${x[1]}${x[2]}${x[3] ?? ''}`) === skeleton(`${y[1]}${y[2]}${y[3] ?? ''}`);
+}
+
+function why(a, b) {
+  if (asserts(a) !== asserts(b)) return 'assertion method changed';
+  if ([...tagsIn(a)].join() !== [...tagsIn(b)].join()) return '@Tag or [ID] title changed';
+  if (literals(a) !== literals(b)) return 'expected value or literal changed';
+  return 'code changed beyond plumbing';
+}
+
+const short = (s) => (s.trim().length > 90 ? `${s.trim().slice(0, 87)}...` : s.trim());
+
+function checkTestFile(file, oldFile, status) {
+  const before = show(from, oldFile) ?? '';
+  const after = headText(file) ?? '';
+  const baseTags = tagsIn(before);
+  const hit = [...baseTags].filter((id) => allowed.has(id));
+  if (hit.length) return `allowed by ${hit.join(', ')}`;
+  if (status === 'D') {
+    fail(oldFile, 0, `test file deleted${baseTags.size ? ` (tags: ${[...baseTags].join(', ')})` : ''}`);
+    return null;
+  }
+  const afterTags = tagsIn(after);
+  for (const id of baseTags) if (!afterTags.has(id)) fail(file, 0, `tag ${id} disappeared from the file`);
+
+  const oldImports = importLines(before);
+  const newImports = importLines(after);
+  const hs = hunks(oldFile, file).map((h) => ({
+    del: h.del.filter((l) => !neutral(l, oldImports)),
+    add: h.add.filter((l) => !neutral(l, newImports)),
+  }));
+  // A line removed in one place and added unchanged in another is a move.
+  const added = new Map();
+  for (const l of hs.flatMap((h) => h.add)) added.set(l.text.trim(), [...(added.get(l.text.trim()) ?? []), l]);
+  for (const h of hs) {
+    h.del = h.del.filter((l) => {
+      const same = added.get(l.text.trim());
+      if (!same?.length) return true;
+      same.pop().moved = true;
+      return false;
+    });
+  }
+  for (const h of hs) {
+    const add = h.add.filter((l) => !l.moved);
+    if (!h.del.length) continue; // only added lines
+    // The whole hunk differs only in identifiers (also when the formatter re-wraps it).
+    if (skeleton(h.del.map((l) => l.text).join(' ')) === skeleton(add.map((l) => l.text).join(' '))) continue;
+    h.del.forEach((d, i) => {
+      const a = add[i];
+      if (!a) return unusedField(d.text) ? undefined : fail(oldFile, d.n, `line removed (line number on the base): ${short(d.text)}`);
+      if (skeleton(d.text) === skeleton(a.text) || signatureOk(d.text, a.text) || declOk(d.text, a.text)) return;
+      fail(file, a.n, `${why(d.text, a.text)}: "${short(d.text)}" -> "${short(a.text)}"`);
+    });
+  }
+  return 'plumbing only';
+}
+
+function checkRegistry(status) {
+  if (status === 'D') return fail(REGISTRY, 0, 'deleted');
+  for (const h of hunks(REGISTRY, REGISTRY)) {
+    for (const [l, side] of [...h.del.map((l) => [l, 'removed']), ...h.add.map((l) => [l, 'changed'])]) {
+      if (!l.text.trim()) continue;
+      const ids = l.text.match(/\bAC-[A-Z]+-\d+\b/g) ?? [];
+      // The spec PR appends its own section: the heading and its new IDs' lines are added, never removed.
+      if (side === 'changed' && ownHeading && (ownHeading.test(l.text) || (ids.length && ids.every((id) => ownIds.has(id))))) continue;
+      const bad = ids.filter((id) => !allowed.has(id));
+      if (!ids.length || bad.length) fail(REGISTRY, l.n, `${side} line ${ids.length ? `of ${bad.join(', ')} (not allowed)` : 'without an allowed AC ID'}: ${short(l.text)}`);
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------ run
+
+const status = git(['diff', '--name-status', '-M', '--no-color', ...range, '--', ...PATHS]);
+if (status === null) {
+  console.log(`FAIL git diff ${range.join(' ')} failed`);
+  process.exit(1);
+}
+const notes = [];
+let checked = 0;
+for (const row of status.split('\n').filter(Boolean)) {
+  const [st, a, b] = row.split('\t');
+  const kind = st[0];
+  const file = b ?? a;
+  if (kind === 'A') continue; // a new file changes no existing test
+  checked++;
+  if (file === REGISTRY || a === REGISTRY) checkRegistry(kind);
+  else {
+    const note = checkTestFile(file, a, kind);
+    if (note) notes.push(`  ${file}: ${note}`);
+  }
+}
+
+const what = `${head ? head.slice(0, 7) : 'working tree'} against ${baseRef} (merge base ${from.slice(0, 7)})`;
+console.log(`check-test-changes: ${what}; ${source}; allowed: ${[...allowed].join(', ') || 'none'}`);
+if (notes.length) console.log(notes.join('\n'));
+if (problems.length) {
+  console.log(problems.join('\n'));
+  console.log(`\ncheck-test-changes: ${problems.length} violation(s) in ${checked} changed file(s). A test outside test-changes.md may change only by the plumbing clause.`);
+  process.exit(1);
+}
+console.log(`check-test-changes: ${checked} changed file(s), no violations`);

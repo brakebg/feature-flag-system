@@ -71,7 +71,7 @@ Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 - [ ] **AC-OPS-3** · `/actuator/health` reports UP with DB status.
 - [ ] **AC-OPS-4** · With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`).
 
-## High availability (spec 003, due milestone 10)
+## High availability (spec 003, due milestone 11)
 
 "N" below is any number of instances ≥ 2. Nothing in the code may assume a fixed count.
 
@@ -85,3 +85,8 @@ Removed IDs (spec 11.4): AC-AUTH-5 (decision 0002). They need no test.
 - [ ] **AC-HA-8** · During a rolling restart of all instances, one at a time, a client polling the Evaluation API through the UI proxy gets no 5xx and never a lower revision than it already has.
 - [ ] **AC-HA-9** · The revision of an instance never decreases, also across restart and full reload.
 - [ ] **AC-HA-10** · Reconciliation runs on exactly one instance per schedule, whichever N; when it finds drift, every instance returns the corrected value within 2 s and the `ETag` changed.
+
+## Test changes gate (spec 004, due milestone 10)
+
+- [x] **AC-TC-1** · A planted change in a test whose tags are not in the active spec's `test-changes.md` (expected value, assertion method, removed assertion, `@Tag` or `[ID]` title, deleted file) makes gate 16 fail and print the file and line.
+- [x] **AC-TC-2** · An import, annotation, helper signature or type-only change in a test that is not listed passes gate 16; a listed test with a changed expected value passes.
