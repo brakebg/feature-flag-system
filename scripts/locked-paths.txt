@@ -24,5 +24,6 @@ docs/builder-agents.md
 scripts/locked-paths.txt
 scripts/owner-review.sh
 .github/workflows/locked-files-guard.yml
+.github/ISSUE_TEMPLATE/**
 docs/acceptance-criteria.md create-once
 .github/workflows/escalation-notify.yml create-once
