@@ -1,0 +1,8 @@
+{
+  "id": "005",
+  "title": "UI redesign",
+  "spec": "docs/specs/005-ui-redesign/SPEC.md",
+  "acceptance": "docs/specs/005-ui-redesign/acceptance-criteria.md",
+  "branch": "feature/ui-redesign",
+  "milestones": [12]
+}
