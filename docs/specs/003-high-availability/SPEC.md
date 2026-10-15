@@ -1,4 +1,4 @@
-# Spec 003 — High availability with per-instance caches (release 1.2.0)
+# Spec 003 — High availability with per-instance caches
 
 Owner-authored, locked. Decision: `decisions/0011-high-availability.md`.
 Milestone: **M11**. Working branch: **`feature/high-availability`** (from `main`), one PR to `main`.
@@ -230,13 +230,14 @@ Secrets Manager or SSM into the task environment. Images: ECR, tagged as `make b
 No `depends_on`: the backend retries the database at start and runs Flyway itself. Rolling
 deployment with minimum healthy percent 100 is the mixed-deployment case of 4.13.
 
-### 4.13 Upgrade from 1.1
+### 4.13 Upgrade to the spec 003 release
 
-A 1.1 instance writes no `cache_state` increment, so a write through it during a mixed deployment
-is invisible to 1.2 instances until reconciliation. **Decided: stop the 1.1 instance before starting
-the first 1.2 instance** (a short outage, once). The README MUST state this for the 1.1 to 1.2
-upgrade. Rolling deployments between 1.2 and later versions are supported (both write the
-increment).
+An instance of an older release (without spec 003) writes no `cache_state` increment, so a write
+through it during a mixed deployment is invisible to spec 003 instances until reconciliation.
+**Decided: stop the old instance before starting the first spec 003 instance** (a short outage,
+once). The README MUST state this for the upgrade to the spec 003 release, with its version
+number. Rolling deployments between the spec 003 release and later versions are supported (both
+write the increment).
 
 ## 5. Acceptance criteria
 
@@ -281,7 +282,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   path, syncer and snapshot on one instance, BF-1 workaround removed (all old tests green);
   **B** monotonic ETag rule, reconciliation under the lock, metrics, multi-instance integration tests
   (three Spring contexts on one PostgreSQL; the count is a test parameter, never a constant in main code); **C** compose with two backend services, e2e and smoke gates,
-  README, release 1.2.0 (`VERSION`, `CHANGELOG.md`).
+  README, release: the next free minor version (`VERSION`, `CHANGELOG.md`; `docs/SPEC.md` 9.6).
 - Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   `security-reviewer`, `final-reviewer` (scope backend).
 
@@ -298,7 +299,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 - [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 5 changes) pass.
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] `V1`, `V2` unchanged; `V3` only adds the two tables; `openapi.json` unchanged.
-- [ ] `VERSION` 1.2.0, `CHANGELOG.md` section, README section on several instances.
+- [ ] `VERSION` is the next free minor version (`docs/SPEC.md` 9.6), `CHANGELOG.md` section, README section on several instances.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
 ## 10. Owner decisions
@@ -307,9 +308,12 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
    commit-ordered revision as ETag (architecture review of 2026-10-11, two independent reviewers).
 2. ~~Load balancing in compose~~ **Decided: explicit nginx `upstream` block, compose-only override;
    the UI image keeps `BACKEND_URL` as its default** (4.12).
-3. ~~Upgrade from 1.1~~ **Decided: stop the 1.1 instance before starting 1.2** (4.13).
+3. ~~Upgrade from 1.1~~ **Decided: stop the old instance before starting the first spec 003
+   instance** (4.13).
 4. ~~Retention~~ **Decided: `P1D`.**
-5. ~~Release number~~ **Decided: 1.2.0.**
+5. ~~Release number~~ **Decided: the next free minor version** (owner, 2026-10-15; was 1.2.0).
+   The builder reads `VERSION` on `main` at its final merge of `origin/main` and adds one minor
+   (`docs/SPEC.md` 9.6).
 6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M11; a later spec if the 1 s lag matters.**
 
 7. ~~Template~~ **Decided: spec re-shaped to the `/write-spec` template on 2026-10-11** (sections 6 and 7 added; design unchanged).

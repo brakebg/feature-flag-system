@@ -1,6 +1,6 @@
 # 0013 · Spec 005: redesign the admin UI with balanced colours and a shape language
 
-Status: **Proposed** (2026-10-13). Owner-authored.
+Status: **Accepted** (2026-10-15). Proposed 2026-10-13. Owner-authored.
 
 ## Decision
 
@@ -38,7 +38,9 @@ shared. Fixed in the draft:
 
 Rejected with a reason: the light off-switch track. The `On` / `Off` text next to every switch carries the state.
 
-Kept for the owner: section 10 items 2 to 5.
+Kept for the owner: section 10 items 2 to 5. Decided 2026-10-15: item 2 AC-STYLE-1 (owner PR #40);
+item 3 (a), designs copied over `docs/design/`; item 4 (a), the Condensed font package; item 5 the
+next free minor version, the same rule for every change spec (`docs/SPEC.md` 9.6).
 
 ## What changes
 
@@ -55,4 +57,5 @@ Kept for the owner: section 10 items 2 to 5.
   packages already used).
 - The five screenshot baselines (gate 15) and the style test (AC-STYLE-1, gate 16) are updated by
   the builder.
-- `docs/design/` must be replaced by the new designs (owner step, spec 005 section 10 item 3).
+- `docs/design/` is replaced by the new designs (owner step, spec 005 section 10 item 3, done
+  2026-10-15). Until M12 is merged, `main` shows the new designs with the old UI.
