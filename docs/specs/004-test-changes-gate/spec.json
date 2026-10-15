@@ -4,5 +4,5 @@
   "spec": "docs/specs/004-test-changes-gate/SPEC.md",
   "acceptance": "docs/specs/004-test-changes-gate/acceptance-criteria.md",
   "branch": "feature/test-changes-gate",
-  "milestones": [11]
+  "milestones": [10]
 }

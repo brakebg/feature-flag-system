@@ -1,7 +1,7 @@
 # Spec 004 — Test-changes gate (no release: tooling only)
 
 Owner-authored, locked. Decision: `decisions/0012-test-changes-gate.md`.
-Milestone: **M11**. Working branch: **`feature/test-changes-gate`** (not used: the owner built it).
+Milestone: **M10**. Working branch: **`feature/test-changes-gate`** (not used: the owner built it).
 Spec folder (`<spec>` below): `docs/specs/004-test-changes-gate/`.
 
 This is a change spec. Unlike specs 002 and 003, the owner built it in one owner PR (issue #22),
@@ -11,12 +11,12 @@ owner's decisions.
 ## 1. Relation to `docs/SPEC.md`
 
 `docs/SPEC.md` (spec 001) and every merged spec still apply. This spec changes only what it
-names. Where it names a part of `docs/SPEC.md`, this spec wins for M11.
+names. Where it names a part of `docs/SPEC.md`, this spec wins for M10.
 
-| `docs/SPEC.md` part | Change in M11 |
+| `docs/SPEC.md` part | Change in M10 |
 | --- | --- |
 | 11.3 Automated quality gates | Adds gate 16 "Test changes", active from M1, part of `make verify-fast`. Gate 14 runs its self-test first |
-| 12.2 Milestones | Adds M11 (this spec) |
+| 12.2 Milestones | Adds M10 (this spec) |
 | 12.3 Definition of done | "all 16 gates green" |
 
 Not changed: every threshold, the banned-dependency lists, gates 1 to 15 (gate 15 now expects 16
@@ -90,7 +90,7 @@ The script and its self-test are owner-locked (`scripts/locked-paths.txt`).
 
 ## 5. Acceptance criteria
 
-Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 11`): AC-TC-1 to AC-TC-2.
+Registered in `<spec>/acceptance-criteria.md` (`Due milestone: 10`): AC-TC-1 to AC-TC-2.
 
 - **AC-TC-1** · A planted assertion change in a test not in the allowed list fails gate 16 with the file and line.
 - **AC-TC-2** · An import, annotation or type-only change in an unlisted test passes; a listed test with a changed expected value passes.
@@ -119,7 +119,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   pure plumbing and blocks the real refactors (helper rewrites, a strictness flag
   `true` → `JsonCompareMode.STRICT`, a new assertion block). That is the intended direction.
 
-**Level 3 triggers for M11** (in addition to spec 001 12.5)
+**Level 3 triggers for M10** (in addition to spec 001 12.5)
 
 - A change would break an item of section 3.
 - A test outside `<spec>/test-changes.md` would need more than a plumbing change.

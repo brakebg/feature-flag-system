@@ -915,8 +915,8 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 7. **M7 UI features** — groups pane, flags table, modals, toggle, delete confirmations, audit page. Done when: frontend unit tests pass and coverage targets are met.
 8. **M8 Hardening** — Playwright e2e for every 11.2 scenario, Dockerfiles finalised (non-root, healthchecks), README (setup, env vars, API usage with curl examples, client polling guidance). Done when: the full CI pipeline is green and every 11.2 box is ticked.
 9. **M9 Spring Boot 4 upgrade** — spec 002, `docs/specs/002-spring-boot-4-upgrade/`, release 1.1.0. Done and merged.
-10. **M10 High availability** — spec 003, `docs/specs/003-high-availability/`, release 1.2.0.
-11. **M11 Test-changes gate** — spec 004, `docs/specs/004-test-changes-gate/`, gate 16. Built by the owner (decision 0012). Done.
+10. **M10 Test-changes gate** — spec 004, `docs/specs/004-test-changes-gate/`, gate 16. Built by the owner (decision 0012). Done.
+11. **M11 High availability** — spec 003, `docs/specs/003-high-availability/`, release 1.2.0.
 
 ### 12.3 Definition of done
 

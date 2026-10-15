@@ -31,7 +31,7 @@ Redis cache fed by Debezium CDC, and write-through to Redis. Both recommended th
 
 - The "horizontal scaling" non-goal of spec 1.2 is lifted. "No distributed cache" stays.
 - AC-CACHE-4, 6 and 7 are re-expressed (spec 003 section 5).
-- New spec folder `docs/specs/003-high-availability/` (milestone M10).
+- New spec folder `docs/specs/003-high-availability/` (milestone M11).
 
 ## Consequences
 

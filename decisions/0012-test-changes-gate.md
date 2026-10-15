@@ -21,14 +21,14 @@ not write the gate that judges it.
 
 ## What changes
 
-- `docs/SPEC.md` 11.3: gate 16 row; verify-fast list; gate 14 runs the self-test first. 12.2: M11.
+- `docs/SPEC.md` 11.3: gate 16 row; verify-fast list; gate 14 runs the self-test first. 12.2: M10.
   12.3: all 16 gates.
 - `scripts/gates.mjs`, `scripts/check-integrity.mjs` (16 gates), `scripts/owner-review.sh`
   (section 3b), `scripts/locked-paths.txt`.
 - `CLAUDE.md` section 4 and 7, `docs/VALIDATION.md`, `README.md`, the write-spec template.
 - `.claude/skills/write-spec/spec-tool.mjs`: runs its commands only when called as a command, so
   gate 16 can import `PLUMBING` and `idsIn`.
-- New spec folder `docs/specs/004-test-changes-gate/` (milestone M11, AC-TC-1, AC-TC-2).
+- New spec folder `docs/specs/004-test-changes-gate/` (milestone M10, AC-TC-1, AC-TC-2).
 
 ## Consequences
 

@@ -100,6 +100,14 @@ describe('sum', () => {
 - [ ] **AC-X-1** · The total of 2 and 3 is 5.
 - [ ] **AC-X-2** · The limit is 10.
 `,
+  // The fixture spec's own new IDs: their registry section may be appended (issue #31).
+  'docs/specs/900-fixture/acceptance-criteria.md': `# Acceptance criteria — spec 900
+
+Due milestone: 99
+
+- [ ] **AC-X-1** · Fixture one.
+- [ ] **AC-X-2** · Fixture two with limit is 10.
+`,
 };
 
 function git(dir, ...args) {
@@ -195,6 +203,11 @@ const cases = [
     fails: [`${REG}:3`],
   },
   {
+    title: '[AC-TC-1] added registry line of an AC ID that is not the spec\'s own fails',
+    plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 10.\n- [ ] **AC-Y-1** · Something else.'),
+    fails: [`${REG}:5`],
+  },
+  {
     title: 'a test-changes.md with a changed plumbing clause fails',
     plant: (d) => edit(d, TC, 'helper signatures, ', ''),
     fails: [`${TC}: the plumbing clause differs`],
@@ -228,6 +241,11 @@ const cases = [
   {
     title: '[AC-TC-2] changed registry line of a listed AC ID passes',
     plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 20.'),
+    passes: true,
+  },
+  {
+    title: '[AC-TC-2] the spec PR appending its own registry section passes',
+    plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 10.\n\n## Fixture (spec 900, due milestone 99)\n\n- [ ] **AC-X-1** · Fixture one.\n- [ ] **AC-X-2** · Fixture two with limit is 10.'),
     passes: true,
   },
 ];

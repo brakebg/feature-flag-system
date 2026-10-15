@@ -19,7 +19,9 @@
 //    annotation), a comment, a helper signature, a field or variable type, or an identifier-only
 //    change that keeps every literal, operator and assertion method. Added lines are free.
 // 3. A deleted test file, or a tag that disappears from a file: FAIL.
-// 4. docs/acceptance-criteria.md: every changed line must name only allowed AC IDs.
+// 4. docs/acceptance-criteria.md: every changed line must name only allowed AC IDs. Exception
+//    (issue #31): the active spec's own section, heading "(spec <id>, due milestone <M>)" and
+//    the AC lines of its new IDs, may be added; it is the spec PR appending its criteria.
 // Tuned towards false blocks: a blocked plumbing change is a DECISIONS.md note and an
 // escalation, never an edit of this script.
 //
@@ -116,6 +118,13 @@ if (spec) {
     for (const id of [...idsIn(body ?? ''), ...((body ?? '').match(ID_RE) ?? []).filter((x) => x.startsWith('ERR-'))]) allowed.add(id);
   }
 }
+
+/** The active spec's own new IDs (its acceptance-criteria.md): their registry section may be added (issue #31). */
+const ownIds = new Set();
+if (spec?.acceptance && spec.acceptance !== REGISTRY && existsSync(path.join(ROOT, spec.acceptance))) {
+  for (const m of readFileSync(path.join(ROOT, spec.acceptance), 'utf8').matchAll(/^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\*/gm)) ownIds.add(m[1]);
+}
+const ownHeading = spec ? new RegExp(`^## .*\\(spec ${spec.id}, due milestone \\d+\\)\\s*$`) : null;
 
 // ------------------------------------------------------------------------------ diff
 
@@ -282,6 +291,8 @@ function checkRegistry(status) {
     for (const [l, side] of [...h.del.map((l) => [l, 'removed']), ...h.add.map((l) => [l, 'changed'])]) {
       if (!l.text.trim()) continue;
       const ids = l.text.match(/\bAC-[A-Z]+-\d+\b/g) ?? [];
+      // The spec PR appends its own section: the heading and its new IDs' lines are added, never removed.
+      if (side === 'changed' && ownHeading && (ownHeading.test(l.text) || (ids.length && ids.every((id) => ownIds.has(id))))) continue;
       const bad = ids.filter((id) => !allowed.has(id));
       if (!ids.length || bad.length) fail(REGISTRY, l.n, `${side} line ${ids.length ? `of ${bad.join(', ')} (not allowed)` : 'without an allowed AC ID'}: ${short(l.text)}`);
     }
