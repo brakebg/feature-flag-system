@@ -1,6 +1,6 @@
 ---
 name: Builder task
-about: "Owner only. Hands one merged change spec to an autonomous builder session (docs/builder-prompt.md section 6)."
+about: "Owner only. Hands one merged change spec to an autonomous builder session (docs/process/builder-prompt.md section 6)."
 title: "Implement spec <NNN>: <Title> (M<n>)"
 labels: []
 assignees: []
@@ -19,11 +19,11 @@ line from this issue. Everything below is for people; the spec decides the work.
 - [ ] The spec is merged on `main`; its row in `docs/specs/README.md` says `Ready`
 - [ ] No `**Open:**` item left in section 10 of its `SPEC.md`
 - [ ] Every owner step the spec names before the build is done
-- [ ] The launch checks of `docs/builder-prompt.md` section 5 are true
+- [ ] The launch checks of `docs/process/builder-prompt.md` section 5 are true
 
 ## Start
 
-Cloud session on this repo, branch `main`, with the kickoff prompt of `docs/builder-prompt.md`
+Cloud session on this repo, branch `main`, with the kickoff prompt of `docs/process/builder-prompt.md`
 section 5 and the task line `Task issue: #<this issue's number>`.
 
 ## Done when

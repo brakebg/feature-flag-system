@@ -1,13 +1,14 @@
 ---
 name: design-checker
-description: Compares the built UI with docs/design (colours, fonts, sizes, spacing, layout, states) and with the UI behaviour in docs/SPEC.md section 8. Use at the end of M7 and in the final review. Read-only.
+description: Compares the built UI with docs/product/design (colours, fonts, sizes, spacing, layout, states) and with the UI behaviour in docs/product/ui.md section 8. Use at the milestone audits listed in docs/process/builder-agents.md section 5 and in the final review. Read-only.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md` (spec 001: `docs/SPEC.md`), its criteria `<spec>/acceptance-criteria.md`
-(spec 001: `docs/acceptance-criteria.md`). A later spec wins over `docs/SPEC.md` for what it names.
+is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
+`docs/README.md`). The active spec wins over them for what it names.
 
 You are a UI reviewer. You did not write this code. You compare the built UI with the
 design files and the spec.
@@ -21,13 +22,13 @@ design files and the spec.
 
 ## Sources of truth
 
-- `docs/SPEC.md` sections 8 and 11.6: behaviour of the UI. The spec wins over the design
+- `docs/product/ui.md` sections 8 and 11.6: behaviour of the UI. The spec wins over the design
   on behaviour.
-- `docs/design/N · <screen>.html`: exact values (colours, font sizes, weights, spacing,
+- `docs/product/design/N · <screen>.html`: exact values (colours, font sizes, weights, spacing,
   radius, borders). Read these files for numbers.
-- `docs/design/N · <screen>.png`: how each screen looks. Open them to compare layout.
+- `docs/product/design/N · <screen>.png`: how each screen looks. Open them to compare layout.
 - Names and texts in designs are sample data, unless the spec gives the text.
-- Do not parse `docs/design/Feature Flags Admin UI.html` (a bundle of the same screens).
+- Do not parse `docs/product/design/Feature Flags Admin UI.html` (a bundle of the same screens).
 
 ## Method
 

@@ -1,6 +1,6 @@
 # Spec 003 — High availability with per-instance caches
 
-Owner-authored, locked. Decision: `decisions/0011-high-availability.md`.
+Owner-authored, locked. Decision: `docs/architecture/decisions/0011-high-availability.md`.
 Milestone: **M11**. Working branch: **`feature/high-availability`** (from `main`), one PR to `main`.
 Spec folder (`<spec>` below): `docs/specs/003-high-availability/`.
 
@@ -46,7 +46,7 @@ SDKs, high availability of PostgreSQL.
    `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules.
 3. Security rules of spec 001 section 5. No new endpoint.
 4. `backend/openapi.json` unchanged.
-5. All 15 gates, thresholds, banned lists and test-integrity rules unchanged.
+5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. V1 and V2 migrations unchanged (same checksums).
 
 ## 4. Design
@@ -265,7 +265,7 @@ test is a Level 3 escalation (section 8).
 
 ## 7. Acceptance delta
 
-For the black-box acceptance suite (`docs/VALIDATION.md`):
+For the black-box acceptance suite (`docs/process/validation.md`):
 
 - Added: AC-HA-1 … AC-HA-10
 - Changed: AC-CACHE-4, AC-CACHE-6, AC-CACHE-7: the suite scenarios gain an N-instance variant (a change on one instance checked on the others; readiness checked with the database stopped; reconciliation checked on every instance)
@@ -282,8 +282,8 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   path, syncer and snapshot on one instance, BF-1 workaround removed (all old tests green);
   **B** monotonic ETag rule, reconciliation under the lock, metrics, multi-instance integration tests
   (three Spring contexts on one PostgreSQL; the count is a test parameter, never a constant in main code); **C** compose with two backend services, e2e and smoke gates,
-  README, release: the next free minor version (`VERSION`, `CHANGELOG.md`; `docs/SPEC.md` 9.6).
-- Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
+  README, release: the next free minor version (`VERSION`, `CHANGELOG.md`; `docs/architecture/deployment.md` 9.6).
+- Milestone audit (`docs/process/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   `security-reviewer`, `final-reviewer` (scope backend).
 
 **Level 3 triggers for M11** (in addition to spec 001 12.5)
@@ -295,11 +295,11 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 
 ## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 15 gates, with the multi-instance compose stack; report committed as `<spec>/verify-report.md`.
+- [ ] `make verify-all` passes, all 16 gates, with the multi-instance compose stack; report committed as `<spec>/verify-report.md`.
 - [ ] AC-HA-1 to AC-HA-10 and every spec 001 and 002 criterion (with section 5 changes) pass.
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
 - [ ] `V1`, `V2` unchanged; `V3` only adds the two tables; `openapi.json` unchanged.
-- [ ] `VERSION` is the next free minor version (`docs/SPEC.md` 9.6), `CHANGELOG.md` section, README section on several instances.
+- [ ] `VERSION` is the next free minor version (`docs/architecture/deployment.md` 9.6), `CHANGELOG.md` section, README section on several instances.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
 ## 10. Owner decisions
@@ -313,7 +313,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
 4. ~~Retention~~ **Decided: `P1D`.**
 5. ~~Release number~~ **Decided: the next free minor version** (owner, 2026-10-15; was 1.2.0).
    The builder reads `VERSION` on `main` at its final merge of `origin/main` and adds one minor
-   (`docs/SPEC.md` 9.6).
+   (`docs/architecture/deployment.md` 9.6).
 6. ~~`LISTEN/NOTIFY` doorbell~~ **Decided: not in M11; a later spec if the 1 s lag matters.**
 
 7. ~~Template~~ **Decided: spec re-shaped to the `/write-spec` template on 2026-10-11** (sections 6 and 7 added; design unchanged).

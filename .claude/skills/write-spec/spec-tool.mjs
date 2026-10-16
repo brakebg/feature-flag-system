@@ -7,7 +7,7 @@
 //   node .claude/skills/write-spec/spec-tool.mjs check <spec-folder> [--allow-open] [--base <ref>]
 //
 // next   Next free spec id, milestone and decision number. Scans the working tree, origin/main
-//        and every owner/* branch (local and origin), so numbers taken by an open spec PR are skipped.
+//        and every other branch (local and origin), so numbers taken by an open spec PR are skipped.
 // tests  Every test that carries the IDs in a string: JUnit @Tag("ID"), a Vitest / Playwright /
 //        script test title (same ID pattern as gate 14). --md prints the list for test-changes.md.
 //        Warns on an ID with no test.
@@ -122,16 +122,23 @@ function localSpecs() {
     });
 }
 
+// Decision records by kind (docs/README.md); numbers are global across these folders.
+const DECISION_DIRS = ['decisions', 'docs/architecture/decisions', 'docs/process/decisions'];
+const isDecision = (f) => /^\d{4}-.*\.md$/.test(f);
+
 function localDecisions() {
-  return readdirSync(path.join(ROOT, 'decisions'))
-    .filter((f) => /^\d{4}-.*\.md$/.test(f))
-    .map((f) => ({ n: f.slice(0, 4), file: f, ref: 'working tree' }));
+  const dirs = [...DECISION_DIRS, ...localSpecs().map((s) => `docs/specs/${s.name}/history`)];
+  return dirs
+    .filter((d) => exists(d))
+    .flatMap((d) => readdirSync(path.join(ROOT, d)).filter(isDecision).map((f) => ({ n: f.slice(0, 4), file: f, dir: d, ref: 'working tree' })));
 }
 
-/** origin/main (if present) and every owner/* branch, local and origin. */
+/** origin/main (if present) first, then every other branch, local and origin. */
 function scanRefs() {
   const main = git(['rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main']) ? ['origin/main'] : [];
-  return [...main, ...lines(git(['for-each-ref', '--format=%(refname:short)', 'refs/heads/owner', 'refs/remotes/origin/owner']))];
+  const others = lines(git(['for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/remotes/origin']))
+    .filter((r) => r !== 'origin/main' && r !== 'origin' && !r.endsWith('/HEAD'));
+  return [...main, ...others];
 }
 
 function specsAt(ref) {
@@ -150,9 +157,13 @@ function specsAt(ref) {
 }
 
 function decisionsAt(ref) {
-  return lines(git(['ls-tree', '--name-only', `${ref}:decisions`]))
-    .filter((f) => /^\d{4}-.*\.md$/.test(f))
-    .map((f) => ({ n: f.slice(0, 4), file: f, ref }));
+  const dirs = [...DECISION_DIRS, ...specsAt(ref).map((s) => `docs/specs/${s.name}/history`)];
+  return dirs.flatMap((d) =>
+    lines(git(['ls-tree', '--name-only', `${ref}:${d}`]))
+      .map((f) => f.split('/').pop())
+      .filter(isDecision)
+      .map((f) => ({ n: f.slice(0, 4), file: f, dir: d, ref })),
+  );
 }
 
 /** IDs known before this spec: docs/acceptance-criteria.md and every other spec's file. */
@@ -184,7 +195,7 @@ function cmdNext(args) {
   const maxId = Math.max(0, ...specs.map((s) => Number(s.id)));
   const maxM = Math.max(0, ...specs.flatMap((s) => s.milestones.map(Number)));
   const maxD = Math.max(0, ...decisions.map((d) => Number(d.n)));
-  // Numbers above the working tree's highest are held by an open owner branch; older ones are history.
+  // Numbers above the working tree's highest are held by another branch; older ones are history.
   const local = localSpecs();
   const topId = Math.max(0, ...local.map((s) => Number(s.id)));
   const topM = Math.max(0, ...local.flatMap((s) => s.milestones.map(Number)));
@@ -192,7 +203,7 @@ function cmdNext(args) {
   console.log(`next spec:      ${String(maxId + 1).padStart(3, '0')}`);
   console.log(`next milestone: M${maxM + 1}`);
   console.log(`next decision:  ${String(maxD + 1).padStart(4, '0')}`);
-  console.log(`scanned: working tree + ${refs.filter((r) => r === 'origin/main').length ? 'origin/main + ' : ''}${refs.filter((r) => r !== 'origin/main').length} owner/* branch(es)`);
+  console.log(`scanned: working tree + ${refs.filter((r) => r === 'origin/main').length ? 'origin/main + ' : ''}${refs.filter((r) => r !== 'origin/main').length} other branch(es)`);
   const elsewhere = uniq([
     ...specs.filter((s) => s.ref !== 'working tree' && (Number(s.id) > topId || s.milestones.some((m) => m > topM))).map((s) => `spec ${s.name} (M${s.milestones.join(', M')}) on ${s.ref}`),
     ...decisions.filter((d) => d.ref !== 'working tree' && Number(d.n) > topD).map((d) => `decision ${d.file} on ${d.ref}`),
@@ -321,11 +332,11 @@ function cmdCheck(args) {
   if (!exists(`${dir}/test-changes.md`)) err(`${dir}/test-changes.md does not exist`);
   const milestones = Array.isArray(meta.milestones) ? meta.milestones : [];
   if (!milestones.length || !milestones.every((m) => Number.isInteger(m) && m > 0)) err('spec.json: "milestones" must be a non-empty list of positive integers');
-  if (typeof meta.branch === 'string' && (/^(main|owner\/|wip\/)/.test(meta.branch))) err(`spec.json: branch "${meta.branch}" must be a builder branch (not main, owner/*, wip/*)`);
+  if (typeof meta.branch === 'string' && (/^(main|spec\/|wip\/)/.test(meta.branch))) err(`spec.json: branch "${meta.branch}" must be a builder branch (not main, spec/*, wip/*)`);
   const agentFiles = ['STATE.md', 'PROGRESS.md', 'DECISIONS.md', 'BLOCKERS.md', 'MILESTONE', 'escalations', 'reviews', 'verify-report.md'];
   for (const f of agentFiles) if (exists(`${dir}/${f}`)) err(`${dir}/${f}: builder memory file; a new spec must not create it`);
 
-  // 2. Unique across all specs (working tree and owner/* branches)
+  // 2. Unique across all specs (working tree and all branches)
   const others = [...localSpecs(), ...scanRefs().flatMap(specsAt)].filter((s) => s.name !== folder);
   for (const s of others) {
     if (s.id === meta.id) err(`spec id ${meta.id} is also used by ${s.name} (${s.ref})`);
@@ -360,8 +371,9 @@ function cmdCheck(args) {
     const head = text.split(/^## /m)[0];
     if (!new RegExp(`^# Spec ${meta.id} — \\S`).test(head)) err(`SPEC.md: first line must be "# Spec ${meta.id} — <title>"`);
     if (!/Owner-authored, locked\./.test(head)) err('SPEC.md header: missing "Owner-authored, locked."');
-    dec = /Decision: `decisions\/(\d{4})-([a-z0-9-]+)\.md`/.exec(head);
-    if (!dec) err('SPEC.md header: missing "Decision: `decisions/NNNN-<name>.md`"');
+    dec = /Decision: `((?:[a-z0-9-]+\/)*?)(\d{4})-([a-z0-9-]+)\.md`/.exec(head);
+    if (!dec) err('SPEC.md header: missing "Decision: `<decision folder>/NNNN-<name>.md`"');
+    else dec = [dec[0], dec[2], dec[3], `${dec[1]}${dec[2]}-${dec[3]}.md`];
     for (const m of milestones) if (!head.includes(`**M${m}**`)) err(`SPEC.md header: milestone **M${m}** not named`);
     if (meta.branch && !head.includes(`**\`${meta.branch}\`**`)) err(`SPEC.md header: working branch **\`${meta.branch}\`** not named`);
 
@@ -458,7 +470,7 @@ function cmdCheck(args) {
     if (open.length && /Accepted by the owner on/.test(s10)) err('SPEC.md section 10: "Accepted by the owner on" while items are Open');
 
     // 4g. Leftover template text: comments and placeholders outside code
-    const files = [meta.spec, meta.acceptance, `${dir}/test-changes.md`, dec && `decisions/${dec[1]}-${dec[2]}.md`].filter((f) => f && exists(f));
+    const files = [meta.spec, meta.acceptance, `${dir}/test-changes.md`, dec && dec[3]].filter((f) => f && exists(f));
     for (const f of files) {
       const raw = read(f);
       const p = prose(raw);
@@ -468,19 +480,23 @@ function cmdCheck(args) {
 
     // 5. Decision file and both index rows
     if (dec) {
-      const dfile = `decisions/${dec[1]}-${dec[2]}.md`;
+      const dfile = dec[3];
       if (!exists(dfile)) err(`${dfile} does not exist`);
       else if (!new RegExp(`^# ${dec[1]} · `).test(read(dfile))) err(`${dfile}: first line must be "# ${dec[1]} · <title>"`);
       else if (open.length && /^Status: \*\*Accepted\*\*/m.test(read(dfile))) err(`${dfile}: Status is Accepted while section 10 has Open items`);
       for (const d of [...localDecisions(), ...scanRefs().flatMap(decisionsAt)]) {
         if (d.n === dec[1] && d.file !== `${dec[1]}-${dec[2]}.md`) err(`decision number ${dec[1]} is also used by ${d.file} (${d.ref})`);
       }
-      const rows = tableRows(read('decisions/README.md'), /^\| # \| Decision \| Status \|/);
-      if (!rows) err('decisions/README.md: decision table not found');
-      else {
-        const row = rows.find((r) => r.startsWith(`| ${dec[1]} |`) && r.includes(`(${dec[1]}-${dec[2]}.md)`));
-        if (!row) err(`decisions/README.md: no row "| ${dec[1]} | [...](${dec[1]}-${dec[2]}.md) | ... |" inside the table`);
-        else if (open.length && /\|\s*Accepted\s*\|\s*$/.test(row)) err('decisions/README.md: row says Accepted while section 10 has Open items (use Proposed)');
+      // A decision folder keeps an index README; a spec's history/ folder has none.
+      const index = `${path.dirname(dfile)}/README.md`;
+      if (!dfile.includes('/history/')) {
+        const rows = tableRows(read(index), /^\| # \| Decision \| Status \|/);
+        if (!rows) err(`${index}: decision table not found`);
+        else {
+          const row = rows.find((r) => r.startsWith(`| ${dec[1]} |`) && r.includes(`(${dec[1]}-${dec[2]}.md)`));
+          if (!row) err(`${index}: no row "| ${dec[1]} | [...](${dec[1]}-${dec[2]}.md) | ... |" inside the table`);
+          else if (open.length && /\|\s*Accepted\s*\|\s*$/.test(row)) err(`${index}: row says Accepted while section 10 has Open items (use Proposed)`);
+        }
       }
     }
   }
@@ -493,8 +509,8 @@ function cmdCheck(args) {
   const changed = uniq([...lines(git(['diff', '--name-only', `${base}...HEAD`])), ...lines(git(['diff', '--name-only', 'HEAD'])), ...lines(git(['ls-files', '--others', '--exclude-standard']))]);
   if (git(['rev-parse', '--verify', '--quiet', base]) === null) warn(`scope not checked: ref ${base} not found (use --base <ref>)`);
   else {
-    const decFile = dec ? `decisions/${dec[1]}-${dec[2]}.md` : null;
-    const ok = (f) => f.startsWith(`${dir}/`) || f === decFile || f === 'decisions/README.md' || f === 'docs/specs/README.md' || f === 'docs/acceptance-criteria.md';
+    const decFile = dec ? dec[3] : null;
+    const ok = (f) => f.startsWith(`${dir}/`) || f === decFile || (decFile && f === `${path.dirname(decFile)}/README.md`) || f === 'docs/specs/README.md' || f === 'docs/acceptance-criteria.md';
     for (const f of changed.filter((f) => !ok(f))) err(`scope: ${f} changed; a spec PR changes only its folder, its decision file, the two index files and docs/acceptance-criteria.md`);
     // 7. Registry section (issue #31): the new IDs must be in docs/acceptance-criteria.md under this spec's heading, verbatim
     const reg = acIds(path.join(ROOT, 'docs/acceptance-criteria.md')).filter((a) => a.spec === meta.id);

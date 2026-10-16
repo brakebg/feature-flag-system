@@ -1,7 +1,7 @@
 # Designs
 
 Approved screen designs. Spec decides behaviour; the design decides appearance
-(`docs/SPEC.md` section 8). Names and values shown are sample data.
+(`docs/product/ui.md` section 8). Names and values shown are sample data.
 
 | Files | Status |
 | --- | --- |

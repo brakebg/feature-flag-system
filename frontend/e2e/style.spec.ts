@@ -1,7 +1,7 @@
 import { expect, test } from './support/fixtures';
 import { keyFor } from './support/api';
 
-// Spec 11.6 "Matching the design" 1: key design values, taken from docs/design (not tokens.css).
+// Spec 11.6 "Matching the design" 1: key design values, taken from docs/product/design (not tokens.css).
 const PRIMARY = 'rgb(35, 80, 200)'; // #2350C8
 const TOP_BAR = 'rgb(21, 24, 29)'; // #15181D
 

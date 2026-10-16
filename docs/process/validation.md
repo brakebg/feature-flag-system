@@ -2,7 +2,7 @@
 
 Owner document. Read-only for the agent.
 This is the go-to validation model for this project, decided by the owner in
-`decisions/0001-validation-approach.md`: **single builder + black-box acceptance suite**.
+`docs/process/decisions/0001-validation-approach.md`: **single builder + black-box acceptance suite**.
 
 ## 1. The problem
 
@@ -25,7 +25,7 @@ gates still catch most bugs at once, on every chunk.
 
 ## 3. The process in 6 steps
 
-1. Owner locks `docs/SPEC.md` and `docs/design/` on `main`.
+1. Owner locks `docs/SPEC.md` and `docs/product/design/` on `main`.
 2. Tester session writes the black-box acceptance suite; owner reviews it; frozen as `v1`.
    **Tester done.**
 3. Builder goes through M1 to M8, with internal tests and gates on every chunk, pushing to
@@ -148,7 +148,7 @@ builder's tests and PIT.
 
 | Item | Where | Why the builder cannot change it |
 | --- | --- | --- |
-| `docs/SPEC.md`, `docs/design/**`, `CLAUDE.md`, this file, `decisions/**` | `main` branch | The builder works on `feature/feature-flag-service`; `main` keeps the owner's copy |
+| `docs/product/**`, `docs/architecture/**`, `docs/process/**`, `CLAUDE.md` | `main` branch | The builder works on `feature/feature-flag-service`; `main` keeps the owner's copy |
 | Locked paths list, review script | `scripts/locked-paths.txt`, `scripts/owner-review.sh` | Changes show in the `locked-files-guard` PR comment; owner runs the `main` copy |
 | Black-box acceptance suite | Separate private repo | The builder never sees it |
 
@@ -165,7 +165,7 @@ Separate private repo `feature-flag-acceptance`. Never a folder or branch in thi
 | Claude GitHub app has access to this repo only | Otherwise a cloud session could clone the suite repo |
 | Suite repo stays private | Even when this repo is public |
 | Suite uses no code from this repo | It only calls the running app: UI `http://localhost:3000`, API `http://localhost:8080` |
-| Written before M1 by a separate tester session, then frozen as `v1` | Input is only `docs/SPEC.md` and `docs/design/` |
+| Written before M1 by a separate tester session, then frozen as `v1` | Input is only `docs/SPEC.md` and `docs/product/design/` |
 | Tests follow `docs/black-box-testing.md` in the suite repo | One definition: allowed interfaces, expected values only from the spec, design techniques |
 | Run by the owner review script from `main` | `make up`, then the suite from the owner's local clone |
 | After final acceptance it may be copied here as regression tests | Secrecy only matters while the builder is building |
@@ -248,7 +248,7 @@ traces. Max 3 rounds per AC, then the owner decides.
 | `scripts/owner-review.sh` | Created and tested on a bad and a clean branch |
 | Edit-block hook | Removed (`decisions/0006`). Locked files are checked only on the PR: `locked-files-guard` comment, then `scripts/owner-review.sh` |
 | `locked-files-guard.yml` | Created as a non-blocking alert (PR comment). Path comparison tested locally; the comment step runs only on GitHub |
-| Builder prompts, expert agents, final review | `docs/builder-prompt.md`, `docs/builder-agents.md`, `.claude/agents/` |
+| Builder prompts, expert agents, final review | `docs/process/builder-prompt.md`, `docs/process/builder-agents.md`, `.claude/agents/` |
 | GitHub settings (6.2, 6.3) | Owner to set |
 | Account spend limit | Owner to set |
 

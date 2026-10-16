@@ -1,7 +1,7 @@
 # Builder expert agents and final review
 
 Owner-authored. The builder reads this file and follows it. The builder never edits it
-(locked, see `scripts/locked-paths.txt`). `docs/SPEC.md` and `CLAUDE.md` win over this file.
+(locked, see `scripts/locked-paths.txt`). The specs, `docs/product/`, `docs/architecture/` and `CLAUDE.md` win over this file.
 
 ## 1. Why agents
 
@@ -24,7 +24,7 @@ gate. Use them when the session has them (local phase); skip them when it does n
 | `spec-auditor` | Built vs spec: missing, extra, exact values, drift, wrong decision level | Every milestone end, final review |
 | `test-auditor` | Your tests can fail, values from the spec, exact assertions, tags, no weakening | M2 to M7 ends, final review |
 | `security-reviewer` | Spec 5 and 10.2 security model, OWASP Top 10 | M3, M4, M5 ends, final review |
-| `design-checker` | UI vs `docs/design/` and spec 8 | M7 end, final review |
+| `design-checker` | UI vs `docs/product/design/` and spec 8 | M7 end, final review |
 | `final-reviewer` | Real bugs: correctness, errors, concurrency, cache, contract, silent failures | Final review |
 | `Explore` (built in) | Find code across many files | Any time |
 
@@ -45,10 +45,11 @@ forbids a rate limiter in the service). So:
 1. Add this to every vendor brief, after the template in section 3:
 
    ```
-   Project rules: docs/SPEC.md is the only source of requirements and wins over any
+   Project rules: the active spec, docs/product/ and docs/architecture/ are the only source of
+   requirements and win over any
    general best practice. Do not report what the spec leaves out on purpose (spec 1.2,
    5.3). Read-only: do not edit files. For each finding give file:line, severity
-   (BLOCKER / CRITICAL / MAJOR / MINOR as defined in docs/builder-agents.md section 4),
+   (BLOCKER / CRITICAL / MAJOR / MINOR as defined in docs/process/builder-agents.md section 4),
    and a concrete failure scenario.
    ```
 
@@ -81,6 +82,19 @@ forbids a rate limiter in the service). So:
    test, an assertion, a gate or a threshold, and note it in the review file.
 6. Agents cost time. Use them at the points in sections 5 and 6, not after every chunk.
 
+### Agent changes nothing
+
+The agents are read-only by their prompt, but they have `Bash`, which can write. So check it:
+
+1. Run audits on a clean tree: commit first.
+2. Before each agent, save `git rev-parse HEAD` and `git status --porcelain`.
+3. After it, run both again. Same output: use the report.
+4. Any difference: discard that agent's report, restore the tree (`git checkout -- .`,
+   `git clean -fd`, back to the saved commit if `HEAD` moved), and record it as a BLOCKER in
+   `<spec>/BLOCKERS.md`.
+
+Ignored folders (`build/`, `target/`) are not checked: agents may write test output there.
+
 ## 4. Severity
 
 | Severity | Meaning | You must |
@@ -105,6 +119,11 @@ commit. M8 has no separate milestone audit; the final review (section 6) covers 
 | M6 | `spec-auditor`, `test-auditor`, `ecc:react-reviewer` |
 | M7 | `spec-auditor`, `test-auditor`, `design-checker`, `ecc:react-reviewer` |
 | M9 | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (scope backend). Cloud session, no vendor agents (spec 002 section 7a); no separate final review |
+| M10 | None: spec 004 was built by the owner, no builder session |
+| M11 | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (scope backend) (spec 003 section 8); no separate final review |
+| M12 | `spec-auditor`, `test-auditor`, `design-checker` (against the designs of spec 005 section 4.1), `final-reviewer` (scope frontend) (spec 005 section 8); no separate final review |
+
+A new change spec names its audit agents in its section 8; the owner adds its row here.
 
 Vendor agents (`ecc:`, `pr-review-toolkit:`) only when available (section 2a).
 

@@ -1,6 +1,6 @@
 # Specs
 
-Owner-authored, locked. Decision: `decisions/0010-spec-folders.md`.
+Owner-authored, locked. Decision: `docs/process/decisions/0010-spec-folders.md`.
 
 One folder per spec. A builder session works on exactly one spec: the folder its kickoff or
 resume prompt names. Everything that session writes about its work stays in that folder, so
@@ -11,7 +11,7 @@ files.
 
 | # | Folder | Spec file | Milestones | Branch | Status |
 | --- | --- | --- | --- | --- | --- |
-| 001 | [001-feature-flag-service](001-feature-flag-service/) | `docs/SPEC.md` (the product spec) | M1–M8 | `feature/feature-flag-service` | Done, merged (PR #3), release 1.0.0 |
+| 001 | [001-feature-flag-service](001-feature-flag-service/) | `SPEC.md` (milestones M1–M8; product and architecture now in `docs/product/`, `docs/architecture/`) | M1–M8 | `feature/feature-flag-service` | Done, merged (PR #3), release 1.0.0 |
 | 002 | [002-spring-boot-4-upgrade](002-spring-boot-4-upgrade/) | `SPEC.md` | M9 | `feature/spring-boot-4` | Ready |
 | 003 | [003-high-availability](003-high-availability/) | `SPEC.md` | M11 | `feature/high-availability` | Ready |
 | 004 | [004-test-changes-gate](004-test-changes-gate/) | `SPEC.md` | M10 | `feature/test-changes-gate` | Done, built by the owner (issue #22) |
@@ -32,7 +32,7 @@ added, changed and retired for the black-box suite).
 ## The registry: `docs/acceptance-criteria.md`
 
 That file is the one complete list of the product's criteria; the black-box acceptance suite
-(`docs/VALIDATION.md`) is built from it alone. **The spec PR itself** keeps it complete
+(`docs/process/validation.md`) is built from it alone. **The spec PR itself** keeps it complete
 (`/write-spec` File 6): the spec's new IDs are appended as a section
 "<Title> (spec NNN, due milestone M)", copied verbatim from `<spec>/acceptance-criteria.md`, and
 re-expressed IDs are replaced in place (same ID, same position). Gate 14 reads the due milestone
@@ -40,7 +40,7 @@ from the heading, so the IDs are "pending" until that milestone and never counte
 
 ## After a spec is merged (owner)
 
-1. Apply the spec's section 1 table to `docs/SPEC.md`.
+1. Apply the spec's section 1 table to `docs/product/` and `docs/architecture/`.
 2. Update the acceptance suite from the registry diff and tag it `spec-NNN` (acceptance repo,
    issue #29). The suite is ready before the builder session starts (#24).
 
@@ -49,7 +49,7 @@ from the heading, so the IDs are "pending" until that milestone and never counte
 ```
 docs/specs/<NNN-name>/
   spec.json                 owner   id, title, spec file, registry file, branch, milestones
-  SPEC.md                   owner   the spec (spec 001: docs/SPEC.md instead)
+  SPEC.md                   owner   the spec
   acceptance-criteria.md    owner   AC IDs of this spec, "Due milestone: <n>" (spec 001: docs/acceptance-criteria.md)
   test-changes.md           owner   AC IDs whose tests may change; the fixed plumbing clause (new specs)
   STATE.md                  agent   where the work stands, next 3 steps (< 150 lines)
@@ -67,9 +67,9 @@ Agent files are created by the session in its first commit. Owner files are lock
 
 ## Rules
 
-1. Spec 001 (`docs/SPEC.md`) defines the product and the working rules (its section 12). It
-   stays valid. A later spec changes only what it names; for those items it wins while it is
-   active. After its PR is merged, the owner folds the changes into `docs/SPEC.md`.
+1. `docs/product/` and `docs/architecture/` describe the current system; `docs/process/` holds
+   the working rules. A later spec changes only what it names; for those items it wins while it
+   is active. After its PR is merged, the owner folds the changes into those files.
 2. One spec = one session at a time = one branch = one PR to `main`.
 3. A session reads and writes only its own folder. Another spec's folder is read-only for it.
 4. Numbers are per spec: decisions `D-<n>`, escalations `ESC-<NNN>`. In text outside the

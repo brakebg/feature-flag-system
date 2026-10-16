@@ -1,13 +1,13 @@
 # Builder session prompts
 
 Owner-authored, locked. How to start and resume the autonomous builder. The rules
-themselves live in `CLAUDE.md`, `docs/SPEC.md` section 12 and `docs/builder-agents.md`.
+themselves live in `CLAUDE.md`, `docs/process/` and `docs/process/builder-agents.md`.
 The prompts below only start the work and point to them, because a resumed session never
 sees the first prompt.
 
 Two phases:
 
-| Phase | Where | Vendor agents (`docs/builder-agents.md` 2a) |
+| Phase | Where | Vendor agents (`docs/process/builder-agents.md` 2a) |
 | --- | --- | --- |
 | 1 (now) | Claude Code on the owner's machine | Yes |
 | 2 (later) | Anthropic cloud session | No, unless added later |
@@ -19,10 +19,10 @@ Two phases:
 | # | Check |
 | --- | --- |
 | 1 | Acceptance suite pushed to the private repo `feature-flag-acceptance` and tagged `v1` |
-| 2 | This repo on GitHub, public; `docs/VALIDATION.md` 6.2 and 6.3 applied |
+| 2 | This repo on GitHub, public; `docs/process/validation.md` 6.2 and 6.3 applied |
 | 3 | Repository variable `ESCALATION_OWNER` set to your GitHub login |
 | 4 | Account spend limit set |
-| 5 | `main` holds the latest `docs/SPEC.md`, `CLAUDE.md`, this file, `docs/builder-agents.md` and `.claude/agents/` |
+| 5 | `main` holds the latest `docs/product/`, `docs/architecture/`, `docs/process/`, `CLAUDE.md`, this file, `docs/process/builder-agents.md` and `.claude/agents/` |
 
 ### 1.2 Phase 1: local machine
 
@@ -150,7 +150,7 @@ Read first, in this order:
 1. CLAUDE.md: your working rules. Run its startup ritual now and after every
    context compaction.
 2. docs/SPEC.md: the only source of requirements. Read it fully before M1.
-3. docs/builder-agents.md: the expert agents you use, when to use them, and the
+3. docs/process/builder-agents.md: the expert agents you use, when to use them, and the
    final review.
 
 Branch: work only on feature/feature-flag-service. Create it from main if it does
@@ -172,10 +172,10 @@ How to work:
 - You write all production code and tests yourself. Use the agents only for
   review and search.
 - Milestone end: make verify green, then the milestone audit
-  (docs/builder-agents.md section 5), fix every BLOCKER and CRITICAL finding,
+  (docs/process/builder-agents.md section 5), fix every BLOCKER and CRITICAL finding,
   then commit "M<n>: complete" and post the PR summary comment.
 
-After M8: run the final review (docs/builder-agents.md section 6). Fix every
+After M8: run the final review (docs/process/builder-agents.md section 6). Fix every
 BLOCKER and CRITICAL finding test-first, with the gates green.
 
 You are done when all of these are true:
@@ -205,8 +205,8 @@ Resume spec docs/specs/<NNN-name>/.
 That folder is your active spec; read its STATE.md first.
 Run the CLAUDE.md startup ritual first, including reading new PR comments from
 the owner. Rules for the expert agents and the reviews are in
-docs/builder-agents.md. The goal and the done criteria are in the spec's
-definition of done (spec 001: docs/builder-prompt.md section 2). Work only in
+docs/process/builder-agents.md. The goal and the done criteria are in the spec's
+definition of done (spec 001: docs/process/builder-prompt.md section 2). Work only in
 that spec's folder and branch. Continue autonomously until done.
 ```
 
@@ -216,8 +216,8 @@ that spec's folder and branch. Continue autonomously until done.
    and `escalated` finding, and answer each escalation for `blocked` findings.
 2. Clone the suite again next to this repo (`../feature-flag-acceptance`, or set
    `ACCEPTANCE_DIR`). Run `scripts/owner-review.sh docs/specs/<NNN-name>` from a clean `main`
-   (`docs/VALIDATION.md` section 7).
-3. Failures go back as bug reports by AC ID (`docs/VALIDATION.md` section 8). Then use the
+   (`docs/process/validation.md` section 7).
+3. Failures go back as bug reports by AC ID (`docs/process/validation.md` section 8). Then use the
    resume prompt.
 
 ## 5. Change-spec kickoff prompt (cloud session)
@@ -262,9 +262,9 @@ Find your active spec first, before any other step:
   "Spec <id> is not ready: open owner decisions".
 
 Your active spec is the only spec you work on. In CLAUDE.md and the specs,
-<spec> means its folder. docs/SPEC.md (spec 001) is done and stays valid for
-everything your spec does not name.
-Work without stopping for questions. Only a Level 3 escalation (docs/SPEC.md
+<spec> means its folder. docs/product/ and docs/architecture/ describe the
+current system and stay valid for everything your spec does not name.
+Work without stopping for questions. Only a Level 3 escalation (docs/process/escalation.md
 12.5 plus the triggers in your spec) goes to me, on the PR. Park that item and
 continue with other work.
 
@@ -278,9 +278,10 @@ than this one.
 Read first, in this order:
 1. CLAUDE.md: your working rules. Run its startup ritual now and after every
    context compaction.
-2. <spec>/spec.json and <spec>/SPEC.md, fully. Then the docs/SPEC.md sections
-   it names and the ones the next chunk touches.
-3. docs/builder-agents.md: the agents and the milestone audit. This is a cloud
+2. <spec>/spec.json and <spec>/SPEC.md, fully. Then the docs/product/ and
+   docs/architecture/ files it names and the ones the next chunk touches
+   (map: docs/README.md).
+3. docs/process/builder-agents.md: the agents and the milestone audit. This is a cloud
    session without plugins: only the project agents in .claude/agents/ and the
    built-in Explore agent exist. Never call or look for ecc:*, pr-review-toolkit:*
    or other plugin agents (your spec says which project agent replaces them).
