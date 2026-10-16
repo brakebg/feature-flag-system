@@ -136,8 +136,10 @@ done < scripts/locked-paths.txt
 if show docs/acceptance-criteria.md >/dev/null; then
   missing=$(show docs/acceptance-criteria.md | python3 -c '
 import re, sys
-spec = open("docs/SPEC.md", encoding="utf-8").read()
-sec = spec[spec.index("### 11.2"):spec.index("### 11.3")]
+spec = open("docs/specs/001-feature-flag-service/SPEC.md", encoding="utf-8").read()
+start = spec.index("### 11.2")
+nxt = spec.find("\n#", start + 1)
+sec = spec[start:] if nxt < 0 else spec[start:nxt]
 want = [m.group(1).strip() for m in re.finditer(r"^\s*[-*] \[[ x]\] (.+)$", sec, re.M)]
 have = sys.stdin.read()
 print(sum(1 for w in want if w not in have))')

@@ -1,4 +1,4 @@
-/* Design values from docs/design (spec 8). Tests compare against the design, not this file. */
+/* Design values from docs/product/design (spec 8). Tests compare against the design, not this file. */
 :root {
   --color-bg: #f4f5f7;
   --color-surface: #ffffff;

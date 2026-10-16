@@ -12,12 +12,13 @@ docs/specs/*/spec.json
 docs/specs/*/acceptance-criteria.md
 docs/specs/*/test-changes.md
 scripts/lib/active-spec.mjs
-docs/design/**
-docs/VALIDATION.md
+docs/product/**
+docs/architecture/**
+docs/process/**
+docs/README.md
 decisions/**
+docs/specs/*/history/**
 CLAUDE.md
-docs/builder-prompt.md
-docs/builder-agents.md
 .claude/agents/**
 .claude/skills/**
 .claude/settings.json

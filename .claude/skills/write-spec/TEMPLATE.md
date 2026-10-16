@@ -128,7 +128,7 @@ test is a Level 3 escalation (section 8).
 
 ## 7. Acceptance delta
 
-For the black-box acceptance suite (`docs/VALIDATION.md`):
+For the black-box acceptance suite (`docs/process/validation.md`):
 
 - Added: <AC-XXX-1 … AC-XXX-n> <!-- or "none" -->
 - Changed: <AC-YYY-n, AC-YYY-m: what the suite scenarios gain or lose> <!-- or "none" -->
@@ -146,7 +146,7 @@ For the black-box acceptance suite (`docs/VALIDATION.md`):
   `<branch>` → `main`.
 - Phases, each chunk green: **A** <...>; **B** <...>; **C** <...>, release <X.Y.Z> (`VERSION`,
   `CHANGELOG.md`).
-- Milestone audit (`docs/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
+- Milestone audit (`docs/process/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   <`security-reviewer`, `design-checker`, `final-reviewer` (scope) — only those that fit>.
 
 **Level 3 triggers for M<M>** (in addition to spec 001 12.5)

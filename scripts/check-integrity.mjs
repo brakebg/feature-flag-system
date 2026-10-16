@@ -140,8 +140,11 @@ if (base) {
 
 // 7. Registry is a verbatim copy of spec 11.2; versions agree.
 {
-  const spec = readFileSync('docs/SPEC.md', 'utf8');
-  const sec = spec.slice(spec.indexOf('### 11.2'), spec.indexOf('### 11.3'));
+  // Spec 001 keeps the original 11.2 list (docs/README.md, section map).
+  const spec = readFileSync('docs/specs/001-feature-flag-service/SPEC.md', 'utf8');
+  const from = spec.indexOf('### 11.2');
+  const next = spec.indexOf('\n#', from + 1);
+  const sec = spec.slice(from, next < 0 ? spec.length : next);
   const want = [...sec.matchAll(/^\s*[-*] \[[ x]\] (.+)$/gm)].map((m) => m[1].trim());
   const have = read('docs/acceptance-criteria.md') ?? '';
   const missing = want.filter((w) => !have.includes(w));

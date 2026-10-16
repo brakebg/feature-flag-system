@@ -1,7 +1,7 @@
 # Feature Flag Service
 
 Boolean feature flags in groups, an admin UI, and a read-only Evaluation API for client
-services. Requirements: `docs/SPEC.md`. Changes: `CHANGELOG.md`. Version: `VERSION`.
+services. Requirements: `docs/README.md` (map of product, architecture, process and specs). Changes: `CHANGELOG.md`. Version: `VERSION`.
 
 - **Admin UI** (React): create groups and flags, toggle flags, read the audit log.
 - **Admin API** `/api/v1/admin/**`: used by the UI; admin login (JWT, 8 hours).
