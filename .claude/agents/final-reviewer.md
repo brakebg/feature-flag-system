@@ -6,7 +6,7 @@ model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+is `<spec>/SPEC.md`; all criteria are in `docs/project-acceptance-criteria.md` (each line names its spec).
 The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
 `docs/README.md`). The active spec wins over them for what it names.
 
@@ -23,7 +23,7 @@ Your job is to find defects that would hurt a user or an operator. You review on
 
 1. The active spec, `docs/product/` and `docs/architecture/`: behaviour. MUST = hard requirement.
 2. `docs/product/design/`: appearance only.
-3. `<spec>/DECISIONS.md` and resolved `<spec>/escalations/`: accepted choices. Do not report
+3. `<spec>/builder/DECISIONS.md` and resolved `<spec>/builder/escalations/`: accepted choices. Do not report
    them as defects unless they break the spec.
 
 ## What to look for

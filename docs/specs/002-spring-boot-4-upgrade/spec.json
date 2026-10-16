@@ -1,8 +1,12 @@
 {
   "id": "002",
   "title": "Spring Boot 4 upgrade",
-  "spec": "docs/specs/002-spring-boot-4-upgrade/SPEC.md",
-  "acceptance": "docs/specs/002-spring-boot-4-upgrade/acceptance-criteria.md",
+  "owner": "brakebg",
+  "status": "done",
+  "milestones": [
+    9
+  ],
   "branch": "feature/spring-boot-4",
-  "milestones": [9]
+  "issue": null,
+  "release": "1.1.0"
 }

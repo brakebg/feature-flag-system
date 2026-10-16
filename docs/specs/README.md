@@ -7,62 +7,61 @@ resume prompt names. Everything that session writes about its work stays in that
 several sessions can run at the same time on different specs without touching each other's
 files.
 
-## Index
+## Which specs exist
 
-| # | Folder | Spec file | Milestones | Branch | Status |
-| --- | --- | --- | --- | --- | --- |
-| 001 | [001-feature-flag-service](001-feature-flag-service/) | `SPEC.md` (milestones M1–M8; product and architecture now in `docs/product/`, `docs/architecture/`) | M1–M8 | `feature/feature-flag-service` | Done, merged (PR #3), release 1.0.0 |
-| 002 | [002-spring-boot-4-upgrade](002-spring-boot-4-upgrade/) | `SPEC.md` | M9 | `feature/spring-boot-4` | Ready |
-| 003 | [003-high-availability](003-high-availability/) | `SPEC.md` | M11 | `feature/high-availability` | Ready |
-| 004 | [004-test-changes-gate](004-test-changes-gate/) | `SPEC.md` | M10 | `feature/test-changes-gate` | Done, built by the owner (issue #22) |
-| 005 | [005-ui-redesign](005-ui-redesign/) | `SPEC.md` | M12 | `feature/ui-redesign` | Ready |
+`spec.json` is the only place for a spec's facts (id, title, owner, status, milestones, branch,
+issue, release, scope). For the table of all specs run:
 
-The owner adds a row for each new spec and gives it the next free milestone numbers.
+```
+node .claude/skills/write-spec/spec-tool.mjs list
+```
 
 ## Starting a spec
 
 The owner starts every new spec with `/write-spec` (`.claude/skills/write-spec/`). It gives the
 next free spec, milestone and decision numbers, writes the spec files from one template, adds
-the index rows, runs a two-reviewer challenge on the design and checks the folder.
+the spec facts, runs a two-reviewer challenge on the design and checks the folder.
 
 Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
 `test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs
 added, changed and retired for the black-box suite).
 
-## The registry: `docs/acceptance-criteria.md`
+## The criteria: `docs/project-acceptance-criteria.md`
 
 That file is the one complete list of the product's criteria; the black-box acceptance suite
-(`docs/process/validation.md`) is built from it alone. **The spec PR itself** keeps it complete
-(`/write-spec` File 6): the spec's new IDs are appended as a section
-"<Title> (spec NNN, due milestone M)", copied verbatim from `<spec>/acceptance-criteria.md`, and
-re-expressed IDs are replaced in place (same ID, same position). Gate 14 reads the due milestone
-from the heading, so the IDs are "pending" until that milestone and never counted twice.
+(`docs/process/validation.md`) is built from it alone. A spec adds its new criteria there, and
+changes existing ones in place (same ID, same position, version +1, `changed by spec <NNN>`).
+Every line names its spec and its due milestone; format and rules in
+`docs/process/traceability.md`. A spec has no criteria file of its own; its `SPEC.md` section 5
+names the IDs.
 
 ## After a spec is merged (owner)
 
 1. Apply the spec's section 1 table to `docs/product/` and `docs/architecture/`.
-2. Update the acceptance suite from the registry diff and tag it `spec-NNN` (acceptance repo,
+2. Update the acceptance suite from the criteria diff and tag it `spec-NNN` (acceptance repo,
    issue #29). The suite is ready before the builder session starts (#24).
 
 ## Folder layout
 
 ```
 docs/specs/<NNN-name>/
-  spec.json                 owner   id, title, spec file, registry file, branch, milestones
-  SPEC.md                   owner   the spec
-  acceptance-criteria.md    owner   AC IDs of this spec, "Due milestone: <n>" (spec 001: docs/acceptance-criteria.md)
-  test-changes.md           owner   AC IDs whose tests may change; the fixed plumbing clause (new specs)
-  STATE.md                  agent   where the work stands, next 3 steps (< 150 lines)
-  PROGRESS.md               agent   one row per commit of this spec
-  DECISIONS.md              agent   Level 1 decisions and escalation answers (D-1, D-2, ...)
-  BLOCKERS.md               agent   Level 2 blockers
-  MILESTONE                 agent   "<n>" while milestone n runs, "<n> complete" when done
-  escalations/ESC-NNN.md    agent   Level 3 escalations (ESC-001, ... per spec)
-  reviews/                  agent   audit and review reports
-  verify-report.md          agent   last full verify report (copied from build/)
+  spec.json                 owner   id, title, owner, status (draft | ready | done), milestones,
+                                    branch, issue, release, scope (optional)
+  SPEC.md                   owner   the spec; section 10 is its decision log
+  test-changes.md           owner   AC IDs whose tests may change; the fixed plumbing clause
+  design/                   owner   designs, when the spec has any
+  history/                  owner   old decision records that belong to this spec only
+  builder/                  builder the builder's memory, nothing else:
+    STATE.md                        where the work stands, next 3 steps (< 150 lines)
+    PROGRESS.md                     one row per commit of this spec
+    DECISIONS.md                    Level 1 decisions, stuck choices, escalation answers (D-1, ...)
+    MILESTONE                       "<n>" while milestone n runs, "<n> complete" when done
+    escalations/ESC-NNN.md          Level 3 escalations (ESC-001, ... per spec)
+    reviews/                        audit and review reports
+    verify-report.md                last full verify report (copied from build/)
 ```
 
-Agent files are created by the session in its first commit. Owner files are locked
+Builder files are created by the session in its first commit, only inside `builder/`. Owner files are locked
 (`scripts/locked-paths.txt`).
 
 ## Rules
@@ -75,13 +74,13 @@ Agent files are created by the session in its first commit. Owner files are lock
 4. Numbers are per spec: decisions `D-<n>`, escalations `ESC-<NNN>`. In text outside the
    folder, write them with the spec id, for example `002/D-3`, `002/ESC-001`. The escalation
    workflow works per PR, so equal numbers in two PRs do not clash.
-5. Milestone numbers are global and given by the owner in this index (M9, M10, ...), so the
-   gate scripts keep one order.
+5. Milestone numbers are global (M9, M10, ...); `spec-tool.mjs next` gives the next free one, so
+   the gate scripts keep one order.
 6. Gates find the active spec from the branch (`spec.json` `branch`) or from `FF_SPEC=<id>`
-   (`scripts/lib/active-spec.mjs`). On `main` no spec is active and the highest `MILESTONE`
+   (`scripts/lib/active-spec.mjs`). On `main` no spec is active and the highest `builder/MILESTONE`
    of all specs applies. A spec's criteria count on a branch when it is the active spec or
-   when its `MILESTONE` file exists there (its work is merged).
-7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/acceptance-criteria.md`)
+   when its `builder/MILESTONE` file exists there (its work is merged).
+7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/project-acceptance-criteria.md`)
    can change in parallel specs. Before a session marks its PR ready it merges `origin/main`
    into its branch, resolves conflicts and runs `make verify-all` again.
 8. Parallel sessions need separate machines (cloud sessions are). On one machine the gate
