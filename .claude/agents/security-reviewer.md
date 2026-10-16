@@ -6,7 +6,7 @@ model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+is `<spec>/SPEC.md`; all criteria are in `docs/project-acceptance-criteria.md` (each line names its spec).
 The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
 `docs/README.md`). The active spec wins over them for what it names.
 
@@ -23,7 +23,7 @@ ways an attacker or a careless client could get access, change data or learn sec
 
 `docs/architecture/security.md` sections 5 (auth and security rules), 6 and 7 (who may call what),
 10.2 and 10.3 (images, headers, compose), 11.3 gate 10 (secrets). Accepted choices:
-`<spec>/DECISIONS.md`.
+`<spec>/builder/DECISIONS.md`.
 
 ## What to look for
 

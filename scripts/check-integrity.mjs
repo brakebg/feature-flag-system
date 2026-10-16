@@ -2,20 +2,22 @@
 // Gate 15 (spec 11.3): test integrity.
 // Fails on: skipped / focused tests; eslint-disable or @SuppressWarnings without a
 // "// reason:" comment; thresholds that differ from the spec; coverage, mutation, lint or
-// ArchUnit exclusions not listed in a docs/specs/*/DECISIONS.md; gate activation that differs from
-// the spec; a changed screenshot baseline not listed in a docs/specs/*/DECISIONS.md; an
-// acceptance-criteria registry that is not a verbatim copy of spec 11.2.
+// ArchUnit exclusions not listed in a docs/specs/*/builder/DECISIONS.md; gate activation that
+// differs from the spec; a changed screenshot baseline not listed in a
+// docs/specs/*/builder/DECISIONS.md; a criteria list (docs/project-acceptance-criteria.md) that
+// does not parse, or whose unchanged spec 001 criteria differ from spec 001 section 11.2.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { gates } from './gates.mjs';
 import { milestoneState, specs } from './lib/active-spec.mjs';
+import { REGISTRY, parseRegistry } from './lib/trace-registry.mjs';
 
 const milestone = milestoneState().n;
 const problems = [];
 const read = (f) => (existsSync(f) ? readFileSync(f, 'utf8') : null);
-// Exclusions and baselines may be justified in any spec's DECISIONS.md (docs/specs/<id>/).
-const decisions = specs().map((s) => read(`${s.dir}/DECISIONS.md`) ?? '').join('\n');
+// Exclusions and baselines may be justified in any spec's builder/DECISIONS.md (docs/specs/<id>/).
+const decisions = specs().map((s) => read(`${s.dir}/builder/DECISIONS.md`) ?? '').join('\n');
 
 function walk(dir, filter, out = []) {
   if (!existsSync(dir)) return out;
@@ -95,7 +97,7 @@ if (k6 !== null || milestone >= 8) {
   expect(/duration:\s*'60s'/.test(k6 ?? ''), "perf/evaluate.js: duration must be '60s'");
 }
 
-// 4. Exclusions must be listed in a docs/specs/*/DECISIONS.md.
+// 4. Exclusions must be listed in a docs/specs/*/builder/DECISIONS.md.
 const exclusions = [];
 for (const m of pom.matchAll(/<(exclude|excludedClass|excludedMethod|excludedTestClass|avoidCallsTo)>([^<]*)<\/\1>/g)) {
   const inEnforcer = pom.lastIndexOf('<bannedDependencies>', m.index) > pom.lastIndexOf('</bannedDependencies>', m.index);
@@ -114,7 +116,7 @@ for (const m of eslintCfg.matchAll(/ignores:\s*\[([^\]]*)\]/g)) {
   }
 }
 for (const e of exclusions) {
-  if (!decisions.includes(e.what)) problems.push(`${e.where}: exclusion "${e.what}" is not listed in a docs/specs/*/DECISIONS.md`);
+  if (!decisions.includes(e.what)) problems.push(`${e.where}: exclusion "${e.what}" is not listed in a docs/specs/*/builder/DECISIONS.md`);
 }
 
 // 5. Gate activation and verify-fast set equal spec 11.3.
@@ -126,7 +128,7 @@ for (const g of gates) {
   expect(!!g.fast === specFast.includes(g.id), `scripts/gates.mjs: gate ${g.id} fast=${!!g.fast}, spec says ${specFast.includes(g.id)}`);
 }
 
-// 6. Changed screenshot baselines must be listed in a docs/specs/*/DECISIONS.md (spec 11.6).
+// 6. Changed screenshot baselines must be listed in a docs/specs/*/builder/DECISIONS.md (spec 11.6).
 const base = spawnSync('git', ['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' }).stdout.trim();
 if (base) {
   const changed = new Set([
@@ -134,21 +136,34 @@ if (base) {
   ]);
   // A baseline that was only added (first version) is not a change.
   for (const f of changed) {
-    if (!decisions.includes(path.basename(f))) problems.push(`${f}: changed screenshot baseline not listed in a docs/specs/*/DECISIONS.md`);
+    if (!decisions.includes(path.basename(f))) problems.push(`${f}: changed screenshot baseline not listed in a docs/specs/*/builder/DECISIONS.md`);
   }
 }
 
-// 7. Registry is a verbatim copy of spec 11.2; versions agree.
+// 7. The criteria list (docs/project-acceptance-criteria.md) is well formed, and every spec 001
+//    criterion at v1 is word for word its text in spec 001 section 11.2; a changed criterion has
+//    a higher version and names the spec that changed it (docs/process/traceability.md).
 {
-  // Spec 001 keeps the original 11.2 list (docs/README.md, section map).
   const spec = readFileSync('docs/specs/001-feature-flag-service/SPEC.md', 'utf8');
   const from = spec.indexOf('### 11.2');
   const next = spec.indexOf('\n#', from + 1);
   const sec = spec.slice(from, next < 0 ? spec.length : next);
-  const want = [...sec.matchAll(/^\s*[-*] \[[ x]\] (.+)$/gm)].map((m) => m[1].trim());
-  const have = read('docs/acceptance-criteria.md') ?? '';
-  const missing = want.filter((w) => !have.includes(w));
-  expect(missing.length === 0, `docs/acceptance-criteria.md: ${missing.length} criteria differ from spec 11.2`);
+  const original = [...sec.matchAll(/^\s*[-*] \[[ x]\] (.+)$/gm)].map((m) => m[1].trim());
+  const text = read(REGISTRY);
+  expect(text !== null, `${REGISTRY}: missing`);
+  const { acs, bad } = parseRegistry(text ?? '');
+  for (const b of bad) problems.push(`${REGISTRY}:${b.n}: line does not parse as a criterion: ${b.line.slice(0, 80)}`);
+  const seen = new Set();
+  for (const a of acs) {
+    if (seen.has(a.id)) problems.push(`${REGISTRY}:${a.n}: ${a.id} is listed twice`);
+    seen.add(a.id);
+    if ((a.version > 1) !== Boolean(a.changedBy)) problems.push(`${REGISTRY}:${a.n}: ${a.id} v${a.version}: a version above 1 needs "changed by spec <MMM>", and only then`);
+  }
+  const base = acs.filter((a) => a.spec === '001');
+  expect(base.length === original.length, `${REGISTRY}: ${base.length} spec 001 criteria, spec 001 section 11.2 has ${original.length}`);
+  const unchanged = base.filter((a) => !a.changedBy);
+  const differ = unchanged.filter((a) => !original.includes(a.text.trim()));
+  for (const a of differ) problems.push(`${REGISTRY}:${a.n}: ${a.id} v${a.version} without "changed by" differs from its text in spec 001 section 11.2`);
   const version = readFileSync('VERSION', 'utf8').trim();
   const pomVersion = /<artifactId>feature-flag-service<\/artifactId>\s*(?:<!--[\s\S]*?-->\s*)?<version>([^<]+)<\/version>/.exec(pom)?.[1];
   const pkgVersion = JSON.parse(readFileSync('frontend/package.json', 'utf8')).version;

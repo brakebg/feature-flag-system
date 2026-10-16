@@ -5,6 +5,7 @@
 //   node .claude/skills/write-spec/spec-tool.mjs next [--no-fetch]
 //   node .claude/skills/write-spec/spec-tool.mjs tests [--md] <ID ...>
 //   node .claude/skills/write-spec/spec-tool.mjs check <spec-folder> [--allow-open] [--base <ref>]
+//   node .claude/skills/write-spec/spec-tool.mjs list
 //
 // next   Next free spec id, milestone and decision number. Scans the working tree, origin/main
 //        and every other branch (local and origin), so numbers taken by an open spec PR are skipped.
@@ -14,13 +15,15 @@
 // check  Validates a new spec folder against the template and the index files.
 //        Exit 0 = pass. Exit 1 = problems (listed). Exit 2 = only open owner questions left
 //        (pass --allow-open for a draft). Exit 3 = usage error (all subcommands).
+// list   The table of all specs, read from their spec.json files (docs/specs/README.md has no
+//        index table: spec.json is the only place for a spec's facts).
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = repoRoot();
-const { acIds, errIds } = await import(pathToFileURL(path.join(ROOT, 'scripts/lib/trace-registry.mjs')).href);
+const { REGISTRY, acIds, errIds } = await import(pathToFileURL(path.join(ROOT, 'scripts/lib/trace-registry.mjs')).href);
 
 /** The plumbing clause of test-changes.md. Identical in every spec (issue #21). */
 export const PLUMBING = [
@@ -118,7 +121,7 @@ function localSpecs() {
       } catch {
         /* folder without a readable spec.json: counted by its name only */
       }
-      return { name: d.name, id: d.name.slice(0, 3), branch: meta?.branch, milestones: meta?.milestones ?? [], acceptance: meta?.acceptance, ref: 'working tree' };
+      return { name: d.name, id: d.name.slice(0, 3), branch: meta?.branch, milestones: meta?.milestones ?? [], acceptance: meta?.acceptance, meta, ref: 'working tree' };
     });
 }
 
@@ -170,7 +173,7 @@ function decisionsAt(ref) {
 function knownAcs(exceptFolder) {
   const known = new Map();
   // Registry IDs of this spec's own section are not "known elsewhere": the spec PR appends them (issue #31).
-  for (const a of acIds(path.join(ROOT, 'docs/acceptance-criteria.md'))) if (!(a.spec && exceptFolder.startsWith(`${a.spec}-`))) known.set(a.id, { ...a, source: 'docs/acceptance-criteria.md' });
+  for (const a of acIds(path.join(ROOT, REGISTRY))) if (!(a.spec && exceptFolder.startsWith(`${a.spec}-`))) known.set(a.id, { ...a, source: REGISTRY });
   for (const s of localSpecs()) {
     if (s.name === exceptFolder || !s.acceptance || s.acceptance === 'docs/acceptance-criteria.md' || !exists(s.acceptance)) continue;
     for (const a of acIds(path.join(ROOT, s.acceptance))) if (!known.has(a.id)) known.set(a.id, { ...a, source: s.acceptance });
@@ -241,6 +244,15 @@ export function findTests(id) {
       }
       return { file: m[1], line: Number(m[2]), text };
     });
+}
+
+function cmdList() {
+  const rows = ['| # | Folder | Title | Status | Milestones | Branch | Issue | Release |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
+  for (const s of localSpecs()) {
+    const m = s.meta ?? {};
+    rows.push(`| ${s.id} | ${s.name} | ${m.title ?? ''} | ${m.status ?? ''} | ${s.milestones.map((n) => `M${n}`).join(', ')} | ${m.branch ?? ''} | ${m.issue ? `#${m.issue}` : ''} | ${m.release ?? ''} |`);
+  }
+  console.log(rows.join('\n'));
 }
 
 function cmdTests(args) {
@@ -549,8 +561,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   if (cmd === 'next') cmdNext(rest);
   else if (cmd === 'tests') cmdTests(rest);
   else if (cmd === 'check') cmdCheck(rest);
+  else if (cmd === 'list') cmdList();
   else {
-    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 17).join('\n'));
+    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 20).join('\n'));
     process.exit(USAGE);
   }
 }

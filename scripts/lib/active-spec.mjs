@@ -1,7 +1,7 @@
 // Active spec and milestone for the gates (docs/specs/README.md).
 //
 // Every spec has its own folder docs/specs/<NNN-name>/ with spec.json (owner) and, once its
-// work has started, a MILESTONE file (agent): "<n>" while milestone n is in progress,
+// work has started, a builder/MILESTONE file (builder): "<n>" while milestone n is in progress,
 // "<n> complete" when it is done. Nothing here is shared between specs, so several specs
 // can be worked on in parallel, each on its own branch.
 //
@@ -31,7 +31,7 @@ export function specs(root = '.') {
     .map((d) => {
       const dir = path.join(SPECS, d.name);
       const meta = JSON.parse(readFileSync(path.join(root, dir, 'spec.json'), 'utf8'));
-      return { ...meta, name: d.name, dir, milestone: readMilestone(path.join(root, dir, 'MILESTONE')) };
+      return { ...meta, name: d.name, dir, milestone: readMilestone(path.join(root, dir, 'builder', 'MILESTONE')) };
     })
     .sort((a, b) => a.id.localeCompare(b.id));
 }

@@ -97,7 +97,7 @@ flowchart TD
   E -->|red| F["Read build/verify-report.md<br/>fix production code, never the test"]
   F --> G{"Same error 5 times?"}
   G -->|no| E
-  G -->|yes| H["Revert to last green, try another way<br/>after 3 ways: BLOCKERS.md, move on"]
+  G -->|yes| H["Revert to last green, try another way<br/>after 3 ways: decide or escalate, move on"]
   H --> B
   E -->|green| I["Self-check git diff<br/>no weakened test or threshold"]
   I --> J["Update STATE.md + PROGRESS.md<br/>commit with AC trailer, push"]

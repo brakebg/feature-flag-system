@@ -133,20 +133,22 @@ while IFS= read -r line; do
   fi
 done < scripts/locked-paths.txt
 
-if show docs/acceptance-criteria.md >/dev/null; then
-  missing=$(show docs/acceptance-criteria.md | python3 -c '
+if show docs/project-acceptance-criteria.md >/dev/null; then
+  missing=$(show docs/project-acceptance-criteria.md | python3 -c '
 import re, sys
 spec = open("docs/specs/001-feature-flag-service/SPEC.md", encoding="utf-8").read()
 start = spec.index("### 11.2")
 nxt = spec.find("\n#", start + 1)
 sec = spec[start:] if nxt < 0 else spec[start:nxt]
 want = [m.group(1).strip() for m in re.finditer(r"^\s*[-*] \[[ x]\] (.+)$", sec, re.M)]
-have = sys.stdin.read()
-print(sum(1 for w in want if w not in have))')
-  if [ "$missing" = "0" ]; then pass "docs/acceptance-criteria.md contains all spec 11.2 criteria word for word"
-  else fail "docs/acceptance-criteria.md is missing or changed $missing criteria from spec 11.2"; fi
+line = re.compile(r"^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* v(\d+) · (.*) · spec (\d{3})(?: · changed by spec (\d{3}))?(?: · due M\d+| · retired by .+)$")
+base = [m for m in (line.match(l) for l in sys.stdin.read().split("\n")) if m and m.group(4) == "001"]
+bad = sum(1 for m in base if not m.group(5) and (m.group(2) != "1" or m.group(3).strip() not in want))
+print(bad + abs(len(base) - len(want)))')
+  if [ "$missing" = "0" ]; then pass "docs/project-acceptance-criteria.md: every unchanged spec 001 criterion is word for word its 11.2 text"
+  else fail "docs/project-acceptance-criteria.md: $missing spec 001 criteria differ from 11.2 without a version and \"changed by\""; fi
 else
-  warn "docs/acceptance-criteria.md not created yet (expected in M1)"
+  warn "docs/project-acceptance-criteria.md not found"
 fi
 
 # ---------------------------------------------------------------- 2. Locked values
