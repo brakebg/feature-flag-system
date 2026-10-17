@@ -11,7 +11,10 @@
 #                origin/<branch>         that remote branch
 #                <branch>                origin/<branch> if it exists, else the local branch
 #                <commit>                any commit (e.g. an old state to re-check)
-#   --since    only check test changes after this ref (default: where the branch left main)
+#              A spec that is not merged yet is found through its spec-NNN-ready tag.
+#   --since    check weakened tests (section 3) and test changes (3b) only after this ref
+#              (default: section 3 from the spec-NNN-ready tag in the branch, 3b like CI from
+#              where the branch left main)
 #   --no-suite skip the black-box acceptance suite (no Docker needed)
 #   -h, --help print this header
 #   Ports used by the suite stacks: 8080/3000 (default), 8280/3200 (https), 8380/3300 (limits);
@@ -25,7 +28,9 @@ set -uo pipefail
 usage()     { sed -n '2,22p' "$0"; }
 die()       { echo "owner-review.sh: $*" >&2; exit 2; }
 usage_die() { echo "owner-review.sh: $*" >&2; usage >&2; exit 2; }
-spec_field() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$1" "$2" 2>/dev/null; }
+spec_field() { python3 -c 'import json,sys; v=json.load(sys.stdin).get(sys.argv[1]); print("" if v is None else v)' "$2" 2>/dev/null < <(spec_json "$1"); }
+# spec.json from main's tree, or (spec not merged yet) from its spec-NNN-ready tag.
+spec_json() { if [ -f "$1" ]; then cat "$1"; else git show "$SPEC_TAG:$1" 2>/dev/null; fi; }
 
 # ---------------------------------------------------------------- Arguments
 TARGET=""
@@ -51,19 +56,26 @@ ROOT=$(git rev-parse --show-toplevel) || exit 2
 cd "$ROOT"
 T="${TARGET%/}"
 SPEC_DIR=""
+SPEC_ID=""
+SPEC_TAG=""
 case "$T" in
-  docs/specs/*)
-    [ -d "$T" ] || die "no spec folder $T"
-    SPEC_DIR="$T" ;;
+  docs/specs/[0-9][0-9][0-9]-*)
+    SPEC_DIR="$T"
+    [ -d "$T" ] || SPEC_TAG="spec-$(basename "$T" | cut -c1-3)-ready" ;;
   [0-9][0-9][0-9])
     shopt -s nullglob
     matches=(docs/specs/"$T"-*/)
     shopt -u nullglob
-    [ "${#matches[@]}" -eq 1 ] || die "spec id $T needs exactly one folder docs/specs/$T-*, found ${#matches[@]}"
-    SPEC_DIR="${matches[0]%/}" ;;
+    if [ "${#matches[@]}" -eq 1 ]; then SPEC_DIR="${matches[0]%/}"
+    else
+      SPEC_TAG="spec-$T-ready"
+      SPEC_DIR=$(git ls-tree --name-only "$SPEC_TAG" docs/specs/ 2>/dev/null | grep "^docs/specs/$T-" | head -1)
+      [ -n "$SPEC_DIR" ] || die "spec id $T: no folder docs/specs/$T-* on main and no tag $SPEC_TAG. run: git fetch origin --tags"
+    fi ;;
+  docs/specs/*) die "no spec folder $T" ;;
 esac
 if [ -n "$SPEC_DIR" ]; then
-  [ -f "$SPEC_DIR/spec.json" ] || die "spec folder $SPEC_DIR has no spec.json"
+  spec_json "$SPEC_DIR/spec.json" >/dev/null || die "spec folder $SPEC_DIR has no spec.json (on main or at ${SPEC_TAG:-its tag}). run: git fetch origin --tags"
   BRANCH=$(spec_field "$SPEC_DIR/spec.json" branch)
   [ -n "$BRANCH" ] || die "$SPEC_DIR/spec.json has no \"branch\" field"
   SPEC_ID=$(spec_field "$SPEC_DIR/spec.json" id)
@@ -78,8 +90,37 @@ else
   fi
 fi
 BASE=$(git merge-base main "$REF" 2>/dev/null) || BASE=""
-[ -z "$SINCE" ] && SINCE="$BASE"
 RANGE="$BASE..$REF"
+
+# Spec flow split (docs/process/spec-flow.md section 3): commits up to the newest spec-NNN-ready
+# tag in the branch are the approved spec; a commit tagged spec-NNN-amend-<k> is an owner
+# amendment; every other commit is the builder's.
+# Only the reviewed spec's ready tag counts (without a spec target: the specs this branch changes).
+READY=""; TAG_PROBLEMS=""
+if [ -n "$SPEC_ID" ]; then nums="$SPEC_ID"
+else nums=$(git diff --name-only "$BASE" "$REF" -- docs/specs | sed -nE 's#^docs/specs/([0-9]{3})-.*#\1#p' | sort -u); fi
+for n in $nums; do
+  t="spec-${n}-ready"
+  git rev-parse -q --verify "refs/tags/$t" >/dev/null || continue
+  if ! c=$(git rev-parse -q --verify "$t^{commit}"); then TAG_PROBLEMS="$TAG_PROBLEMS $t(not a commit)"; continue; fi
+  if ! git merge-base --is-ancestor "$c" "$REF"; then TAG_PROBLEMS="$TAG_PROBLEMS $t(not in the branch)"; continue; fi
+  git merge-base --is-ancestor "$c" main && continue
+  if [ -n "$READY" ]; then TAG_PROBLEMS="$TAG_PROBLEMS $t(a second spec)"; continue; fi
+  READY="$t"
+done
+SPEC_COMMITS=""; AMEND_COMMITS=""
+if [ -n "$READY" ]; then
+  SPEC_COMMITS=$(git rev-list "$BASE..$READY^{commit}")
+  for t in $(git tag -l "${READY%-ready}-amend-*"); do
+    [[ "$t" =~ ^spec-[0-9]{3}-amend-[0-9]+$ ]] || continue
+    if ! c=$(git rev-parse -q --verify "$t^{commit}"); then TAG_PROBLEMS="$TAG_PROBLEMS $t(not a commit)"; continue; fi
+    git merge-base --is-ancestor "$READY" "$c" && git merge-base --is-ancestor "$c" "$REF" && AMEND_COMMITS="$AMEND_COMMITS $c"
+  done
+fi
+# Text from the branch (names, subjects) is printed without control characters.
+clean() { tr -d '\000-\010\013-\037\177'; }
+TC_BASE="${SINCE:-$BASE}" # gate 16 compares like CI: from where the branch left main
+[ -z "$SINCE" ] && SINCE="${READY:-$BASE}"
 
 ACCEPTANCE_DIR="${ACCEPTANCE_DIR:-$ROOT/../feature-flag-acceptance}"
 HEALTH_TIMEOUT_S=90
@@ -102,7 +143,8 @@ CODE_PATHS=(":(glob)backend/src/**" ":(glob)frontend/src/**" ":(glob)frontend/e2
 log "# Owner review — $(date '+%F %T')"
 log ""
 log "- Target: $T → $REF ($(git rev-parse --short "$REF")), branched from main at $(git rev-parse --short "$BASE" 2>/dev/null)"
-[ -n "$SPEC_DIR" ] && log "- Spec: $SPEC_ID $SPEC_TITLE ($SPEC_DIR)"
+[ -n "$SPEC_DIR" ] && log "- Spec: $SPEC_ID $SPEC_TITLE ($SPEC_DIR${SPEC_TAG:+, read from $SPEC_TAG})"
+log "- Approved spec: ${READY:-none (no spec-NNN-ready tag in the branch: every change counts as a builder change)}"
 log ""
 log "## 0. Preconditions"
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
@@ -120,18 +162,34 @@ while IFS= read -r line; do
   case "$line" in ''|'#'*) continue ;; esac
   path="${line%% *}"
   if [ "${line##* }" = "create-once" ] && [ "$line" != "$path" ]; then
-    bad=$(git log -M --format='%h %s' --diff-filter=MDR "$RANGE" -- ":(glob)$path")
+    commits=$(git log -M --format='%H' --diff-filter=MDR "$RANGE" -- ":(glob)$path")
     label="$path (create-once)"
   else
-    bad=$(git log -M --format='%h %s' "$RANGE" -- ":(glob)$path")
+    commits=$(git log -M --format='%H' "$RANGE" -- ":(glob)$path")
     label="$path"
   fi
-  if [ -n "$bad" ]; then
-    fail "$label changed in: $(printf '%s' "$bad" | tr '\n' ';' | sed 's/;$//')"
-  else
-    pass "$label unchanged"
-  fi
+  owner=""; builder=""
+  for c in $commits; do
+    if printf '%s\n' "$SPEC_COMMITS" $AMEND_COMMITS | grep -qx "$c"; then owner="$owner $(git rev-parse --short "$c")"
+    else builder="$builder;$(git log -1 --format='%h %s' "$c")"; fi
+  done
+  # A merge can change a file without any commit touching it: compare the content too.
+  if [ -z "$commits" ] && ! git diff --quiet "$BASE" "$REF" -- ":(glob)$path"; then builder=";(changed through a merge, no single commit)"; fi
+  if [ -n "$builder" ]; then fail "$label changed outside the approved spec and its amendments in: $(printf '%s' "${builder#;}" | clean)"
+  elif [ -n "$owner" ]; then pass "$label changed only in the approved spec or an amendment:$owner"
+  else pass "$label unchanged"; fi
 done < scripts/locked-paths.txt
+
+[ -n "$TAG_PROBLEMS" ] && fail "spec tag problems:$TAG_PROBLEMS"
+tags=$(for t in $(git tag -l 'spec-*'); do
+  if ! c=$(git rev-parse -q --verify "$t^{commit}"); then echo "$t → (not a commit)"; continue; fi
+  git merge-base --is-ancestor "$c" "$REF" && ! git merge-base --is-ancestor "$c" main && \
+    git for-each-ref --format="%(refname:short) → $(git rev-parse --short "$c") · %(taggername)%(authorname) · %(creatordate:short)" "refs/tags/$t"
+done | clean)
+if [ -n "$tags" ]; then
+  warn "spec tags in this branch — confirm each one is yours (spec-flow.md section 3):"
+  printf '%s\n' "$tags" | sed 's/^/    /' | tee -a "$REPORT"
+fi
 
 if show docs/project-acceptance-criteria.md >/dev/null; then
   missing=$(show docs/project-acceptance-criteria.md | python3 -c '
@@ -149,6 +207,23 @@ print(bad + abs(len(base) - len(want)))')
   else fail "docs/project-acceptance-criteria.md: $missing spec 001 criteria differ from 11.2 without a version and \"changed by\""; fi
 else
   warn "docs/project-acceptance-criteria.md not found"
+fi
+
+# A criterion whose text changed after the approved spec must have a higher version (Q4).
+if [ -n "$READY" ]; then
+  unversioned=$(python3 -c '
+import re, subprocess, sys
+line = re.compile(r"^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* v(\d+) · (.*) · spec \d{3}")
+def read(ref):
+    out = subprocess.run(["git", "show", f"{ref}:docs/project-acceptance-criteria.md"], capture_output=True, text=True).stdout
+    return {m.group(1): (int(m.group(2)), m.group(3)) for m in map(line.match, out.split("\n")) if m}
+before, after = read(sys.argv[1]), read(sys.argv[2])
+for i, (v, t) in after.items():
+    if i in before and t != before[i][1] and v <= before[i][0]:
+        print(f"{i} text changed after {sys.argv[1]} but version stays v{v}")
+' "$READY" "$REF")
+  if [ -n "$unversioned" ]; then fail "criteria changed without a higher version (spec-flow.md section 4):"; printf '%s\n' "$unversioned" | sed 's/^/    /' | tee -a "$REPORT"
+  else pass "every criterion changed after $READY has a higher version"; fi
 fi
 
 # ---------------------------------------------------------------- 2. Locked values
@@ -203,9 +278,14 @@ else pass "no assertion lines removed"; fi
 # Every changed test outside the spec's test-changes.md must be plumbing only (spec 004).
 log ""
 log "## 3b. Test changes (gate 16, scripts/check-test-changes.mjs from main)"
-tc_args=(--base "$SINCE" --head "$REF")
+# main's script, run on a copy of the branch: the spec's test-changes.md exists only there.
+TC_WT=$(mktemp -d)/tc
+git worktree add --quiet --detach "$TC_WT" "$REF"
+tc_args=(--base "$TC_BASE" --head "$REF" --root "$TC_WT")
 [ -n "$SPEC_DIR" ] && tc_args+=(--spec "$SPEC_ID")
-if tc_out=$(node scripts/check-test-changes.mjs "${tc_args[@]}" 2>&1); then
+tc_ok=1; tc_out=$(node scripts/check-test-changes.mjs "${tc_args[@]}" 2>&1) || tc_ok=0
+git worktree remove --force "$TC_WT" >/dev/null 2>&1
+if [ "$tc_ok" = "1" ]; then
   pass "only allowed tests changed beyond plumbing ($(printf '%s\n' "$tc_out" | tail -1))"
 else
   fail "tests changed beyond plumbing outside test-changes.md:"
@@ -226,9 +306,48 @@ if [ "$RUN_SUITE" = "0" ]; then
 elif [ ! -f "$ACCEPTANCE_DIR/package.json" ]; then
   fail "suite not found at $ACCEPTANCE_DIR (set ACCEPTANCE_DIR)"
 else
-  tag=$(git -C "$ACCEPTANCE_DIR" describe --tags --exact-match HEAD 2>/dev/null)
-  if [ -z "$tag" ]; then warn "suite HEAD is not on a tag (expected frozen v1)"; else pass "suite at tag $tag"; fi
+  sbranch=$(git -C "$ACCEPTANCE_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -n "$SPEC_ID" ] && [ "$sbranch" != "spec-$SPEC_ID" ]; then warn "suite is on '$sbranch', expected branch spec-$SPEC_ID (spec-flow.md section 1)"
+  else pass "suite on $sbranch"; fi
   [ -n "$(git -C "$ACCEPTANCE_DIR" status --porcelain)" ] && warn "suite has uncommitted changes"
+
+  # Criteria versions (spec-flow.md section 4): every criterion that counts for this branch needs
+  # a suite test titled "[<ID> v<N>]" at its current version; "[<ID>]" alone counts as v1.
+  live=$(for d in $(git ls-tree --name-only "$REF" docs/specs/); do
+    git cat-file -e "$REF:$d/builder/MILESTONE" 2>/dev/null && basename "$d" | cut -c1-3
+  done | tr '\n' ' ')
+  stale=$(show docs/project-acceptance-criteria.md | python3 -c '
+import re, sys, pathlib
+live = set(sys.argv[1].split()) | {"001", sys.argv[2]}
+line = re.compile(r"^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* v(\d+) · .* · spec (\d{3})(?: · changed by spec (\d{3}))?(?: · due M\d+| · retired by (.+))$")
+want = {}
+for l in sys.stdin.read().split("\n"):
+    m = line.match(l)
+    if not m or m.group(5): continue
+    spec, by = m.group(3), m.group(4)
+    if by and by in live: want[m.group(1)] = int(m.group(2))
+    elif by: want[m.group(1)] = 1 if spec in live else None
+    elif spec in live: want[m.group(1)] = int(m.group(2))
+have = {}
+for f in pathlib.Path(sys.argv[3]).rglob("*"):
+    if "node_modules" in f.parts or not f.is_file() or f.suffix not in (".ts", ".js", ".mjs"): continue
+    for m in re.finditer(r"\[(AC-[A-Z]+-\d+)(?: v(\d+))?\]", f.read_text(errors="ignore")):
+        have.setdefault(m.group(1), set()).add(int(m.group(2) or 1))
+for i, v in sorted(want.items()):
+    if v is None: continue
+    if v not in have.get(i, set()):
+        got = ", ".join(f"v{x}" for x in sorted(have.get(i, set())))
+        print(f"{i}  criteria v{v} · " + (f"tests {got}" if got else "no test"))
+' "$live" "${SPEC_ID:-000}" "$ACCEPTANCE_DIR")
+  if [ -n "$stale" ]; then
+    fail "suite is stale for these criteria — update spec-$SPEC_ID first (spec-flow.md section 4):"
+    printf '%s\n' "$stale" | sed 's/^/    /' | tee -a "$REPORT"
+    RUN_SUITE=0
+  else
+    pass "suite has a test at the current version of every criterion that counts"
+  fi
+fi
+if [ "$RUN_SUITE" = "1" ] && [ -f "$ACCEPTANCE_DIR/package.json" ]; then
 
   WT=$(mktemp -d)/build
   cleanup() {

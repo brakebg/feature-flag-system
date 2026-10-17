@@ -3,6 +3,8 @@
 Owner document. Read-only for the agent.
 This is the go-to validation model for this project, decided by the owner in
 `docs/process/decisions/0001-validation-approach.md`: **single builder + black-box acceptance suite**.
+It describes how spec 001 was validated; for every later spec, the branch, tag, amendment and
+suite-version rules are in `docs/process/spec-flow.md`.
 
 ## 1. The problem
 
