@@ -1,6 +1,6 @@
 ---
 name: write-spec
-description: Owner-only. Creates a new change spec folder (spec.json, SPEC.md, acceptance-criteria.md, test-changes.md, decision, index rows) on its own spec branch from TEMPLATE.md, with a two-reviewer challenge and a structural check.
+description: Owner-only. Writes a new change spec on its feature branch from TEMPLATE.md - spec.json, SPEC.md, test-changes.md, its versioned criteria lines and the product/architecture doc changes - with a two-reviewer challenge and a structural check, ready for the spec-NNN-ready tag (docs/process/spec-flow.md).
 argument-hint: "<issue number, notes file, or short description of the change>"
 disable-model-invocation: true
 ---
@@ -10,35 +10,33 @@ disable-model-invocation: true
 Owner-authored, locked (`scripts/locked-paths.txt`: `.claude/skills/**`).
 
 Turn the owner's input (an issue, notes, or a short text in the arguments) into a complete
-spec folder that a builder session can run. Specs 002 and 003 are the models; `TEMPLATE.md`
-generalises them. Write in plain, short English: the owner is not a native speaker
+spec on its branch `feature/<name>`, which a builder session then continues
+(`docs/process/spec-flow.md`). `TEMPLATE.md` holds every file. Write in plain, short English: the owner is not a native speaker
 (`CLAUDE.md` section 10).
 
 Files of this skill:
 
-- `TEMPLATE.md` — every output file and the two index rows, with placeholders.
-- `spec-tool.mjs` — `next` (numbers), `tests` (tagged tests per ID), `check` (validation).
+- `TEMPLATE.md` — every output file, with placeholders.
+- `spec-tool.mjs` — `next` (numbers), `tests` (tagged tests per ID), `check` (validation),
+  `list` (all specs).
   Run it from the repo root: `node .claude/skills/write-spec/spec-tool.mjs <cmd>`.
 
 ## Output (one pass, nothing else)
 
 | File | Note |
 | --- | --- |
-| `docs/specs/<NNN>-<name>/spec.json` | id, title, spec, acceptance, branch, milestones |
-| `docs/specs/<NNN>-<name>/SPEC.md` | the 10 sections of `TEMPLATE.md`, fixed order |
-| `docs/specs/<NNN>-<name>/acceptance-criteria.md` | new AC IDs, `Due milestone: <M>` |
-| `docs/specs/<NNN>-<name>/test-changes.md` | allowed AC IDs + fixed plumbing clause |
-| `decisions/<DDDD>-<name>.md` | the owner decision |
-| section in `docs/acceptance-criteria.md` | the new IDs, verbatim, under `## <Title> (spec <NNN>, due milestone <M>)`; re-expressed IDs updated in place (File 6, issue #31) |
-| row in `docs/specs/README.md` | Index table |
-| row in `decisions/README.md` | inside the table, above "Status values" |
+| File | Note |
+| --- | --- |
+| `docs/specs/<NNN>-<name>/spec.json` | File 1: the spec's facts, `status` `draft` → `ready` |
+| `docs/specs/<NNN>-<name>/SPEC.md` | File 2: the 10 sections, fixed order; section 10 is the decision log |
+| `docs/specs/<NNN>-<name>/test-changes.md` | File 3: allowed AC IDs + fixed plumbing clause |
+| lines in `docs/project-acceptance-criteria.md` | File 4: new criteria `v1`; changed ones in place, version + 1 |
+| `docs/product/`, `docs/architecture/` | File 5: describe the system after this spec |
+| `docs/specs/<NNN>-<name>/design/` | only when the spec has designs |
 
-Never code, never a builder file. Do not create `STATE.md`, `PROGRESS.md`, `DECISIONS.md`,
-`BLOCKERS.md`, `MILESTONE`, `escalations/`, `reviews/` or `verify-report.md`: the builder creates
-them in its first commit. Never edit `docs/SPEC.md`, `CLAUDE.md`, another spec's folder or any
-gate script. `docs/acceptance-criteria.md` changes only as File 6 says (the registry is the one
-complete list the black-box suite is built from; issue #31). The `docs/SPEC.md` follow-up after
-merge is a separate step, not this skill.
+Never code, never a builder file: no `builder/` folder (the builder creates it). No decision
+record and no index row: the spec's facts are in `spec.json`, its decisions in section 10.
+Never edit `CLAUDE.md`, `docs/process/`, another spec's folder or any gate script.
 
 ## Procedure
 
@@ -46,48 +44,45 @@ merge is a separate step, not this skill.
 
 1. Confirm this is an owner session (the owner typed `/write-spec`). In a builder session
    (a kickoff or resume prompt names a spec), stop and change nothing.
-2. `git fetch origin`. Read `CLAUDE.md`, `docs/specs/README.md`, `decisions/README.md`, and
-   `docs/specs/003-high-availability/SPEC.md` as the style model.
-3. Ask the owner for the GitHub issue the spec PR is bound to. No issue: create one first
+2. `git fetch origin --tags`. Read `CLAUDE.md`, `docs/process/spec-flow.md`,
+   `docs/specs/README.md` and `docs/README.md` (where everything lives).
+3. Ask the owner for the GitHub issue the spec is bound to. No issue: create one first
    (`gh issue create`) with the change statement, and use its number.
 
 ### 2. Numbers and branch
 
 1. Run `node .claude/skills/write-spec/spec-tool.mjs next`. It scans the working tree and every
-   branch (local and `origin`), so numbers held by an open spec PR are skipped. Also
-   check `gh pr list --state open` for spec PRs whose branch is not fetched yet.
-2. Choose `<name>` (short kebab-case), the builder branch `feature/<name>` and the release
-   (`VERSION` + 1 minor, unless the owner says otherwise).
-3. Create the branch `spec/<NNN>-<name>` from `origin/main`. Work only there.
+   branch (local and `origin`), so numbers held by another spec branch are skipped.
+2. Choose `<name>` (short kebab-case). The branch is `feature/<name>`: the spec and the build
+   share it.
+3. Create `feature/<name>` from `origin/main`. Work only there.
 
 ### 3. Gather the change
 
 1. Read the input: the issue body and comments by the owner, notes, linked decisions.
-2. Read the `docs/SPEC.md` sections the change touches and the code paths behind them
-   (search, do not guess). List: which spec parts change (section 1 table), what MUST stay the
-   same, the design, the criteria.
+2. Read the `docs/product/` and `docs/architecture/` files the change touches and the code paths
+   behind them (search, do not guess). List: which files change (section 1 table), what MUST
+   stay the same, the design, the criteria.
 3. Ask the owner only what the input and the code cannot answer. Ask few questions at a time.
    Everything still unclear goes to section 10 as an open question with options and a proposal.
 
 ### 4. Draft from `TEMPLATE.md`
 
-Fill File 1 to File 6 and both index rows. Rules:
+Fill File 1 to File 5. Rules:
 
-- Every behaviour change names an AC ID: a new ID in `acceptance-criteria.md` and section 5, or
-  a re-expressed spec 001 ID in the section 5 table.
-- A changed spec 001 criterion keeps its ID and its place ("same ID, same position"). Copy its
-  current text from `docs/acceptance-criteria.md` into the "Now" column. Never give a changed
-  old criterion a new ID.
-- New IDs must not clash with any existing ID (`docs/acceptance-criteria.md` and every spec's
-  `acceptance-criteria.md`).
-- No new and no re-expressed ID at all: section 5 is the single line "No behaviour change."
+- Every behaviour change names an AC ID: a new criterion in File 4 and section 5, or a changed
+  one in the section 5 table.
+- A changed criterion keeps its ID and its place ("same ID, same position"), its version goes up
+  by one and it says `changed by spec <NNN>`. Copy its current text into the "Now" column. Never
+  give a changed old criterion a new ID.
+- New IDs must not clash with any existing ID in `docs/project-acceptance-criteria.md`.
+- No new, changed or retired ID at all: section 5 is the single line "No behaviour change."
   `check` fails on zero IDs without it.
-- Acceptance delta (section 7): Added = all new IDs; Changed = all re-expressed IDs, with what
-  the black-box scenario gains; Retired = removed IDs with a reason each, or `none`.
-  Changed: all IDs on one line; name no other IDs in that line. The same for Added and Retired.
-- File 6: append the new IDs to `docs/acceptance-criteria.md` as one section, each AC line byte
-  for byte the same as in `acceptance-criteria.md`; replace each re-expressed line in place with
-  its "Becomes" text (same ID, same position). `check` compares both.
+- Acceptance delta (section 7): Added = all new IDs; Changed = all changed IDs, with what the
+  black-box scenario gains; Retired = retired IDs with a reason each, or `none`. Each kind on
+  one line; name no other IDs in that line.
+- File 5: edit the `docs/product/` and `docs/architecture/` files so they describe the system
+  after this spec, and name each one in section 1.
 - Leave no `<!--` and no `<word>` placeholder outside code; only `<spec>`, `<n>`, `<area>`,
   `<what>` may stay.
 
@@ -108,8 +103,8 @@ Fill File 1 to File 6 and both index rows. Rules:
 ### 6. Two-reviewer challenge
 
 Spawn two agents in parallel (one message, two `Agent` calls, `subagent_type: general-purpose`).
-Give each the path of the draft `SPEC.md` and `acceptance-criteria.md`, the touched
-`docs/SPEC.md` sections and code paths, and this brief:
+Give each the path of the draft `SPEC.md`, its lines in `docs/project-acceptance-criteria.md`,
+the touched `docs/product/` and `docs/architecture/` files and code paths, and this brief:
 
 > Read-only review. Do not edit, create or delete any file, do not run git commands that change
 > state. Review the draft spec for <change> with a **<bias>** bias. Find real problems only:
@@ -125,7 +120,7 @@ Give each the path of the draft `SPEC.md` and `acceptance-criteria.md`, the touc
 
 Wait for both. For every finding: fix it in the draft, or reject it with a reason, or add it to
 section 10 as an `**Open:**` question with options and a proposal. Do not drop a finding
-silently. Name the challenge and its result in the decision file ("Why").
+silently. Name the challenge and its result in section 10.
 
 ### 7. Check
 
@@ -134,32 +129,28 @@ Run `node .claude/skills/write-spec/spec-tool.mjs check docs/specs/<NNN>-<name>`
 `3` usage error (wrong arguments or no such folder; the same for `next` and `tests`).
 `--allow-open` accepts open questions for a draft PR. Read every `WARN` and decide.
 
-The check covers: folder name and `spec.json`; id, branch and milestones unique across all
-specs (also on other branches); `Due milestone` and AC line format (the gate parsers in
-`scripts/lib/`); new IDs named in section 5 and not clashing; re-expressed IDs exist in
-`docs/acceptance-criteria.md`; the 10 headings in order; section 7 Added/Changed equal the new
-and re-expressed IDs; `test-changes.md` shape, plumbing clause and allowed IDs (all Changed or
-Retired); section 10 items marked; decision file and both index rows inside their tables;
-placeholders and comments left; status (Draft / Proposed, no "Accepted by the owner on")
-while items are Open; the registry section (every new ID present under this spec's heading,
-verbatim, with the spec's milestone; nothing else under that heading); scope (only this spec's
-folder, its decision file, the two README files and `docs/acceptance-criteria.md` changed
-against `origin/main`).
+The check covers: folder name and `spec.json` fields; id, branch and milestones unique across
+all specs (also on other branches); no per-spec criteria file and no builder files; the criteria
+file against the branch base (new lines `v1 · spec <NNN>`, changed lines version + 1 and
+`changed by spec <NNN>`, retired lines `retired by spec <NNN>`, due milestone of this spec, no
+other line touched, no line deleted); section 1 names every changed `docs/product/` and
+`docs/architecture/` file; the 10 headings in order; section 5 and section 7 equal the criteria
+diff; `test-changes.md` shape, plumbing clause and allowed IDs (all changed or retired);
+section 10 items marked; status `draft` while items are Open; placeholders and comments left;
+scope (only this spec's folder, the criteria file, `docs/product/` and `docs/architecture/`
+changed since the branch left `main`). The last line lists the new, changed and retired IDs.
 
-Also run the gate parser once; it must list exactly the new IDs with `due <M>`:
-`FF_SPEC=<NNN> node -e "import('./scripts/lib/trace-registry.mjs').then(m=>console.log(m.specAcs().filter(a=>a.spec==='<NNN>').map(a=>a.id+' due '+a.due).join(', ')))"`
-(`specAcs().length` alone also counts specs whose `MILESTONE` exists, for example 002.)
+### 8. Commit, push, ready, tag
 
-### 8. Commit, push, PR
-
-1. Status while section 10 has any `**Open:**` item: index row `Draft`, decision row and
-   decision file `Proposed`, no "Accepted by the owner on" line. Switch to `Ready`, `Accepted`
-   and add that line only after the owner has answered every item and `check` exits 0.
-2. Commit: `Spec <NNN>: <Title> (decision <DDDD>)`, with the attribution trailer the session
-   gives. Push `spec/<NNN>-<name>`.
-3. Open one PR to `main`, body: summary, files, the open questions of section 10, the check
-   result, and `Refs #<issue>` (or `Closes #<issue>` when the PR fully answers it). With open
-   questions, open it as a draft.
-4. Never merge, never enable auto-merge. The owner merges.
-5. When the owner answers a question: mark it `~~question~~ **Decided: …**`, apply the answer
-   in the sections it touches, re-run step 7, push.
+1. While section 10 has any `**Open:**` item, `spec.json` says `"status": "draft"`.
+2. Commit: `Spec <NNN>: <Title>`, with the attribution trailer the session gives. Push
+   `feature/<name>`. Do not open a PR: the builder opens the one PR of this branch.
+3. Report to the owner: the files, the open questions of section 10, and the check result.
+4. When the owner answers a question: mark it `~~question~~ **Decided: …**`, apply the answer in
+   the sections it touches, re-run step 7, push.
+5. When no item is Open and `check` exits 0: set `"status": "ready"`, commit
+   `Spec <NNN>: ready`, push. Tell the owner the exact commands to tag it, and run them only when
+   the owner says so in this session:
+   `git tag spec-<NNN>-ready <commit> && git push origin spec-<NNN>-ready`.
+6. Never tag on your own, never move a tag, never merge. Next owner steps:
+   `docs/process/spec-flow.md` section 1 (acceptance tests, `/handover-check`, kickoff).

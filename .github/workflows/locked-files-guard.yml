@@ -8,8 +8,8 @@
 # - No actions are used and nothing from the PR is checked out or executed; the PR is only
 #   fetched as git objects and compared with `git log`.
 # - Untrusted PR text (branch name, title, body, commit messages) is never put into a shell
-#   command or into the comment; the comment lists only paths from main's list and commit
-#   hashes.
+#   command or into the comment; the comment lists only paths from main's list, commit
+#   hashes and spec-* tag names that match a fixed pattern (spec flow split, spec-flow.md).
 # - Token permissions: contents read, pull-requests write (to comment). No secrets.
 name: locked-files-guard
 
@@ -39,44 +39,106 @@ jobs:
           git remote add origin "https://github.com/${REPO}.git"
           git fetch -q --no-tags origin \
             "+refs/heads/main:refs/remotes/origin/main" \
-            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head" \
+            "+refs/tags/spec-*:refs/tags/spec-*"
 
           git show origin/main:scripts/locked-paths.txt > ../locked-paths.txt
           base=$(git merge-base origin/main pr/head)
           range="${base}..pr/head"
-          : > ../findings.md
 
+          # Spec flow (docs/process/spec-flow.md): commits up to the newest spec-NNN-ready tag in
+          # this PR are the approved spec; a commit tagged spec-NNN-amend-<k> is an owner
+          # amendment; every other commit is the builder's. Tag names come from this repo and must
+          # match the pattern below; nothing from the PR text is used.
+          # Only the ready tags of the specs this PR changes count (a merged second spec does not).
+          ready=""; missing=""
+          for n in $(git diff --name-only "$base" pr/head -- docs/specs | sed -nE 's#^docs/specs/([0-9]{3})-.*#\1#p' | sort -u); do
+            t="spec-${n}-ready"
+            git rev-parse -q --verify "refs/tags/$t" >/dev/null || continue
+            if ! c=$(git rev-parse -q --verify "$t^{commit}"); then missing="$missing \`$t\` (not a commit)"; continue; fi
+            if ! git merge-base --is-ancestor "$c" pr/head; then missing="$missing \`$t\`"; continue; fi
+            git merge-base --is-ancestor "$c" origin/main && continue
+            if [ -n "$ready" ]; then missing="$missing \`$t\` (a second spec in this PR)"; continue; fi
+            ready="$t"
+          done
+          spec_commits=""; amend_commits=""; amend_tags=""
+          if [ -n "$ready" ]; then
+            spec_commits=$(git rev-list "${base}..${ready}^{commit}")
+            for t in $(git tag -l "${ready%-ready}-amend-*"); do
+              [[ "$t" =~ ^spec-[0-9]{3}-amend-[0-9]+$ ]] || continue
+              if ! c=$(git rev-parse -q --verify "$t^{commit}"); then missing="$missing \`$t\` (not a commit)"; continue; fi
+              if git merge-base --is-ancestor "$ready" "$c" && git merge-base --is-ancestor "$c" pr/head; then
+                amend_commits="$amend_commits $c"; amend_tags="$amend_tags \`$t\`"
+              fi
+            done
+          fi
+
+          : > ../spec.md; : > ../amend.md; : > ../builder.md
           while IFS= read -r line; do
             case "$line" in ''|'#'*) continue ;; esac
             path="${line%% *}"
             if [ "$line" != "$path" ] && [ "${line##* }" = "create-once" ]; then
-              commits=$(git log -M --format='%h' --diff-filter=MDR "$range" -- ":(glob)$path" | tr '\n' ' ')
+              commits=$(git log -M --format='%H' --diff-filter=MDR "$range" -- ":(glob)$path")
             else
-              commits=$(git log -M --format='%h' "$range" -- ":(glob)$path" | tr '\n' ' ')
+              commits=$(git log -M --format='%H' "$range" -- ":(glob)$path")
             fi
-            if [ -n "$commits" ]; then
+            s=""; a=""; b=""
+            for c in $commits; do
+              short=$(git rev-parse --short "$c")
+              if printf '%s\n' "$spec_commits" | grep -qx "$c"; then s="$s $short"
+              elif printf '%s\n' $amend_commits | grep -qx "$c"; then a="$a $short"
+              else b="$b $short"; fi
+            done
+            [ -n "$s" ] && printf -- '- `%s` — commits:%s\n' "$path" "$s" >> ../spec.md
+            [ -n "$a" ] && printf -- '- `%s` — commits:%s\n' "$path" "$a" >> ../amend.md
+            # A merge can change a file without any commit touching it (it keeps one side's
+            # version): compare the content too, and flag what no commit explains.
+            if [ -z "$commits" ] && ! git diff --quiet "$base" pr/head -- ":(glob)$path"; then
+              b=" (changed through a merge, no single commit)"
+            fi
+            if [ -n "$b" ]; then
               echo "::warning title=Locked path changed::$path"
-              printf -- '- `%s` — commits: %s\n' "$path" "$commits" >> ../findings.md
+              printf -- '- `%s` — commits:%s\n' "$path" "$b" >> ../builder.md
             fi
           done < ../locked-paths.txt
+          printf '%s' "$ready" > ../ready.txt
+          printf '%s' "$amend_tags" > ../amend-tags.txt
+          printf '%s' "$missing" > ../missing.txt
 
       - name: Post or update the PR comment
         run: |
           set -euo pipefail
           existing=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
             --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" | head -1)
+          ready=$(cat ready.txt); amend_tags=$(cat amend-tags.txt); missing=$(cat missing.txt)
 
-          if [ -s findings.md ]; then
+          if [ -s builder.md ] || [ -s spec.md ] || [ -s amend.md ] || [ -n "$missing" ]; then
             {
               echo "${MARKER}"
-              echo "### ⚠️ Locked files changed"
-              echo
-              echo "This PR changes owner-only paths (\`scripts/locked-paths.txt\` on \`main\`):"
-              echo
-              cat findings.md
-              echo
-              echo "Expected only for the owner's own spec changes. For a builder PR, run"
-              echo "\`scripts/owner-review.sh\` and do not merge until this is explained."
+              if [ -n "$missing" ]; then
+                echo "### ⛔ Spec tag problem:${missing}"
+                echo
+                echo "The approved spec commit is not in this PR's history, a tag is not a commit, or the PR holds a second spec. Review every change."
+                echo
+              fi
+              if [ -s spec.md ]; then
+                echo "### ✅ Approved spec (up to \`${ready}\`): expected owner changes"
+                echo; cat spec.md; echo
+              fi
+              if [ -s amend.md ]; then
+                echo "### ✅ Owner amendments (${amend_tags# }): expected"
+                echo; cat amend.md; echo
+              fi
+              if [ -s builder.md ]; then
+                if [ -n "$ready" ]; then echo "### ⚠️ Locked files changed after \`${ready}\`: check these"
+                else echo "### ⚠️ Locked files changed"; fi
+                echo
+                echo "Owner-only paths (\`scripts/locked-paths.txt\` on \`main\`):"
+                echo
+                cat builder.md
+                echo
+                echo "Run \`scripts/owner-review.sh\` and do not merge until each one is explained."
+              fi
             } > body.md
           elif [ -n "$existing" ]; then
             printf '%s\n### ✅ Locked files: no changes\n\nAn earlier push changed owner-only paths; the current PR no longer does.\n' "${MARKER}" > body.md

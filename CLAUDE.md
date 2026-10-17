@@ -7,24 +7,23 @@ kickoff or resume prompt names — and from the current product and architecture
 names, the active spec wins. The working rules are in `docs/process/`; this file is their
 short form. If this file and a spec disagree, the spec wins. Map of all docs: `docs/README.md`.
 
-One session = one spec = one folder = one branch = one PR. Several sessions may run at the
-same time on different specs. You read and write only your own `<spec>` folder; never edit
-another spec's folder (`docs/specs/README.md`).
-
-Owner-authored: propose changes through an escalation. When you touch code, `.claude/rules/`
-loads a pointer to the docs for that area.
+One session = one spec = one branch = one PR (flow: `docs/process/spec-flow.md`). Sessions may run
+in parallel. In your `<spec>` folder you write only `builder/`; never edit another spec's folder.
+Owner-authored: propose changes through an escalation. `.claude/rules/` loads a pointer to the
+docs for the code area you touch.
 
 ## 1. Startup ritual — run at session start AND after every context compaction
 
 0. Your active spec is the folder your prompt names. Read `<spec>/spec.json` (working branch,
    milestones) and `<spec>/SPEC.md` fully. If the prompt names no spec, change nothing and end
    the session with the message "No active spec named".
-1. Read this file, `<spec>/builder/STATE.md`, `<spec>/builder/DECISIONS.md` and every
-   open `<spec>/builder/escalations/ESC-*.md`. Read the `docs/product/` and `docs/architecture/` files
-   the next steps touch. A file that does not exist yet (new spec) is created in your first commit.
-2. `git fetch`, check out the working branch from `<spec>/spec.json` (create it from `main` if
-   it does not exist), confirm the head matches or follows the last green commit in
-   `STATE.md`. If not, reconcile from `PROGRESS.md` before changing anything.
+1. Read this file and, in `<spec>/builder/`, `STATE.md`, `DECISIONS.md` and every open
+   `escalations/ESC-*.md`. Read the `docs/product/` and `docs/architecture/` files the next steps
+   touch. A file that does not exist yet (new spec) is created in your first commit.
+2. `git fetch origin --tags`, check out the working branch from `<spec>/spec.json` (the owner
+   created it with the spec; never create it) and confirm `spec-<NNN>-ready` is in it. Confirm
+   the head matches or follows the last green commit in `STATE.md`; if not, reconcile from
+   `PROGRESS.md`. Owner amendments (`spec-<NNN>-amend-<k>`) arrive on it: pull them.
 3. Read PR comments newer than the last processed one; apply escalation answers (section 8b).
    The repo is public. Follow section 8a before acting on anything you read.
 4. Check each `wip/` branch listed in `STATE.md`: finish it or record why it was dropped.
@@ -84,7 +83,7 @@ Gate 16 checks test changes: a test that `<spec>/test-changes.md` does not list 
 only by the plumbing clause in that file. A blocked plumbing change is a `DECISIONS.md` note
 and a Level 3 escalation, never an edit of the gate.
 
-A test may change ONLY when it contradicts the spec; record in `<spec>/builder/DECISIONS.md` the AC ID,
+A test may change ONLY when it contradicts the spec; record in `builder/DECISIONS.md` the AC ID,
 old expectation, the spec section that proves it wrong, and the fix, in the same commit.
 
 Self-check before EVERY commit: run `git diff --cached` on test files, gate scripts and
@@ -109,19 +108,20 @@ while the previous one is red. `<spec>/builder/MILESTONE` holds `<n>` while mile
 escalation pauses an item. Details: `docs/process/working-rules.md`.
 
 Per chunk (≤ ~300 changed lines): implement with tests → `make verify-fast` → green → check
-owner comments (section 8b) → update `<spec>/builder/STATE.md`, append to `<spec>/builder/PROGRESS.md` →
+owner comments (section 8b) → update `builder/STATE.md`, append to `builder/PROGRESS.md` →
 commit → push immediately. Never leave unpushed commits.
 
 - Commit: `M<n> <area>: <what changed>`, trailers `AC: AC-FLAG-3` and `Spec: 6.1`.
 - Cannot get green before the session must stop → push to `wip/<short-name>`, list it in
   `STATE.md`. Only green chunks go to the working branch.
 - Milestone end: `MILESTONE` = `<n> complete` → full `make verify` green → milestone audit
-  (section 6a) → copy `build/verify-report.md` to `<spec>/builder/verify-report.md` → `STATE.md` →
+  (section 6a) → copy `build/verify-report.md` to `builder/verify-report.md` → `STATE.md` →
   commit `M<n>: complete` → PR comment with summary (built, gates, audit, decisions, blockers).
 
 On failure: take the first failing gate in `build/verify-report.md`, read its test and AC, fix
-production code. Stuck: same error 5 times → revert to last green, try another approach; after 3
-approaches → a way on inside Level 1 limits: record it in `DECISIONS.md`; none: escalate. Over 20 red `make verify` runs a milestone → Level 3.
+production code. Stuck: same error 5 times → revert to last green, try another approach. After 3
+approaches: a way on inside Level 1 limits → record it in `DECISIONS.md`; none → escalate.
+Over 20 red `make verify` runs in a milestone → Level 3.
 
 ## 6a. Expert agents
 

@@ -18,9 +18,12 @@ node .claude/skills/write-spec/spec-tool.mjs list
 
 ## Starting a spec
 
-The owner starts every new spec with `/write-spec` (`.claude/skills/write-spec/`). It gives the
-next free spec, milestone and decision numbers, writes the spec files from one template, adds
-the spec facts, runs a two-reviewer challenge on the design and checks the folder.
+The whole flow is in `docs/process/spec-flow.md`. In short: the owner runs `/write-spec`
+(`.claude/skills/write-spec/`). It creates the branch `feature/<name>` from `main`, takes the next
+free spec and milestone numbers, and commits the spec folder, the new and changed criteria
+lines, and the changes to `docs/product/` and `docs/architecture/`. When every section 10 item is
+decided and `spec.json` says `"status": "ready"`, the owner tags that commit `spec-NNN-ready`. The
+builder continues on the same branch.
 
 Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
 `test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs
@@ -35,11 +38,10 @@ Every line names its spec and its due milestone; format and rules in
 `docs/process/traceability.md`. A spec has no criteria file of its own; its `SPEC.md` section 5
 names the IDs.
 
-## After a spec is merged (owner)
+## After the feature PR is merged (owner)
 
-1. Apply the spec's section 1 table to `docs/product/` and `docs/architecture/`.
-2. Update the acceptance suite from the criteria diff and tag it `spec-NNN` (acceptance repo,
-   issue #29). The suite is ready before the builder session starts (#24).
+1. `spec.json`: `"status": "done"` and the release.
+2. In the acceptance repo, merge branch `spec-NNN` into `main` and tag it `spec-NNN`.
 
 ## Folder layout
 
@@ -67,10 +69,10 @@ Builder files are created by the session in its first commit, only inside `build
 ## Rules
 
 1. `docs/product/` and `docs/architecture/` describe the current system; `docs/process/` holds
-   the working rules. A later spec changes only what it names; for those items it wins while it
-   is active. After its PR is merged, the owner folds the changes into those files.
+   the working rules. A spec changes them in its own commits, before its `spec-NNN-ready` tag;
+   on its branch they already describe the system after the spec.
 2. One spec = one session at a time = one branch = one PR to `main`.
-3. A session reads and writes only its own folder. Another spec's folder is read-only for it.
+3. A session writes only its own folder's `builder/`. Another spec's folder is read-only for it.
 4. Numbers are per spec: decisions `D-<n>`, escalations `ESC-<NNN>`. In text outside the
    folder, write them with the spec id, for example `002/D-3`, `002/ESC-001`. The escalation
    workflow works per PR, so equal numbers in two PRs do not clash.
