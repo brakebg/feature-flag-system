@@ -117,6 +117,18 @@ if [ -n "$READY" ]; then
     git merge-base --is-ancestor "$READY" "$c" && git merge-base --is-ancestor "$c" "$REF" && AMEND_COMMITS="$AMEND_COMMITS $c"
   done
 fi
+# The newest owner version: the last amendment, else the ready commit, else main's base. A locked
+# file that no builder commit explains must hold it, or it merged with the main commit the branch
+# last took in (the allowed main merge).
+TIP="$BASE"
+if [ -n "$READY" ]; then
+  TIP=$(git rev-parse "$READY^{commit}")
+  for c in $AMEND_COMMITS; do
+    if git merge-base --is-ancestor "$TIP" "$c"; then TIP="$c"
+    elif ! git merge-base --is-ancestor "$c" "$TIP"; then TAG_PROBLEMS="$TAG_PROBLEMS amend-tags(not in one line)"; fi
+  done
+fi
+MERGED=$(git merge-tree --write-tree "$TIP" "$BASE" 2>/dev/null) || true; MERGED="${MERGED%%$'\n'*}"
 # Text from the branch (names, subjects) is printed without control characters.
 clean() { tr -d '\000-\010\013-\037\177'; }
 TC_BASE="${SINCE:-$BASE}" # gate 16 compares like CI: from where the branch left main
@@ -173,8 +185,13 @@ while IFS= read -r line; do
     if printf '%s\n' "$SPEC_COMMITS" $AMEND_COMMITS | grep -qx "$c"; then owner="$owner $(git rev-parse --short "$c")"
     else builder="$builder;$(git log -1 --format='%h %s' "$c")"; fi
   done
-  # A merge can change a file without any commit touching it: compare the content too.
-  if [ -z "$commits" ] && ! git diff --quiet "$BASE" "$REF" -- ":(glob)$path"; then builder=";(changed through a merge, no single commit)"; fi
+  # A merge can change a file without any commit touching it, or bring back an older owner
+  # version (git log then shows only the old owner commit): compare with the newest owner version.
+  if [ -z "$builder" ] && ! git diff --quiet "$TIP" "$REF" -- ":(glob)$path" \
+    && ! { [ -n "$MERGED" ] && git diff --quiet "$MERGED" "$REF" -- ":(glob)$path"; } \
+    && ! { [ "$label" != "$path" ] && [ -z "$(git ls-tree -r --name-only "$TIP" -- ":(glob)$path")" ]; }; then
+    builder=";(content differs from the newest owner version: changed through a merge)"
+  fi
   if [ -n "$builder" ]; then fail "$label changed outside the approved spec and its amendments in: $(printf '%s' "${builder#;}" | clean)"
   elif [ -n "$owner" ]; then pass "$label changed only in the approved spec or an amendment:$owner"
   else pass "$label unchanged"; fi

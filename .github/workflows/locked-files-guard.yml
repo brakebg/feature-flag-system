@@ -72,6 +72,20 @@ jobs:
               fi
             done
           fi
+          # The newest owner version: the last amendment, else the ready commit, else main's base.
+          # A locked file that no builder commit explains must hold that version, or that version
+          # merged with the main commit the branch last took in (the allowed main merge). This
+          # catches a merge that brings back an older owner version: git log then shows only the
+          # old owner commit (security review).
+          tip="$base"
+          if [ -n "$ready" ]; then
+            tip=$(git rev-parse "${ready}^{commit}")
+            for c in $amend_commits; do
+              if git merge-base --is-ancestor "$tip" "$c"; then tip="$c"
+              elif ! git merge-base --is-ancestor "$c" "$tip"; then missing="$missing amend tags not in one line"; fi
+            done
+          fi
+          merged=$(git merge-tree --write-tree "$tip" "$base" || true); merged="${merged%%$'\n'*}"
 
           : > ../spec.md; : > ../amend.md; : > ../builder.md
           while IFS= read -r line; do
@@ -91,10 +105,12 @@ jobs:
             done
             [ -n "$s" ] && printf -- '- `%s` — commits:%s\n' "$path" "$s" >> ../spec.md
             [ -n "$a" ] && printf -- '- `%s` — commits:%s\n' "$path" "$a" >> ../amend.md
-            # A merge can change a file without any commit touching it (it keeps one side's
-            # version): compare the content too, and flag what no commit explains.
-            if [ -z "$commits" ] && ! git diff --quiet "$base" pr/head -- ":(glob)$path"; then
-              b=" (changed through a merge, no single commit)"
+            # A merge can change a file without any commit touching it, or bring back an older
+            # owner version: compare the content with the newest owner version too.
+            if [ -z "$b" ] && ! git diff --quiet "$tip" pr/head -- ":(glob)$path" \
+              && ! { [ -n "$merged" ] && git diff --quiet "$merged" pr/head -- ":(glob)$path"; } \
+              && ! { [ "$line" != "$path" ] && [ -z "$(git ls-tree -r --name-only "$tip" -- ":(glob)$path")" ]; }; then
+              b=" (content differs from the newest owner version: changed through a merge)"
             fi
             if [ -n "$b" ]; then
               echo "::warning title=Locked path changed::$path"
