@@ -60,6 +60,7 @@ The `locked-files-guard` workflow and `owner-review.sh` split the PR's commits:
 | Exactly a `spec-NNN-amend-<k>` commit | An owner amendment: expected |
 | Every other commit after the tag | The builder's: any locked path changed here is flagged |
 | PR without a ready tag in its history | Everything flagged (old flow or tag missing) |
+| A locked file no commit above explains, whose content differs from the newest owner version (the last amendment, else the ready commit, also merged with main) | Flagged: changed through a merge |
 
 Protection: a GitHub tag rule lets only admins create, move or delete `spec-*` tags, and a
 branch rule forbids force-push and deletion on `feature/*`.
