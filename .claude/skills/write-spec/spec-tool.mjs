@@ -63,9 +63,10 @@ function repoRoot() {
   }
 }
 
+// core.quotepath=false: file names with non-ASCII characters ("1 · Sign in.html") come back as written.
 function git(args) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 << 20 });
+    return execFileSync('git', ['-c', 'core.quotepath=false', ...args], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 << 20 });
   } catch {
     return null;
   }

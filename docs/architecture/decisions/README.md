@@ -8,6 +8,5 @@ highest in either folder plus one.
 | --- | --- | --- |
 | 0002 | [Rate limiting at the edge, not in the service](0002-rate-limiting-at-edge.md) | Accepted |
 | 0009 | [Spec 002: upgrade the backend to Spring Boot 4.1](0009-upgrade-spring-boot-4.md) | Accepted |
-| 0011 | [Spec 003: high availability with per-instance caches and a database revision](0011-high-availability.md) | Accepted |
 
 Status values: Proposed → Accepted / Rejected → Superseded by NNNN.

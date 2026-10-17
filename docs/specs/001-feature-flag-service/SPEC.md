@@ -24,8 +24,6 @@ The agent builds in eight milestones, in order; each ends with green tests and a
 8. **M8 Hardening** — Playwright e2e for every 11.2 scenario, Dockerfiles finalised (non-root, healthchecks), README (setup, env vars, API usage with curl examples, client polling guidance). Done when: the full CI pipeline is green and every 11.2 box is ticked.
 9. **M9 Spring Boot 4 upgrade** — spec 002, `docs/specs/002-spring-boot-4-upgrade/`, release 1.1.0. Done and merged.
 10. **M10 Test-changes gate** — spec 004, `docs/specs/004-test-changes-gate/`, gate 16. Built by the owner (decision 0012). Done.
-11. **M11 High availability** — spec 003, `docs/specs/003-high-availability/`, release: the next free minor version.
-12. **M12 UI redesign** — spec 005, `docs/specs/005-ui-redesign/`, release: the next free minor version.
 
 ### 12.3 Definition of done
 
@@ -83,10 +81,10 @@ Caching (verified with a spy on the repositories counting database queries)
 - [ ] After warm-up, 1,000 evaluation calls for existing flags run zero database queries.
 - [ ] Evicting one entry and reading it twice concurrently runs exactly one database query; the second read is a hit.
 - [ ] Reading an unknown key twice within 30 s runs one database query.
-- [ ] Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call on the instance that made the change; on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), with zero database queries for the evaluation call itself (spec 003).
+- [ ] Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call.
 - [ ] A write whose transaction rolls back leaves the cached value unchanged.
-- [ ] The readiness probe reports DOWN until warm-up has finished, and stays UP when the database becomes unreachable after warm-up (spec 003).
-- [ ] A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes; every other instance returns the database value within 2 s (spec 003).
+- [ ] The readiness probe reports DOWN until warm-up has finished.
+- [ ] A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes.
 - [ ] A reconciliation run with no differences logs no WARN and leaves the ETag unchanged.
 - [ ] Under the 9.2 load test the cache hit rate metric is ≥ 99 %.
 

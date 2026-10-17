@@ -1,9 +1,7 @@
 <!doctype html>
 <!--
-  Spec 005 · design 1 · Sign in. Redesign C, balanced colours.
-  Plain HTML and CSS: read the exact values below.
-  The Google Fonts link is only for viewing this file; the app bundles the fonts (spec 001 section 10.2). Names and texts in the markup are sample data.
-  Behaviour, texts, roles and accessible names: docs/SPEC.md section 8 (unchanged).
+  Design 1 · Sign in. Updated 2026-10-13 to match the built UI (frontend/src, v1.1.0).
+  Plain HTML and CSS: read the exact values below. Names and texts in the markup are sample data.
 -->
 <html lang="en">
 <head>
@@ -12,123 +10,80 @@
 <title>Sign in</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* Tokens: spec 005 section 4.2 */
+  /* Tokens: same names and values as frontend/src/styles/tokens.css */
   :root {
-    --color-bg: #f1f2f4;
+    --color-bg: #f4f5f7;
     --color-surface: #ffffff;
-    --color-text: #1c2433;
-    --color-text-soft: #3d4556;
-    --color-text-muted: #5b6475;
-    --color-border: #dde0e6;
-    --color-primary: #3d59a8;
-    --color-primary-dark: #2d4486;
-    --color-primary-soft: #dfe5f3;
-    --color-ink: #1c2433;
-    --color-ink-raised: #2c3547;
-    --color-ink-line: #3a4457;
-    --color-ink-text-muted: #b9c0ce;
-    --color-sage: #8fb3a6;
-    --color-sage-soft: #e3eeea;
-    --color-apricot: #e8a87c;
-    --color-apricot-soft: #f8e6da;
-    --color-apricot-text: #8a4b26;
-    --color-neutral-soft: #eceef1;
-    --color-danger: #b5473a;
-    --color-danger-text: #9a3a2f;
-    --color-danger-soft: #f5e0dc;
-    --color-danger-border: #e6bdb6;
-    --color-switch-off: #cdd2db;
-    --color-overlay: rgba(28, 36, 51, 0.62);
+    --color-text: #15181d;
+    --color-text-muted: #59616c;
+    --color-border: #dce0e5;
+    --color-border-strong: #c7cdd4;
+    --color-primary: #2350c8;
+    --color-primary-dark: #1a3d9c;
+    --color-info-bg: #eef3fd;
+    --color-topbar: #15181d;
+    --color-danger: #a8231a;
+    --color-danger-soft: #fbeae8;
     --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-    --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --radius-chip: 11px;
-    --radius-field: 16px;
-    --radius-banner: 18px;
-    --radius-row: 22px;
-    --radius-panel: 28px;
-    --radius-hero: 32px;
-    --radius-dialog: 36px;
-    --radius-art: 40px;
-    --radius-pill: 999px;
-    --shadow-dialog: 0 24px 60px rgba(28, 36, 51, 0.35);
-    --shadow-knob: 0 1px 3px rgba(28, 36, 51, 0.25);
+    --radius: 6px;
+    --radius-md: 8px;
+    --radius-xl: 12px;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 15px; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 14px; }
 
-  .page { min-height: 100vh; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; }
-
-  /* Decorative art panel (aria-hidden). Hidden below 860 px. */
-  .art { flex: 1 1 560px; min-height: 360px; position: relative; overflow: hidden; border-radius: var(--radius-art); background: var(--color-ink); }
-  .art span { position: absolute; display: block; }
-  .art .big-circle { left: -90px; top: 150px; width: 480px; height: 480px; border-radius: var(--radius-pill); background: var(--color-primary); }
-  .art .half { right: 70px; top: 0; width: 300px; height: 150px; border-radius: 0 0 150px 150px; background: var(--color-sage); }
-  .art .square { left: 330px; top: 90px; width: 44px; height: 44px; border-radius: 8px; background: var(--color-apricot); transform: rotate(14deg); }
-  .art .ring { right: -60px; top: 300px; width: 240px; height: 240px; border-radius: var(--radius-pill); border: 2px solid var(--color-text-muted); }
-  .art .switch-on { left: 300px; bottom: 120px; width: 260px; height: 130px; padding: 12px; border-radius: var(--radius-pill); background: var(--color-bg); }
-  .art .switch-on::after { content: ''; position: absolute; right: 12px; top: 12px; width: 106px; height: 106px; border-radius: var(--radius-pill); background: var(--color-primary); }
-  .art .switch-off { left: 340px; bottom: 30px; width: 180px; height: 70px; border-radius: var(--radius-pill); border: 2px solid var(--color-text-muted); }
-  .art .switch-off::after { content: ''; position: absolute; left: 8px; top: 8px; width: 50px; height: 50px; border-radius: var(--radius-pill); border: 2px solid var(--color-text-muted); }
-  .art .dots { left: 40px; bottom: 40px; width: 160px; height: 120px; background-image: radial-gradient(var(--color-ink-line) 2px, transparent 2.5px); background-size: 20px 20px; }
-  .art .quarter { right: 60px; bottom: 60px; width: 120px; height: 120px; border-radius: 0 120px 0 0; background: var(--color-apricot); }
-
-  .side { flex: 1 1 420px; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-  .column { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 28px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
-  .form { display: flex; flex-direction: column; gap: 20px; }
-  .heading { display: flex; flex-direction: column; gap: 8px; }
-  .title { margin: 0; font-family: var(--font-display); font-size: 48px; font-weight: 600; line-height: 1; }
+  .page { min-height: 100vh; padding: 24px; display: flex; align-items: center; justify-content: center; }
+  .column { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; font-size: 18px; }
+  .logo { width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--color-topbar); display: flex; align-items: center; justify-content: center; }
+  .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .heading { display: flex; flex-direction: column; gap: 6px; }
+  .title { margin: 0; font-size: 22px; font-weight: 600; }
   .subtitle { margin: 0; color: var(--color-text-muted); }
-
-  /* Info banner (role="status") for /login?expired=1 */
-  .info { display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; border-radius: var(--radius-banner); background: var(--color-primary-soft); color: var(--color-primary-dark); font-size: 14px; }
-  .info-dot { width: 26px; height: 26px; flex-shrink: 0; border-radius: var(--radius-pill); background: var(--color-primary); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; }
-
-  .field { display: flex; flex-direction: column; gap: 8px; }
+  /* Info banner, shown for /login?expired=1 */
+  .info { display: flex; gap: 10px; padding: 12px; border-radius: var(--radius-md); background: var(--color-info-bg); color: var(--color-primary-dark); font-size: 13px; }
+  .info svg { flex-shrink: 0; margin-top: 1px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
   .label { font-weight: 500; }
-  .input { height: 52px; padding: 0 18px; border: 1.5px solid var(--color-border); border-radius: var(--radius-field); background: var(--color-surface); font: inherit; color: var(--color-text); }
-
-  /* Submit: dark pill with a decorative arrow circle */
-  .submit { height: 56px; margin-top: 4px; padding: 0 8px 0 24px; border: 0; border-radius: var(--radius-pill); background: var(--color-ink); color: #ffffff; font: inherit; font-weight: 600; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
-  .submit-icon { width: 40px; height: 40px; border-radius: var(--radius-pill); background: var(--color-apricot); color: var(--color-ink); display: flex; align-items: center; justify-content: center; }
-
-  @media (max-width: 860px) { .art { display: none; } }
+  .input { height: 44px; padding: 0 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius); font: inherit; color: var(--color-text); }
+  /* Error message (role="alert"), between the fields and the button. Not shown in this state. */
+  .error { padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-danger-soft); color: var(--color-danger); font-size: 13px; }
+  .submit { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; width: 100%; padding: 0; border: 0; border-radius: var(--radius); background: var(--color-primary); color: #ffffff; font: inherit; cursor: pointer; }
+  .submit:disabled { opacity: 0.75; cursor: progress; }
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="art" aria-hidden="true">
-    <span class="big-circle"></span><span class="half"></span><span class="square"></span><span class="ring"></span>
-    <span class="switch-on"></span><span class="switch-off"></span><span class="dots"></span><span class="quarter"></span>
-  </div>
-  <main class="side">
-    <div class="column">
-      <div class="brand">
-        <svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true"><circle cx="12" cy="16" r="12" fill="#3D59A8"/><path d="M16 0a12 12 0 0 1 12 12H16z" fill="#E8A87C"/></svg>
-        <span>Feature Flags</span>
-      </div>
-      <form class="form" novalidate>
-        <div class="heading">
-          <h1 class="title">Sign in</h1>
-          <p class="subtitle">Use your admin credentials to manage flags.</p>
-        </div>
-        <div role="status" class="info"><span class="info-dot" aria-hidden="true">i</span><span>Your session expired. Please sign in again.</span></div>
-        <div class="field">
-          <label for="username" class="label">Username</label>
-          <input id="username" type="text" class="input" value="admin">
-        </div>
-        <div class="field">
-          <label for="password" class="label">Password</label>
-          <input id="password" type="password" class="input" value="password">
-        </div>
-        <button type="submit" class="submit">Sign in<span class="submit-icon" aria-hidden="true"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>
-      </form>
+  <div class="column">
+    <div class="brand">
+      <span class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>
+      </span>
+      <span>Feature Flags</span>
     </div>
-  </main>
+    <form class="card" novalidate>
+      <div class="heading">
+        <h1 class="title">Sign in</h1>
+        <p class="subtitle">Use your admin credentials to manage flags.</p>
+      </div>
+      <div role="status" class="info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <span>Your session expired. Please sign in again.</span>
+      </div>
+      <div class="field">
+        <label for="username" class="label">Username</label>
+        <input id="username" type="text" class="input" value="admin">
+      </div>
+      <div class="field">
+        <label for="password" class="label">Password</label>
+        <input id="password" type="password" class="input" value="password">
+      </div>
+      <button type="submit" class="submit">Sign in</button>
+    </form>
+  </div>
 </div>
 </body>
 </html>
