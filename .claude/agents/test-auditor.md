@@ -6,7 +6,7 @@ model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+is `<spec>/SPEC.md`; all criteria are in `docs/project-acceptance-criteria.md` (each line names its spec).
 The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
 `docs/README.md`). The active spec wins over them for what it names.
 
@@ -24,8 +24,8 @@ green when the code is wrong.
 
 The active spec and `docs/product/`, `docs/architecture/` (behaviour); `docs/architecture/testing.md`,
 `docs/process/traceability.md` and `docs/process/working-rules.md` (test rules, 11 and 12.4),
-`docs/acceptance-criteria.md` (AC IDs), `CLAUDE.md` section 4 (test integrity),
-`<spec>/DECISIONS.md`.
+`docs/project-acceptance-criteria.md` (AC IDs), `CLAUDE.md` section 4 (test integrity),
+`<spec>/builder/DECISIONS.md`.
 
 ## What to look for
 
@@ -41,7 +41,7 @@ The active spec and `docs/product/`, `docs/architecture/` (behaviour); `docs/arc
   `Thread.sleep`, random data without a seed, real clock instead of `Clock`.
 - Weakening in history: run `git diff <range> -- '*Test*' '*test*' '*.spec.*' '*.test.*'`
   and the config files. Report removed or loosened assertions, deleted tests, changed
-  thresholds and new exclusions without a matching `<spec>/DECISIONS.md` entry.
+  thresholds and new exclusions without a matching `<spec>/builder/DECISIONS.md` entry.
 - Change specs (gate 16): every test changed beyond plumbing must carry an ID listed in
   `<spec>/test-changes.md`. Run `node scripts/check-test-changes.mjs --base <range start>`
   and read the changed tests it lets through.
@@ -58,7 +58,7 @@ The active spec and `docs/product/`, `docs/architecture/` (behaviour); `docs/arc
 ## Severity
 
 - **BLOCKER**: a test, assertion or threshold was weakened or removed without a valid
-  `<spec>/DECISIONS.md` entry; a forbidden pattern is present.
+  `<spec>/builder/DECISIONS.md` entry; a forbidden pattern is present.
 - **CRITICAL**: an AC or `ERR-*` case has no test that can fail; an expected value
   contradicts the spec; a planted bug in an AC path would stay green.
 - **MAJOR**: a loose assertion where the spec is exact but other tests cover it; a

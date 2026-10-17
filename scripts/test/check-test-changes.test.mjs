@@ -5,7 +5,7 @@
 //
 // Each case builds a fixture repository in a temp folder: on main, a spec whose
 // test-changes.md allows AC-X-2, a JUnit test tagged AC-X-1 (not allowed), one tagged AC-X-2
-// (allowed), a Vitest test tagged AC-X-1 and docs/acceptance-criteria.md. The case then plants
+// (allowed), a Vitest test tagged AC-X-1 and docs/project-acceptance-criteria.md. The case then plants
 // a change on a branch and runs the gate against main.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -24,15 +24,15 @@ No assertion method, expected value, @Tag or [AC-…] title may change in any ot
 const FOO = 'backend/src/test/java/demo/FooTest.java';
 const BAR = 'backend/src/test/java/demo/BarTest.java';
 const SUM = 'frontend/src/sum.test.ts';
-const REG = 'docs/acceptance-criteria.md';
+const REG = 'docs/project-acceptance-criteria.md';
 const TC = 'docs/specs/900-fixture/test-changes.md';
 
 const fixture = {
   'docs/specs/900-fixture/spec.json': JSON.stringify({
     id: '900',
     title: 'Fixture',
-    spec: 'docs/specs/900-fixture/SPEC.md',
-    acceptance: 'docs/specs/900-fixture/acceptance-criteria.md',
+    owner: 'owner',
+    status: 'ready',
     branch: 'feature/fixture',
     milestones: [99],
   }),
@@ -95,18 +95,10 @@ describe('sum', () => {
   });
 });
 `,
-  [REG]: `# Acceptance criteria
+  [REG]: `# Project acceptance criteria
 
-- [ ] **AC-X-1** · The total of 2 and 3 is 5.
-- [ ] **AC-X-2** · The limit is 10.
-`,
-  // The fixture spec's own new IDs: their registry section may be appended (issue #31).
-  'docs/specs/900-fixture/acceptance-criteria.md': `# Acceptance criteria — spec 900
-
-Due milestone: 99
-
-- [ ] **AC-X-1** · Fixture one.
-- [ ] **AC-X-2** · Fixture two with limit is 10.
+- [ ] **AC-X-1** v1 · The total of 2 and 3 is 5. · spec 800 · due M98
+- [ ] **AC-X-2** v1 · The limit is 10. · spec 800 · due M98
 `,
 };
 
@@ -204,8 +196,13 @@ const cases = [
   },
   {
     title: '[AC-TC-1] added registry line of an AC ID that is not the spec\'s own fails',
-    plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 10.\n- [ ] **AC-Y-1** · Something else.'),
+    plant: (d) => edit(d, REG, 'The limit is 10. · spec 800 · due M98\n', 'The limit is 10. · spec 800 · due M98\n- [ ] **AC-Y-1** v1 · Something else. · spec 800 · due M98\n'),
     fails: [`${REG}:5`],
+  },
+  {
+    title: '[AC-TC-1] added note line without the spec\'s own new criterion fails',
+    plant: (d) => edit(d, REG, '# Project acceptance criteria\n', '# Project acceptance criteria\n\nA new note.\n'),
+    fails: [`${REG}:3`],
   },
   {
     title: 'a test-changes.md with a changed plumbing clause fails',
@@ -245,7 +242,7 @@ const cases = [
   },
   {
     title: '[AC-TC-2] the spec PR appending its own registry section passes',
-    plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 10.\n\n## Fixture (spec 900, due milestone 99)\n\n- [ ] **AC-X-1** · Fixture one.\n- [ ] **AC-X-2** · Fixture two with limit is 10.'),
+    plant: (d) => edit(d, REG, 'spec 800 · due M98\n- [ ] **AC-X-2** v1 · The limit is 10. · spec 800 · due M98\n', 'spec 800 · due M98\n- [ ] **AC-X-2** v1 · The limit is 10. · spec 800 · due M98\n\n## Fixture\n\n- [ ] **AC-Z-1** v1 · Fixture one. · spec 900 · due M99\n'),
     passes: true,
   },
 ];

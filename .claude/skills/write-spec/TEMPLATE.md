@@ -16,10 +16,9 @@ Placeholders used below:
 | `<name>` | `flag-description-limit` | kebab-case, short |
 | `<Title>` | `Flag description limit` | owner |
 | `<M>` | `11` | `spec-tool.mjs next` |
-| `<DDDD>` | `0012` | `spec-tool.mjs next` |
-| `<branch>` | `feature/flag-description-limit` | builder branch, never `main`, `spec/*` or `wip/*` |
-| `<X.Y.Z>` | `1.3.0` | next release, from `VERSION` |
-| `<date>` | `2026-10-12` | today |
+| `<branch>` | `feature/flag-description-limit` | `feature/<name>`: the spec and the build share it |
+| `<owner>` | `brakebg` | the repository owner's GitHub login |
+| `<issue>` | `36` | the issue the spec is bound to, or `null` |
 
 Write in plain, short English (`CLAUDE.md` section 10): the owner is not a native speaker.
 
@@ -31,44 +30,50 @@ Write in plain, short English (`CLAUDE.md` section 10): the owner is not a nativ
 {
   "id": "<NNN>",
   "title": "<Title>",
-  "spec": "docs/specs/<NNN>-<name>/SPEC.md",
-  "acceptance": "docs/specs/<NNN>-<name>/acceptance-criteria.md",
+  "owner": "<owner>",
+  "status": "draft",
+  "milestones": [<M>],
   "branch": "<branch>",
-  "milestones": [<M>]
+  "issue": <issue>,
+  "release": null
 }
 ```
+
+The only place for the spec's facts. `status`: `draft` while section 10 has an open item,
+`ready` when every item is decided (the owner then tags that commit `spec-<NNN>-ready`), `done`
+after the merge. `release` is filled at the merge (the next free minor version). Optional
+`"scope": ["frontend/**", ...]`: the paths the build is expected to change;
+`scripts/owner-review.sh` warns on any change outside them.
 
 ---
 
 ## File 2: `docs/specs/<NNN>-<name>/SPEC.md`
 
 ````markdown
-# Spec <NNN> — <Title> (release <X.Y.Z>)
+# Spec <NNN> — <Title>
 
-Owner-authored, locked. Decision: `decisions/<DDDD>-<name>.md`.
-Milestone: **M<M>**. Working branch: **`<branch>`** (from `main`), one PR to `main`.
-Spec folder (`<spec>` below): `docs/specs/<NNN>-<name>/`.
+Owner-authored, locked. Facts (status, milestone, branch, release): `spec.json`. Flow:
+`docs/process/spec-flow.md`. Spec folder (`<spec>` below): `docs/specs/<NNN>-<name>/`.
 
 This is a change spec, executed by an autonomous builder session. Every "MUST" is a hard
 requirement. Section 10 records the owner's decisions.
 
-## 1. Relation to `docs/SPEC.md`
+## 1. Relation to the current docs
 
-`docs/SPEC.md` (spec 001) and every merged spec still apply. This spec changes only what it
-names. Where it names a part of `docs/SPEC.md`, this spec wins for M<M>.
+`docs/product/` and `docs/architecture/` describe the system. This spec's own commits change
+them, so on its branch they already describe the system after the spec. Everything they say that
+this spec does not change still applies.
 
-| `docs/SPEC.md` part | Change in M<M> |
+| File | Change |
 | --- | --- |
-| <section number and name> | <what changes, one line> |
-| 11.2 <AC IDs> | Re-expressed (table in section 5). The owner extends `docs/acceptance-criteria.md` |
+| <`docs/product/ui.md` section 8.4> | <what changes, one line> |
 
-<!-- One row per changed part. Name the exact section. Add a row for 11.2 only if section 5 re-expresses IDs. -->
+<!-- One row per changed file; check fails when a file changes on the branch but is not named. -->
 
 Not changed: <for example gate 4 banned dependencies, `backend/openapi.json`, tech stack>.
 
-After the PR is merged, the owner updates `docs/SPEC.md` and `docs/acceptance-criteria.md`
-(re-expressed IDs in place, new IDs appended as a section; `docs/specs/README.md` "After a spec
-is merged"). The agent never edits them or this file.
+The builder never edits these files, the criteria or this spec. A spec change during the build
+is an owner amendment (`docs/process/spec-flow.md` section 2).
 
 ## 2. Goal
 
@@ -78,8 +83,8 @@ Not in scope: <list>.
 
 ## 3. MUST stay the same
 
-1. Every acceptance criterion of spec 001 and of every merged spec passes, except those
-   re-expressed in section 5.
+1. Every acceptance criterion in `docs/project-acceptance-criteria.md` passes at its current
+   version, with the changes of section 5.
 2. <HTTP behaviour for clients: status codes, headers, problem details, JSON — or say what changes.>
 3. Security rules of spec 001 section 5.
 4. <`backend/openapi.json` unchanged — or name the exact change.>
@@ -99,25 +104,23 @@ diagram helps when more than one component is involved. Name the open points; th
 
 ## 5. Acceptance criteria
 
-Registered in `<spec>/acceptance-criteria.md` (`Due milestone: <M>`): <AC-XXX-1> to <AC-XXX-n>.
+In `docs/project-acceptance-criteria.md` (File 4), due M<M>. New: <AC-XXX-1> to <AC-XXX-n>.
 
 - **<AC-XXX-1>** · <short form of the criterion>
 
-**Spec 001 criteria that change** (same ID, same position; the owner extends
-`docs/acceptance-criteria.md` after merge):
+**Criteria that change** (same ID, same position, version + 1, `changed by spec <NNN>`):
 
 | ID | Now | Becomes |
 | --- | --- | --- |
-| <AC-YYY-n> | <text today, from `docs/acceptance-criteria.md`> | <new text> |
+| <AC-YYY-n> | <vN: text today> | <vN+1: new text> |
 
 <Unchanged neighbours, for example "AC-YYY-1, 2, 3 unchanged".>
 
-<!-- Every behaviour change has an AC ID: a new one above, or a re-expressed one in the table.
-A re-expressed ID keeps its ID and its place; never a new ID for a changed old criterion.
-No re-expressed IDs: write "None. No spec 001 criterion changes." and no table.
-No new and no re-expressed IDs at all (a pure platform or tooling change): section 5 is the
-single line "No behaviour change." and acceptance-criteria.md has no AC line. `check` fails
-on zero IDs without that line. -->
+<!-- Every behaviour change has an AC ID: a new one above, or a changed one in the table.
+A changed criterion keeps its ID and its place; never a new ID for a changed old criterion.
+No changed criteria: write "None. No existing criterion changes." and no table.
+No new, changed or retired criteria at all (a pure platform or tooling change): section 5 is
+the single line "No behaviour change." `check` fails on zero IDs without that line. -->
 
 ## 6. Test changes
 
@@ -128,28 +131,30 @@ test is a Level 3 escalation (section 8).
 
 ## 7. Acceptance delta
 
-For the black-box acceptance suite (`docs/process/validation.md`):
+For the black-box acceptance suite (`docs/process/validation.md`); the tests name criterion and
+version (`[AC-YYY-n v2]`):
 
 - Added: <AC-XXX-1 … AC-XXX-n> <!-- or "none" -->
 - Changed: <AC-YYY-n, AC-YYY-m: what the suite scenarios gain or lose> <!-- or "none" -->
 - Retired: <AC-ZZZ-n (reason), AC-ZZZ-m (reason)> <!-- or "none" -->
 
 <!-- One line each. Put all IDs of a kind on its line and name no other ID in that line:
-`check` compares Added with acceptance-criteria.md and Changed with the section 5 table. -->
+`check` compares Added, Changed and Retired with the criteria file. -->
 
 ## 8. Process
 
-- Rules of spec 001 section 12 and `CLAUDE.md` apply. Commit messages `M<M> <area>: <what>`,
-  trailers `AC:` and `Spec: <NNN> §<n>`.
-- First commit: the memory files in `<spec>/` (`STATE.md`, `PROGRESS.md`, `DECISIONS.md`,
-  `BLOCKERS.md`, `MILESTONE` = `<M>`). After the first green chunk, one draft PR
-  `<branch>` → `main`.
-- Phases, each chunk green: **A** <...>; **B** <...>; **C** <...>, release <X.Y.Z> (`VERSION`,
-  `CHANGELOG.md`).
+- `docs/process/` and `CLAUDE.md` apply. Commit messages `M<M> <area>: <what>`, trailers `AC:`
+  and `Spec: <NNN> §<n>`.
+- The builder works on `<branch>`, which already holds this spec (tag `spec-<NNN>-ready`).
+  First commit: the memory files in `<spec>/builder/` (`STATE.md`, `PROGRESS.md`,
+  `DECISIONS.md`, `MILESTONE` = `<M>`). After the first green chunk, one draft PR `<branch>` →
+  `main`.
+- Phases, each chunk green: **A** <...>; **B** <...>; **C** <...>, release: the next free minor
+  version (`VERSION`, `CHANGELOG.md`).
 - Milestone audit (`docs/process/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
   <`security-reviewer`, `design-checker`, `final-reviewer` (scope) — only those that fit>.
 
-**Level 3 triggers for M<M>** (in addition to spec 001 12.5)
+**Level 3 triggers for M<M>** (in addition to `docs/process/escalation.md`)
 
 - A change would break an item of section 3.
 - A test outside `<spec>/test-changes.md` would need more than a plumbing change.
@@ -158,45 +163,26 @@ For the black-box acceptance suite (`docs/process/validation.md`):
 
 ## 9. Definition of done
 
-- [ ] `make verify-all` passes, all 16 gates; report committed as `<spec>/verify-report.md`.
-- [ ] <AC-XXX-1> to <AC-XXX-n> and every spec 001 criterion (with section 5 changes) pass.
+- [ ] `make verify-all` passes, all 16 gates; report committed as `<spec>/builder/verify-report.md`.
+- [ ] <AC-XXX-1> to <AC-XXX-n> and every other criterion (with section 5 changes) pass.
 - [ ] Only the tests in `<spec>/test-changes.md` changed beyond plumbing.
-- [ ] `VERSION` <X.Y.Z>, `CHANGELOG.md` section<, README section>.
+- [ ] `VERSION` and `CHANGELOG.md` for the next free minor version<, README section>.
 - [ ] Milestone audit done, no open BLOCKER or CRITICAL; no open escalation; PR ready with summary.
 
 ## 10. Owner decisions
 
-<!-- Every open question from the draft and from the two-reviewer challenge, one item each.
+<!-- The spec's decision log: every open question from the draft and from the two-reviewer
+challenge, one item each.
 Answered: "N. ~~<question>~~ **Decided: <answer>.** <reason, section link>"
 Not yet:  "N. **Open:** <question> Options: <a> / <b>. Proposal: <a>."
-The PR is not ready while any item is Open. Only when no item is Open, add the last line
-"Accepted by the owner on <date>." (check fails on it while an item is Open). -->
+spec.json stays "draft" while any item is Open (check fails on "ready" with an Open item). -->
 
 1. **Open:** <question> Options: <a> / <b>. Proposal: <a>.
 ````
 
 ---
 
-## File 3: `docs/specs/<NNN>-<name>/acceptance-criteria.md`
-
-```markdown
-# Acceptance criteria — spec <NNN>
-
-Owner-authored, locked. IDs for gate 14 (traceability).
-
-Due milestone: <M>
-
-- [ ] **<AC-XXX-1>** · <one testable sentence: given, when, then; exact values>
-- [ ] **<AC-XXX-2>** · <...>
-```
-
-Rules: the prefix `AC-<AREA>` is new or continues an area without clashing with an existing
-ID. One line per criterion, exactly `- [ ] **AC-…** · text`. Re-expressed spec 001 IDs are
-NOT listed here; they stay in `docs/acceptance-criteria.md`.
-
----
-
-## File 4: `docs/specs/<NNN>-<name>/test-changes.md`
+## File 3: `docs/specs/<NNN>-<name>/test-changes.md`
 
 The plumbing clause is fixed: copy it byte for byte. The test list comes from
 `node .claude/skills/write-spec/spec-tool.mjs tests --md <IDs>`.
@@ -227,71 +213,30 @@ ERR IDs (`ERR-<METHOD>-<path>-<status>`, gate 14) are allowed too when an error 
 
 ---
 
-## File 5: `decisions/<DDDD>-<name>.md`
+## File 4: lines in `docs/project-acceptance-criteria.md`
+
+The one complete list of the product's criteria; the black-box suite is built from it alone.
+Line format (gates 14 to 16 parse it; `docs/process/traceability.md`):
 
 ```markdown
-# <DDDD> · Spec <NNN>: <one line decision>
-
-Status: **Proposed** (<date>). Owner-authored.
-
-## Decision
-
-<What is decided, in a few sentences.>
-
-## Why
-
-<The problem; the options compared; why this one. Name the two-reviewer challenge result.>
-
-## What changes
-
-- <The `docs/SPEC.md` parts, as in spec section 1.>
-- <Re-expressed AC IDs, if any (spec <NNN> section 5).>
-- New spec folder `docs/specs/<NNN>-<name>/` (milestone M<M>).
-
-## Consequences
-
-- <What gets better, what costs more, what stays a limit.>
+- [ ] **<AC-XXX-1>** v1 · <one testable sentence: given, when, then; exact values> · spec <NNN> · due M<M>
 ```
 
-Set `Status: **Accepted**` only when the owner accepts and no section 10 item is Open.
+- **New criterion:** add it under the product-area heading it belongs to (or a new heading),
+  `v1`, `spec <NNN>`, `due M<M>`. The prefix `AC-<AREA>` is new or continues an area without
+  clashing with an existing ID.
+- **Changed criterion:** replace its line in place: same ID and position, version + 1, the new
+  text, `spec <its creator>`, `· changed by spec <NNN>`, `due M<M>`.
+- **Retired criterion:** keep the line, end it with `· retired by spec <NNN>` instead of the due
+  part. Never delete a line.
+- Never touch another spec's line for any other reason. `check` compares the file with the
+  branch base.
 
 ---
 
-## File 6: section in `docs/acceptance-criteria.md` (append at the end of the file)
+## File 5: `docs/product/` and `docs/architecture/`
 
-The registry is the one complete list of the product's criteria; the black-box suite is built
-from it alone (issue #31). The spec PR adds its new IDs there, so one merge brings both files up
-to date.
-
-```markdown
-## <Title> (spec <NNN>, due milestone <M>)
-
-<optional one-line note, for example a definition the criteria share>
-
-- [ ] **<AC-XXX-1>** · <the same line as in File 3, byte for byte>
-- [ ] **<AC-XXX-2>** · <...>
-```
-
-Rules: the heading format is fixed (`check` and gate 14 parse `(spec <NNN>, due milestone <M>)`);
-every AC line is copied from File 3 unchanged; nothing but this spec's new IDs goes under the
-heading. Re-expressed spec 001 IDs are not added here: their existing line is replaced in place
-with the "Becomes" text of section 5 (same ID, same position). No new IDs: no section.
-
----
-
-## Index row 1: `docs/specs/README.md`, table "Index" (append as the last row)
-
-```markdown
-| <NNN> | [<NNN>-<name>](<NNN>-<name>/) | `SPEC.md` | M<M> | `<branch>` | Draft |
-```
-
-Status `Draft` while section 10 has open items, `Ready` when all are decided (check fails on
-`Ready` with open items).
-
-## Index row 2: `decisions/README.md`, decision table (append as the last row, INSIDE the table, above "Status values")
-
-```markdown
-| <DDDD> | [Spec <NNN>: <one line decision>](<DDDD>-<name>.md) | Proposed |
-```
-
-Status `Proposed` while section 10 has open items, `Accepted` when all are decided.
+Change the files that describe what this spec changes, so that on the branch they describe the
+system after the spec (product behaviour in `docs/product/`, how it is built in
+`docs/architecture/`). Keep their section numbers. Name every changed file in SPEC.md section 1;
+`check` fails on a changed file that section 1 does not name.

@@ -2,14 +2,13 @@
 # Read by .github/workflows/locked-files-guard.yml (PR comment, main's copy)
 # and by scripts/owner-review.sh (checks the branch history from main).
 # One path per line (git glob); "/**" = everything below, "*" = one folder level.
-# Agent memory in docs/specs/<id>/ (STATE, PROGRESS, DECISIONS, ...) is not locked.
+# Builder memory in docs/specs/<id>/builder/ (STATE, PROGRESS, DECISIONS, ...) is not locked.
 # "create-once" = the agent may create
 # the file once (M1) but never change or delete it afterwards.
 docs/SPEC.md
 docs/specs/README.md
 docs/specs/*/SPEC.md
 docs/specs/*/spec.json
-docs/specs/*/acceptance-criteria.md
 docs/specs/*/test-changes.md
 scripts/lib/active-spec.mjs
 docs/product/**
@@ -20,6 +19,7 @@ decisions/**
 docs/specs/*/history/**
 CLAUDE.md
 .claude/agents/**
+.claude/rules/**
 .claude/skills/**
 .claude/settings.json
 scripts/locked-paths.txt
@@ -28,5 +28,5 @@ scripts/check-test-changes.mjs
 scripts/test/**
 .github/workflows/locked-files-guard.yml
 .github/ISSUE_TEMPLATE/**
-docs/acceptance-criteria.md create-once
+docs/project-acceptance-criteria.md
 .github/workflows/escalation-notify.yml create-once

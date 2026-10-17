@@ -6,7 +6,7 @@ model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+is `<spec>/SPEC.md`; all criteria are in `docs/project-acceptance-criteria.md` (each line names its spec).
 The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
 `docs/README.md`). The active spec wins over them for what it names.
 

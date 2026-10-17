@@ -1,8 +1,12 @@
 {
   "id": "004",
   "title": "Test-changes gate",
-  "spec": "docs/specs/004-test-changes-gate/SPEC.md",
-  "acceptance": "docs/specs/004-test-changes-gate/acceptance-criteria.md",
+  "owner": "brakebg",
+  "status": "done",
+  "milestones": [
+    10
+  ],
   "branch": "feature/test-changes-gate",
-  "milestones": [10]
+  "issue": 22,
+  "release": null
 }

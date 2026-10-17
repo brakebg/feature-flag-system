@@ -1,6 +1,6 @@
 ---
 name: Builder task
-about: "Owner only. Hands one merged change spec to an autonomous builder session (docs/process/builder-prompt.md section 6)."
+about: "Owner only. Hands one tagged change spec to an autonomous builder session (docs/process/builder-prompt.md section 6)."
 title: "Implement spec <NNN>: <Title> (M<n>)"
 labels: []
 assignees: []
@@ -10,20 +10,20 @@ Spec folder: docs/specs/<NNN-name>/
 <!-- Keep the line above as the first line, exactly in this form. The builder reads only that
 line from this issue. Everything below is for people; the spec decides the work. -->
 
-- Spec: `docs/specs/<NNN-name>/SPEC.md`, criteria in `acceptance-criteria.md`
-- Spec PR: #<number> · decision: `decisions/<DDDD>-<name>.md`
-- Milestone: M<n> · builder branch: `feature/<name>` (from `spec.json`)
+- Spec: `docs/specs/<NNN-name>/SPEC.md` on branch `feature/<name>`, tag `spec-<NNN>-ready`
+- Criteria: the `spec <NNN>` lines in `docs/project-acceptance-criteria.md`
+- Milestone: M<n> (from `spec.json`)
 
 ## Before the builder starts (owner)
 
-- [ ] The spec is merged on `main`; its row in `docs/specs/README.md` says `Ready`
+- [ ] The tag `spec-<NNN>-ready` is on the commit that sets `"status": "ready"` in `spec.json`
 - [ ] No `**Open:**` item left in section 10 of its `SPEC.md`
-- [ ] Every owner step the spec names before the build is done
-- [ ] The launch checks of `docs/process/builder-prompt.md` section 5 are true
+- [ ] Every owner step the spec names before the build is in the tagged commit
+- [ ] `/handover-check #<this issue>` says READY (launch checks of `docs/process/builder-prompt.md` section 5)
 
 ## Start
 
-Cloud session on this repo, branch `main`, with the kickoff prompt of `docs/process/builder-prompt.md`
+Cloud session on this repo, branch `main` (the builder switches to the spec's branch), with the kickoff prompt of `docs/process/builder-prompt.md`
 section 5 and the task line `Task issue: #<this issue's number>`.
 
 ## Done when

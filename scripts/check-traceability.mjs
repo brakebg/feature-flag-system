@@ -10,7 +10,7 @@
 // Output: build/traceability.md (ID -> tests -> pass/fail), included in the verify report.
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { acDue, acIds, errIds, errorTableRows, specAcs } from './lib/trace-registry.mjs';
+import { countedAcs, errIds, errorTableRows } from './lib/trace-registry.mjs';
 import { isDue, milestoneState } from './lib/active-spec.mjs';
 
 const state = milestoneState();
@@ -74,9 +74,8 @@ function decode(s) {
 }
 
 const registry = new Map();
-for (const { id, removed, due } of acIds()) registry.set(id, { due: removed ? null : (due ?? acDue[id]), removed });
+for (const { id, removed, due } of countedAcs()) registry.set(id, { due: removed ? null : due, removed });
 for (const [id, due] of Object.entries(errIds)) registry.set(id, { due, removed: false });
-for (const { id, removed, due } of specAcs()) registry.set(id, { due: removed ? null : due, removed });
 
 const problems = [];
 const pending = [];
