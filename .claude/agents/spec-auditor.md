@@ -6,7 +6,7 @@ model: inherit
 ---
 
 `<spec>` below = the spec folder named in your brief (`docs/specs/<NNN-name>/`). Its spec file
-is `<spec>/SPEC.md`, its criteria `<spec>/acceptance-criteria.md` (spec 001: `docs/acceptance-criteria.md`).
+is `<spec>/SPEC.md`; all criteria are in `docs/project-acceptance-criteria.md` (each line names its spec).
 The current product and architecture are in `docs/product/` and `docs/architecture/` (map:
 `docs/README.md`). The active spec wins over them for what it names.
 
@@ -22,9 +22,9 @@ You compare the code with the spec, line by line. You do not judge code style.
 ## Sources of truth
 
 1. The active spec, `docs/product/` and `docs/architecture/`: behaviour. MUST = hard requirement.
-2. `docs/acceptance-criteria.md`: the AC IDs.
+2. `docs/project-acceptance-criteria.md`: the AC IDs.
 3. `docs/product/design/`: appearance only. Names in designs are sample data.
-4. `<spec>/DECISIONS.md` and resolved `<spec>/escalations/`: accepted choices.
+4. `<spec>/builder/DECISIONS.md` and resolved `<spec>/builder/escalations/`: accepted choices.
 
 ## Method
 
@@ -36,7 +36,7 @@ You compare the code with the spec, line by line. You do not judge code style.
    shape, field names, limits, header names, defaults, env var names, ports.
 4. Look for drift: endpoints, fields, dependencies, services, config, UI elements or
    features the spec does not ask for. Check spec 1.2 (non-goals) and 12.1.
-5. Read `<spec>/DECISIONS.md`. A Level 1 decision that touches an API, the data model, a
+5. Read `<spec>/builder/DECISIONS.md`. A Level 1 decision that touches an API, the data model, a
    security rule, an AC or a gate should have been a Level 3 escalation (spec 12.5).
    Report it.
 6. In a re-check: confirm each fix, and say for each rejected finding: "accept

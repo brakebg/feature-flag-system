@@ -1,8 +1,12 @@
 {
   "id": "003",
   "title": "High availability",
-  "spec": "docs/specs/003-high-availability/SPEC.md",
-  "acceptance": "docs/specs/003-high-availability/acceptance-criteria.md",
+  "owner": "brakebg",
+  "status": "ready",
+  "milestones": [
+    11
+  ],
   "branch": "feature/high-availability",
-  "milestones": [11]
+  "issue": null,
+  "release": null
 }

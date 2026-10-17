@@ -3,6 +3,8 @@
 Owner document. Read-only for the agent.
 This is the go-to validation model for this project, decided by the owner in
 `docs/process/decisions/0001-validation-approach.md`: **single builder + black-box acceptance suite**.
+It describes how spec 001 was validated; for every later spec, the branch, tag, amendment and
+suite-version rules are in `docs/process/spec-flow.md`.
 
 ## 1. The problem
 
@@ -97,7 +99,7 @@ flowchart TD
   E -->|red| F["Read build/verify-report.md<br/>fix production code, never the test"]
   F --> G{"Same error 5 times?"}
   G -->|no| E
-  G -->|yes| H["Revert to last green, try another way<br/>after 3 ways: BLOCKERS.md, move on"]
+  G -->|yes| H["Revert to last green, try another way<br/>after 3 ways: decide or escalate, move on"]
   H --> B
   E -->|green| I["Self-check git diff<br/>no weakened test or threshold"]
   I --> J["Update STATE.md + PROGRESS.md<br/>commit with AC trailer, push"]

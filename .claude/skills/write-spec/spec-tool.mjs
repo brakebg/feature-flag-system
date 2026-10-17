@@ -5,22 +5,26 @@
 //   node .claude/skills/write-spec/spec-tool.mjs next [--no-fetch]
 //   node .claude/skills/write-spec/spec-tool.mjs tests [--md] <ID ...>
 //   node .claude/skills/write-spec/spec-tool.mjs check <spec-folder> [--allow-open] [--base <ref>]
+//   node .claude/skills/write-spec/spec-tool.mjs list
 //
 // next   Next free spec id, milestone and decision number. Scans the working tree, origin/main
 //        and every other branch (local and origin), so numbers taken by an open spec PR are skipped.
 // tests  Every test that carries the IDs in a string: JUnit @Tag("ID"), a Vitest / Playwright /
 //        script test title (same ID pattern as gate 14). --md prints the list for test-changes.md.
 //        Warns on an ID with no test.
-// check  Validates a new spec folder against the template and the index files.
+// check  Validates a spec folder on its branch against the template, the criteria file and the
+//        scope rules of docs/process/spec-flow.md (compared with the merge base of --base).
 //        Exit 0 = pass. Exit 1 = problems (listed). Exit 2 = only open owner questions left
 //        (pass --allow-open for a draft). Exit 3 = usage error (all subcommands).
+// list   The table of all specs, read from their spec.json files (docs/specs/README.md has no
+//        index table: spec.json is the only place for a spec's facts).
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = repoRoot();
-const { acIds, errIds } = await import(pathToFileURL(path.join(ROOT, 'scripts/lib/trace-registry.mjs')).href);
+const { REGISTRY, acIds, errIds, parseRegistry } = await import(pathToFileURL(path.join(ROOT, 'scripts/lib/trace-registry.mjs')).href);
 
 /** The plumbing clause of test-changes.md. Identical in every spec (issue #21). */
 export const PLUMBING = [
@@ -30,7 +34,7 @@ export const PLUMBING = [
 
 /** The "##" headings of SPEC.md, in this order (TEMPLATE.md). The header block comes first. */
 export const SECTIONS = [
-  'Relation to `docs/SPEC.md`',
+  'Relation to the current docs',
   'Goal',
   'MUST stay the same',
   'Design',
@@ -85,11 +89,6 @@ export function idsIn(text) {
 /** ERR-<METHOD>-<path>-<status> IDs in a text (gate 14 pattern). */
 const errsIn = (text) => uniq((text.match(ID_RE) ?? []).filter((x) => x.startsWith('ERR-')));
 
-/** AC lines of an acceptance-criteria.md text (same regex as acIds in trace-registry.mjs). */
-function parseAcs(text) {
-  return [...text.matchAll(/^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* · (.*)$/gm)].map((m) => ({ id: m[1], removed: m[2].startsWith('[Removed') }));
-}
-
 /** Text without fenced code blocks and inline code spans. */
 function prose(text) {
   let fence = false;
@@ -118,7 +117,7 @@ function localSpecs() {
       } catch {
         /* folder without a readable spec.json: counted by its name only */
       }
-      return { name: d.name, id: d.name.slice(0, 3), branch: meta?.branch, milestones: meta?.milestones ?? [], acceptance: meta?.acceptance, ref: 'working tree' };
+      return { name: d.name, id: d.name.slice(0, 3), branch: meta?.branch, milestones: meta?.milestones ?? [], acceptance: meta?.acceptance, meta, ref: 'working tree' };
     });
 }
 
@@ -164,23 +163,6 @@ function decisionsAt(ref) {
       .filter(isDecision)
       .map((f) => ({ n: f.slice(0, 4), file: f, dir: d, ref })),
   );
-}
-
-/** IDs known before this spec: docs/acceptance-criteria.md and every other spec's file. */
-function knownAcs(exceptFolder) {
-  const known = new Map();
-  // Registry IDs of this spec's own section are not "known elsewhere": the spec PR appends them (issue #31).
-  for (const a of acIds(path.join(ROOT, 'docs/acceptance-criteria.md'))) if (!(a.spec && exceptFolder.startsWith(`${a.spec}-`))) known.set(a.id, { ...a, source: 'docs/acceptance-criteria.md' });
-  for (const s of localSpecs()) {
-    if (s.name === exceptFolder || !s.acceptance || s.acceptance === 'docs/acceptance-criteria.md' || !exists(s.acceptance)) continue;
-    for (const a of acIds(path.join(ROOT, s.acceptance))) if (!known.has(a.id)) known.set(a.id, { ...a, source: s.acceptance });
-  }
-  for (const s of scanRefs().flatMap(specsAt)) {
-    if (s.name === exceptFolder || !s.acceptance || s.acceptance === 'docs/acceptance-criteria.md') continue;
-    const text = git(['show', `${s.ref}:${s.acceptance}`]);
-    if (text) for (const a of parseAcs(text)) if (!known.has(a.id)) known.set(a.id, { ...a, source: `${s.acceptance} on ${s.ref}` });
-  }
-  return known;
 }
 
 // ---------------------------------------------------------------------------------- next
@@ -243,6 +225,15 @@ export function findTests(id) {
     });
 }
 
+function cmdList() {
+  const rows = ['| # | Folder | Title | Status | Milestones | Branch | Issue | Release |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
+  for (const s of localSpecs()) {
+    const m = s.meta ?? {};
+    rows.push(`| ${s.id} | ${s.name} | ${m.title ?? ''} | ${m.status ?? ''} | ${s.milestones.map((n) => `M${n}`).join(', ')} | ${m.branch ?? ''} | ${m.issue ? `#${m.issue}` : ''} | ${m.release ?? ''} |`);
+  }
+  console.log(rows.join('\n'));
+}
+
 function cmdTests(args) {
   const md = args.includes('--md');
   const ids = args.filter((a) => !a.startsWith('--'));
@@ -280,15 +271,6 @@ function sections(text) {
   return out;
 }
 
-/** The markdown table (contiguous "|" lines) that starts with the header line matching `head`. */
-function tableRows(text, head) {
-  const ls = text.split('\n');
-  const start = ls.findIndex((l) => head.test(l));
-  if (start < 0) return null;
-  const rows = [];
-  for (let i = start + 2; i < ls.length && ls[i].startsWith('|'); i++) rows.push(ls[i]);
-  return rows;
-}
 
 function cmdCheck(args) {
   const allowOpen = args.includes('--allow-open');
@@ -311,7 +293,7 @@ function cmdCheck(args) {
   const warn = (m) => warnings.push(m);
   let open = [];
 
-  // 1. Folder and spec.json
+  // 1. Folder and spec.json (docs/specs/README.md, folder layout)
   const fm = /^(\d{3})-([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(folder);
   if (!fm) err(`${dir}: folder name must be NNN-<kebab-case>`);
   if (!exists(dir)) {
@@ -324,17 +306,20 @@ function cmdCheck(args) {
   } catch (e) {
     err(`${dir}/spec.json: missing or not JSON (${e.message})`);
   }
-  for (const k of ['id', 'title', 'spec', 'acceptance', 'branch', 'milestones']) if (meta[k] === undefined) err(`spec.json: missing "${k}"`);
+  for (const k of ['id', 'title', 'owner', 'status', 'milestones', 'branch']) if (meta[k] === undefined) err(`spec.json: missing "${k}"`);
+  for (const k of ['issue', 'release']) if (!(k in meta)) err(`spec.json: missing "${k}" (null when not known)`);
+  for (const k of ['spec', 'acceptance']) if (k in meta) err(`spec.json: "${k}" is no longer used (SPEC.md is always in the folder; criteria are in ${REGISTRY})`);
   if (fm && meta.id !== fm[1]) err(`spec.json: id "${meta.id}" does not match the folder number ${fm[1]}`);
-  if (meta.spec !== `${dir}/SPEC.md`) err(`spec.json: "spec" must be "${dir}/SPEC.md"`);
-  if (meta.acceptance !== `${dir}/acceptance-criteria.md`) err(`spec.json: "acceptance" must be "${dir}/acceptance-criteria.md"`);
-  for (const k of ['spec', 'acceptance']) if (meta[k] && !exists(meta[k])) err(`spec.json: ${k} file ${meta[k]} does not exist`);
-  if (!exists(`${dir}/test-changes.md`)) err(`${dir}/test-changes.md does not exist`);
+  if (!['draft', 'ready', 'done'].includes(meta.status)) err(`spec.json: "status" must be draft, ready or done (found ${JSON.stringify(meta.status)})`);
   const milestones = Array.isArray(meta.milestones) ? meta.milestones : [];
   if (!milestones.length || !milestones.every((m) => Number.isInteger(m) && m > 0)) err('spec.json: "milestones" must be a non-empty list of positive integers');
-  if (typeof meta.branch === 'string' && (/^(main|spec\/|wip\/)/.test(meta.branch))) err(`spec.json: branch "${meta.branch}" must be a builder branch (not main, spec/*, wip/*)`);
-  const agentFiles = ['STATE.md', 'PROGRESS.md', 'DECISIONS.md', 'BLOCKERS.md', 'MILESTONE', 'escalations', 'reviews', 'verify-report.md'];
-  for (const f of agentFiles) if (exists(`${dir}/${f}`)) err(`${dir}/${f}: builder memory file; a new spec must not create it`);
+  if (typeof meta.branch !== 'string' || !/^feature\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(meta.branch)) err(`spec.json: branch must be feature/<kebab-case> (found ${JSON.stringify(meta.branch)})`);
+  if (meta.issue !== null && meta.issue !== undefined && !Number.isInteger(meta.issue)) err('spec.json: "issue" must be a number or null');
+  if ('scope' in meta && !(Array.isArray(meta.scope) && meta.scope.every((x) => typeof x === 'string' && x))) err('spec.json: "scope" must be a list of path globs');
+  if (!exists(`${dir}/SPEC.md`)) err(`${dir}/SPEC.md does not exist`);
+  if (!exists(`${dir}/test-changes.md`)) err(`${dir}/test-changes.md does not exist`);
+  if (exists(`${dir}/acceptance-criteria.md`)) err(`${dir}/acceptance-criteria.md: a spec has no criteria file of its own; its criteria go into ${REGISTRY}`);
+  for (const f of ['builder', 'STATE.md', 'PROGRESS.md', 'DECISIONS.md', 'BLOCKERS.md', 'MILESTONE', 'escalations', 'reviews', 'verify-report.md']) if (exists(`${dir}/${f}`)) err(`${dir}/${f}: builder memory; the builder creates it in its first commit, never the spec`);
 
   // 2. Unique across all specs (working tree and all branches)
   const others = [...localSpecs(), ...scanRefs().flatMap(specsAt)].filter((s) => s.name !== folder);
@@ -344,38 +329,53 @@ function cmdCheck(args) {
     for (const m of milestones) if (s.milestones.includes(m)) err(`milestone M${m} is also used by ${s.name} (${s.ref})`);
   }
 
-  // 3. acceptance-criteria.md
-  const specAcIds = [];
-  if (meta.acceptance && exists(meta.acceptance)) {
-    const text = read(meta.acceptance);
-    const due = Number(/^Due milestone: (\d+)\s*$/m.exec(text)?.[1]);
-    if (!due) err(`${meta.acceptance}: missing "Due milestone: <n>"`);
-    else if (!milestones.includes(due)) err(`${meta.acceptance}: Due milestone ${due} is not a milestone of this spec (${milestones.join(', ')})`);
-    for (const l of text.split('\n')) {
-      if (/^\s*- \[/.test(l) && !/^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* · (.*)$/.test(l)) err(`${meta.acceptance}: line does not parse as an AC line: ${l.slice(0, 80)}`);
-    }
-    specAcIds.push(...acIds(path.join(ROOT, meta.acceptance)).map((a) => a.id));
-    if (uniq(specAcIds).length !== specAcIds.length) err(`${meta.acceptance}: an AC ID is listed twice`);
-    if (!specAcIds.length) warn(`${meta.acceptance}: no AC IDs (a spec with no new criterion?)`);
+  // 3. Criteria (docs/process/traceability.md): compare the list here with the branch base.
+  const baseOk = git(['rev-parse', '--verify', '--quiet', base]) !== null;
+  if (!baseOk) warn(`criteria and scope not checked against ${base}: ref not found (use --base <ref>)`);
+  const mergeBase = baseOk ? (git(['merge-base', base, 'HEAD']) ?? '').trim() : '';
+  const now = exists(REGISTRY) ? parseRegistry(read(REGISTRY)) : { acs: [], bad: [] };
+  for (const b of now.bad) err(`${REGISTRY}:${b.n}: line does not parse: ${b.line.slice(0, 80)}`);
+  const was = new Map((mergeBase ? parseRegistry(git(['show', `${mergeBase}:${REGISTRY}`]) ?? '').acs : []).map((a) => [a.id, a]));
+  const seen = new Set();
+  for (const a of now.acs) {
+    if (seen.has(a.id)) err(`${REGISTRY}:${a.n}: ${a.id} is listed twice`);
+    seen.add(a.id);
   }
-  const known = knownAcs(folder);
-  for (const id of specAcIds) if (known.has(id)) err(`${id}: new ID of this spec already exists in ${known.get(id).source}`);
+  const newIds = [];
+  const changedIds = [];
+  const retiredIds = [];
+  for (const a of now.acs) {
+    const old = was.get(a.id);
+    const differs = !old || old.text !== a.text || old.version !== a.version || old.retiredBy !== a.retiredBy || old.due !== a.due || old.changedBy !== a.changedBy;
+    if (!differs) continue;
+    if (!old) {
+      if (a.spec !== meta.id) err(`${REGISTRY}:${a.n}: new ${a.id} must name "spec ${meta.id}"`);
+      else if (a.version !== 1 || a.changedBy) err(`${REGISTRY}:${a.n}: new ${a.id} starts at v1 without "changed by"`);
+      else if (!milestones.includes(a.due)) err(`${REGISTRY}:${a.n}: ${a.id} due M${a.due} is not a milestone of this spec (${milestones.join(', ')})`);
+      newIds.push(a.id);
+    } else if (a.removed && !old.removed) {
+      if (a.retiredBy !== `spec ${meta.id}`) err(`${REGISTRY}:${a.n}: retired ${a.id} must say "retired by spec ${meta.id}"`);
+      retiredIds.push(a.id);
+    } else if (baseOk && old.spec === meta.id && !old.changedBy && a.spec === meta.id && !a.changedBy) {
+      newIds.push(a.id); // this spec's own new criterion, edited again on its branch
+    } else {
+      if (a.changedBy !== meta.id) err(`${REGISTRY}:${a.n}: changed ${a.id} must say "changed by spec ${meta.id}"`);
+      if (a.version !== old.version + 1) err(`${REGISTRY}:${a.n}: changed ${a.id} must be v${old.version + 1} (was v${old.version})`);
+      if (!milestones.includes(a.due)) err(`${REGISTRY}:${a.n}: ${a.id} due M${a.due} is not a milestone of this spec`);
+      changedIds.push(a.id);
+    }
+  }
+  for (const id of was.keys()) if (!seen.has(id)) err(`${REGISTRY}: ${id} was removed; retire it instead ("· retired by spec ${meta.id}")`);
 
   // 4. SPEC.md: header and sections
   let sec = {};
-  let reExpressed = [];
-  let dec = null;
-  let s10 = '';
-  if (meta.spec && exists(meta.spec)) {
-    const text = read(meta.spec);
+  const specFile = `${dir}/SPEC.md`;
+  if (exists(specFile)) {
+    const text = read(specFile);
     const head = text.split(/^## /m)[0];
     if (!new RegExp(`^# Spec ${meta.id} — \\S`).test(head)) err(`SPEC.md: first line must be "# Spec ${meta.id} — <title>"`);
     if (!/Owner-authored, locked\./.test(head)) err('SPEC.md header: missing "Owner-authored, locked."');
-    dec = /Decision: `((?:[a-z0-9-]+\/)*?)(\d{4})-([a-z0-9-]+)\.md`/.exec(head);
-    if (!dec) err('SPEC.md header: missing "Decision: `<decision folder>/NNNN-<name>.md`"');
-    else dec = [dec[0], dec[2], dec[3], `${dec[1]}${dec[2]}-${dec[3]}.md`];
-    for (const m of milestones) if (!head.includes(`**M${m}**`)) err(`SPEC.md header: milestone **M${m}** not named`);
-    if (meta.branch && !head.includes(`**\`${meta.branch}\`**`)) err(`SPEC.md header: working branch **\`${meta.branch}\`** not named`);
+    if (/Decision: `/.test(head)) warn('SPEC.md header: names a decision record; a spec keeps its decisions in section 10');
 
     const all = sections(text);
     const titles = all.map((s) => s.title);
@@ -388,29 +388,26 @@ function cmdCheck(args) {
       if (all[i]?.title.startsWith(want)) sec[want] = all[i].body;
     });
 
-    // 4a. Section 1 names the owner follow-up
-    if (sec[SECTIONS[0]] !== undefined && !/owner updates `docs\/SPEC\.md`/.test(sec[SECTIONS[0]])) err('SPEC.md section 1: missing "the owner updates `docs/SPEC.md`" after merge');
-    // 4b. Goal has "Not in scope"
+    // 4a. Section 1 names every product and architecture file this branch changes
+    if (sec[SECTIONS[0]] !== undefined && baseOk) {
+      const docs = lines(git(['diff', '--name-only', `${mergeBase}`, '--', 'docs/product', 'docs/architecture'])).concat(lines(git(['ls-files', '--others', '--exclude-standard', 'docs/product', 'docs/architecture'])));
+      for (const f of uniq(docs)) if (!sec[SECTIONS[0]].includes(f)) err(`SPEC.md section 1: ${f} changes on this branch but is not named`);
+    }
     if (sec.Goal !== undefined && !/Not in scope/.test(sec.Goal)) err('SPEC.md section 2: missing "Not in scope"');
 
-    // 4c. Section 5: every new ID named; re-expressed IDs exist
+    // 4c. Section 5 names exactly the criteria this spec adds, changes or retires
     const s5 = sec['Acceptance criteria'];
+    const mine = [...newIds, ...changedIds, ...retiredIds];
     if (s5 !== undefined) {
       const named = idsIn(s5);
-      for (const id of specAcIds) if (!named.includes(id)) err(`SPEC.md section 5: ${id} (from acceptance-criteria.md) is not named`);
-      reExpressed = uniq(s5.split('\n').map((l) => /^\|\s*(AC-[A-Z]+-\d+)\s*\|/.exec(l)?.[1]).filter(Boolean));
-      for (const id of reExpressed) {
-        if (specAcIds.includes(id)) err(`SPEC.md section 5: ${id} is a new ID; the re-expressed table holds existing IDs only`);
-        else if (!known.has(id)) err(`SPEC.md section 5: re-expressed ${id} does not exist in docs/acceptance-criteria.md (a re-expressed AC keeps its ID and position)`);
-        else if (known.get(id).removed) err(`SPEC.md section 5: re-expressed ${id} is a removed ID`);
-      }
-      for (const id of named) if (!specAcIds.includes(id) && !known.has(id)) err(`SPEC.md section 5: ${id} is neither new (acceptance-criteria.md) nor existing`);
+      for (const id of mine) if (!named.includes(id)) err(`SPEC.md section 5: ${id} (changed in ${REGISTRY}) is not named`);
+      for (const id of named) if (!mine.includes(id) && !seen.has(id)) err(`SPEC.md section 5: ${id} does not exist in ${REGISTRY}`);
       const noChange = /^No behaviour change\.\s*$/m.test(s5);
-      if (!specAcIds.length && !reExpressed.length && !noChange) err('SPEC.md section 5: no new and no re-expressed AC ID; every behaviour change needs one (or write the line "No behaviour change.")');
-      if (noChange && (specAcIds.length || reExpressed.length)) err('SPEC.md section 5: says "No behaviour change." but names new or re-expressed IDs');
+      if (!mine.length && !noChange) err('SPEC.md section 5: no new, changed or retired criterion; every behaviour change needs one (or write the line "No behaviour change.")');
+      if (noChange && mine.length) err('SPEC.md section 5: says "No behaviour change." but criteria change');
     }
 
-    // 4d. Section 7: acceptance delta
+    // 4d. Section 7: acceptance delta equals the criteria diff
     const s7 = sec['Acceptance delta'];
     const delta = {};
     if (s7 !== undefined) {
@@ -420,9 +417,9 @@ function cmdCheck(args) {
         delta[k] = l ? idsIn(l[1]) : [];
       }
       const same = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
-      if (!same(delta.Added, specAcIds)) err(`SPEC.md section 7: Added (${delta.Added.join(', ') || 'none'}) must equal the IDs of acceptance-criteria.md (${specAcIds.join(', ') || 'none'})`);
-      if (!same(delta.Changed, reExpressed)) err(`SPEC.md section 7: Changed (${delta.Changed.join(', ') || 'none'}) must equal the re-expressed IDs of section 5 (${reExpressed.join(', ') || 'none'})`);
-      for (const id of delta.Retired) if (!known.has(id)) err(`SPEC.md section 7: retired ${id} does not exist`);
+      for (const [k, ids] of [['Added', newIds], ['Changed', changedIds], ['Retired', retiredIds]]) {
+        if (!same(delta[k], ids)) err(`SPEC.md section 7: ${k} (${delta[k].join(', ') || 'none'}) must equal the ${k.toLowerCase()} criteria in ${REGISTRY} (${ids.join(', ') || 'none'})`);
+      }
     }
 
     // 4e. test-changes.md and section 6
@@ -442,13 +439,12 @@ function cmdCheck(args) {
       for (const id of allowed) {
         if (allowedErr.includes(id)) {
           if (!(id in errIds)) err(`test-changes.md: ${id} is not a known ERR ID (scripts/lib/trace-registry.mjs errIds)`);
-        } else {
-          if (!known.has(id) && !specAcIds.includes(id)) err(`test-changes.md: ${id} is not a known AC ID`);
-          if (delta.Changed && !delta.Changed.includes(id) && !(delta.Retired ?? []).includes(id)) err(`test-changes.md: ${id} may change but is not listed as Changed (or Retired) in the acceptance delta`);
+        } else if (!changedIds.includes(id) && !retiredIds.includes(id)) {
+          err(`test-changes.md: ${id} may change but this spec does not change or retire it`);
         }
         if (!findTests(id).length) warn(`test-changes.md: ${id} has no tagged test in the repo today`);
       }
-      for (const k of ['Changed', 'Retired']) for (const id of delta[k] ?? []) if (!allowed.includes(id)) warn(`acceptance delta: ${id} is ${k} but its tests are not allowed to change (test-changes.md); fine only if no test asserts the old behaviour`);
+      for (const id of [...changedIds, ...retiredIds]) if (!allowed.includes(id) && findTests(id).length) warn(`${id} changes but its tests are not allowed to change (test-changes.md); fine only if no test asserts the old text`);
       const s6 = sec['Test changes'];
       if (s6 !== undefined) {
         if (!s6.includes('test-changes.md')) err('SPEC.md section 6: must point to `<spec>/test-changes.md`');
@@ -458,72 +454,29 @@ function cmdCheck(args) {
       }
     }
 
-    // 4f. Section 10: open owner questions
-    s10 = sec['Owner decisions'];
+    // 4f. Section 10: the spec's decision log
+    const s10 = sec['Owner decisions'];
     if (s10 !== undefined) {
       const items = s10.split('\n').filter((l) => /^\d+\.\s/.test(l));
       if (!items.length) warn('SPEC.md section 10: no owner decision listed');
       open = items.filter((l) => /\*\*Open\b/.test(l));
       for (const l of items) if (!/\*\*(Open|Decided)\b/.test(l)) err(`SPEC.md section 10: item without "**Decided:" or "**Open:": ${l.slice(0, 70)}`);
     }
-
-    if (open.length && /Accepted by the owner on/.test(s10)) err('SPEC.md section 10: "Accepted by the owner on" while items are Open');
+    if (open.length && meta.status !== 'draft') err(`spec.json: status "${meta.status}" while section 10 has Open items (use draft)`);
 
     // 4g. Leftover template text: comments and placeholders outside code
-    const files = [meta.spec, meta.acceptance, `${dir}/test-changes.md`, dec && dec[3]].filter((f) => f && exists(f));
-    for (const f of files) {
-      const raw = read(f);
-      const p = prose(raw);
+    for (const f of [specFile, `${dir}/test-changes.md`].filter((f) => exists(f))) {
+      const p = prose(read(f));
       if (/<!--/.test(p)) err(`${f}: template comment "<!--" left`);
       for (const ph of uniq(p.match(/<[A-Za-z][^>]*>/g) ?? [])) if (!ALLOWED_PLACEHOLDERS.has(ph)) err(`${f}: placeholder ${ph} left`);
     }
-
-    // 5. Decision file and both index rows
-    if (dec) {
-      const dfile = dec[3];
-      if (!exists(dfile)) err(`${dfile} does not exist`);
-      else if (!new RegExp(`^# ${dec[1]} · `).test(read(dfile))) err(`${dfile}: first line must be "# ${dec[1]} · <title>"`);
-      else if (open.length && /^Status: \*\*Accepted\*\*/m.test(read(dfile))) err(`${dfile}: Status is Accepted while section 10 has Open items`);
-      for (const d of [...localDecisions(), ...scanRefs().flatMap(decisionsAt)]) {
-        if (d.n === dec[1] && d.file !== `${dec[1]}-${dec[2]}.md`) err(`decision number ${dec[1]} is also used by ${d.file} (${d.ref})`);
-      }
-      // A decision folder keeps an index README; a spec's history/ folder has none.
-      const index = `${path.dirname(dfile)}/README.md`;
-      if (!dfile.includes('/history/')) {
-        const rows = tableRows(read(index), /^\| # \| Decision \| Status \|/);
-        if (!rows) err(`${index}: decision table not found`);
-        else {
-          const row = rows.find((r) => r.startsWith(`| ${dec[1]} |`) && r.includes(`(${dec[1]}-${dec[2]}.md)`));
-          if (!row) err(`${index}: no row "| ${dec[1]} | [...](${dec[1]}-${dec[2]}.md) | ... |" inside the table`);
-          else if (open.length && /\|\s*Accepted\s*\|\s*$/.test(row)) err(`${index}: row says Accepted while section 10 has Open items (use Proposed)`);
-        }
-      }
-    }
   }
-  const idx = tableRows(read('docs/specs/README.md'), /^\| # \| Folder \|/);
-  if (!idx) err('docs/specs/README.md: index table not found');
-  else if (open.length && idx.some((r) => r.startsWith(`| ${meta.id} |`) && /\|\s*Ready\s*\|\s*$/.test(r))) err('docs/specs/README.md: index row says Ready while section 10 has Open items (use Draft)');
-  if (idx && !idx.some((r) => r.startsWith(`| ${meta.id} |`) && r.includes(`(${folder}/)`) && (!meta.branch || r.includes(`\`${meta.branch}\``)))) err(`docs/specs/README.md: no index row "| ${meta.id} | [${folder}](${folder}/) | ... | \`${meta.branch}\` | ... |" inside the table`);
 
-  // 6. Scope: a spec PR changes only spec files (never code, never a builder file)
-  const changed = uniq([...lines(git(['diff', '--name-only', `${base}...HEAD`])), ...lines(git(['diff', '--name-only', 'HEAD'])), ...lines(git(['ls-files', '--others', '--exclude-standard']))]);
-  if (git(['rev-parse', '--verify', '--quiet', base]) === null) warn(`scope not checked: ref ${base} not found (use --base <ref>)`);
-  else {
-    const decFile = dec ? dec[3] : null;
-    const ok = (f) => f.startsWith(`${dir}/`) || f === decFile || (decFile && f === `${path.dirname(decFile)}/README.md`) || f === 'docs/specs/README.md' || f === 'docs/acceptance-criteria.md';
-    for (const f of changed.filter((f) => !ok(f))) err(`scope: ${f} changed; a spec PR changes only its folder, its decision file, the two index files and docs/acceptance-criteria.md`);
-    // 7. Registry section (issue #31): the new IDs must be in docs/acceptance-criteria.md under this spec's heading, verbatim
-    const reg = acIds(path.join(ROOT, 'docs/acceptance-criteria.md')).filter((a) => a.spec === meta.id);
-    const regIds = reg.map((a) => a.id);
-    for (const id of specAcIds) if (!regIds.includes(id)) err(`docs/acceptance-criteria.md: ${id} missing under a heading "## <Title> (spec ${meta.id}, due milestone <M>)" (the spec PR appends its new IDs)`);
-    for (const a of reg) {
-      if (!specAcIds.includes(a.id)) err(`docs/acceptance-criteria.md: ${a.id} is under the spec ${meta.id} heading but not in ${meta.acceptance}`);
-      if (!milestones.includes(a.due)) err(`docs/acceptance-criteria.md: spec ${meta.id} section says due milestone ${a.due}, spec.json has ${milestones.join(', ')}`);
-    }
-    if (specAcIds.length && meta.acceptance && exists(meta.acceptance)) {
-      const regText = read('docs/acceptance-criteria.md');
-      for (const l of read(meta.acceptance).split('\n')) if (/^- \[[ x]\] \*\*AC-/.test(l) && !regText.includes(l)) err(`docs/acceptance-criteria.md: line differs from ${meta.acceptance}: ${l.slice(0, 60)}… (copy verbatim)`);
-    }
+  // 5. Scope: the spec's commits change only spec files (never code, never a builder file)
+  if (baseOk) {
+    const changed = uniq([...lines(git(['diff', '--name-only', `${mergeBase}`])), ...lines(git(['ls-files', '--others', '--exclude-standard']))]);
+    const ok = (f) => (f.startsWith(`${dir}/`) && !f.startsWith(`${dir}/builder/`)) || f === REGISTRY || f.startsWith('docs/product/') || f.startsWith('docs/architecture/');
+    for (const f of changed.filter((f) => !ok(f))) err(`scope: ${f} changed; a spec changes only its folder, ${REGISTRY}, docs/product/ and docs/architecture/ (docs/process/spec-flow.md)`);
   }
 
   // Report
@@ -538,7 +491,7 @@ function cmdCheck(args) {
     console.log(`\n${dir}: structure OK, ${open.length} open owner question(s) in section 10. Not ready.`);
     process.exit(2);
   }
-  console.log(`\n${dir}: OK${open.length ? ` (draft, ${open.length} open question(s))` : ''}.`);
+  console.log(`\n${dir}: OK${open.length ? ` (draft, ${open.length} open question(s))` : ''}. New: ${newIds.join(', ') || 'none'}; changed: ${changedIds.join(', ') || 'none'}; retired: ${retiredIds.join(', ') || 'none'}.`);
 }
 
 // ---------------------------------------------------------------------------------- main
@@ -549,8 +502,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   if (cmd === 'next') cmdNext(rest);
   else if (cmd === 'tests') cmdTests(rest);
   else if (cmd === 'check') cmdCheck(rest);
+  else if (cmd === 'list') cmdList();
   else {
-    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 17).join('\n'));
+    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 20).join('\n'));
     process.exit(USAGE);
   }
 }

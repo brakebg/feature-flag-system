@@ -1,8 +1,18 @@
 {
   "id": "005",
   "title": "UI redesign",
-  "spec": "docs/specs/005-ui-redesign/SPEC.md",
-  "acceptance": "docs/specs/005-ui-redesign/acceptance-criteria.md",
+  "owner": "brakebg",
+  "status": "ready",
+  "milestones": [
+    12
+  ],
   "branch": "feature/ui-redesign",
-  "milestones": [12]
+  "issue": 36,
+  "release": null,
+  "scope": [
+    "frontend/**",
+    "docs/design-compare/**",
+    "VERSION",
+    "CHANGELOG.md"
+  ]
 }

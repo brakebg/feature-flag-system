@@ -1,75 +1,64 @@
-// ID registry for gate 14 (spec 11.4).
+// ID registry for gate 14 (docs/process/traceability.md).
 //
-// - AC IDs come from docs/acceptance-criteria.md: the verbatim copy of spec 11.2 (due from
-//   acDue below), plus one section per merged change spec, heading
-//   "## <Title> (spec NNN, due milestone M)", whose IDs are due at M (issue #31). Before the
-//   spec has merged, its IDs come from docs/specs/<id>/acceptance-criteria.md instead
-//   ("Due milestone: <n>" there) for the active or started spec; an ID the registry already
-//   holds is not counted twice.
+// - AC IDs come from docs/project-acceptance-criteria.md, the one current list. Each line:
+//     - [ ] **<ID>** v<N> · <text> · spec <NNN>[ · changed by spec <MMM>] · due M<n>
+//     - [ ] **<ID>** v<N> · <text> · spec <NNN> · retired by <decision or spec>
+//   `due`: the milestone from whose end every test of the ID must pass. Before that it is
+//   reported as pending, not as a failure.
+// - A criterion of spec 001 always counts. A criterion created or changed by a later spec
+//   counts on a branch where that spec is active or has started (its builder/MILESTONE file),
+//   so an unbuilt spec's criteria never fail another spec's branch. A changed criterion of an
+//   unstarted spec counts at its spec 001 due milestone (all of spec 001 is due from M8).
 // - ERR IDs: one per status code in the Errors column of spec 6.1, plus the auth and
 //   evaluation endpoints of spec 5 and 7. Format ERR-<METHOD>-<path>-<status>, path
 //   relative to /api/v1 (or the actuator path).
 // - Each 9.1 error-table row names the ERR ID whose integration test asserts that row's
 //   status and problem `type`.
-// - `due`: the milestone (spec 12.2) whose "Done when" first needs the ID. Before that
-//   milestone a missing test is reported as pending, not as a failure. From M8 every ID
-//   is due (DECISIONS.md D-003).
 // Owner condition (ESC-001): a due milestone may only move earlier, never later, without a
 // new escalation.
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { activeSpec, specs } from './active-spec.mjs';
 
-export function acIds(file = 'docs/acceptance-criteria.md') {
-  const text = readFileSync(file, 'utf8');
-  const ids = [];
-  let section = {}; // { spec, due } of the current "(spec NNN, due milestone M)" heading
-  for (const line of text.split('\n')) {
-    const h = /^## .*\(spec (\d{3}), due milestone (\d+)\)\s*$/.exec(line);
-    if (h) {
-      section = { spec: h[1], due: Number(h[2]) };
-      continue;
-    }
-    if (/^## /.test(line)) section = {};
-    const m = /^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* · (.*)$/.exec(line);
-    if (m) ids.push({ id: m[1], removed: m[2].startsWith('[Removed'), ...section });
-  }
-  return ids;
+export const REGISTRY = 'docs/project-acceptance-criteria.md';
+export const AC_LINE =
+  /^- \[([ x])\] \*\*(AC-[A-Z]+-\d+)\*\* v(\d+) · (.*) · spec (\d{3})(?: · changed by spec (\d{3}))?(?: · due M(\d+)| · retired by (.+))$/;
+
+/** Every criterion line of the registry text, outside code blocks. Malformed lines in `bad`. */
+export function parseRegistry(text) {
+  const out = [];
+  const bad = [];
+  let fence = false;
+  text.split('\n').forEach((line, i) => {
+    if (/^```/.test(line)) fence = !fence;
+    if (fence || !/^- \[[ x]\] /.test(line)) return;
+    const m = AC_LINE.exec(line);
+    if (!m) return bad.push({ n: i + 1, line });
+    out.push({
+      n: i + 1, id: m[2], version: Number(m[3]), text: m[4], spec: m[5], changedBy: m[6] ?? null,
+      due: m[7] ? Number(m[7]) : null, removed: Boolean(m[8]), retiredBy: m[8] ?? null,
+    });
+  });
+  return { acs: out, bad };
 }
 
-/**
- * Criteria of the later specs (docs/specs/<id>/acceptance-criteria.md) that count on this
- * branch: the active spec, and every spec whose work has started here (MILESTONE file).
- * Spec 001 uses docs/acceptance-criteria.md and acDue below.
- */
-export function specAcs(root = '.') {
+export function acIds(file = REGISTRY) {
+  return parseRegistry(readFileSync(file, 'utf8')).acs;
+}
+
+/** The criteria that count on this branch (see the header), with their due milestone. */
+export function countedAcs(root = '.') {
   const active = activeSpec(root);
+  const live = new Set(['001', ...specs(root).filter((s) => s.milestone || (active && active.id === s.id)).map((s) => s.id)]);
   const out = [];
-  for (const s of specs(root)) {
-    if (s.acceptance === 'docs/acceptance-criteria.md' || !s.acceptance) continue;
-    if (!(s.milestone || (active && active.id === s.id))) continue;
-    const file = `${root}/${s.acceptance}`;
-    if (!existsSync(file)) throw new Error(`${s.dir}/spec.json: ${s.acceptance} does not exist`);
-    const text = readFileSync(file, 'utf8');
-    const due = Number(/^Due milestone: (\d+)\s*$/m.exec(text)?.[1]);
-    if (!due) throw new Error(`${s.acceptance}: missing "Due milestone: <n>"`);
-    const inRegistry = new Set(acIds(`${root}/docs/acceptance-criteria.md`).filter((a) => a.spec).map((a) => a.id));
-    for (const a of acIds(file)) if (!inRegistry.has(a.id)) out.push({ ...a, due, spec: s.id });
+  for (const a of acIds(`${root}/${REGISTRY}`)) {
+    if (a.changedBy && !live.has(a.changedBy)) {
+      if (live.has(a.spec)) out.push({ ...a, due: a.removed ? null : 8 });
+      continue;
+    }
+    if (live.has(a.spec)) out.push(a);
   }
   return out;
 }
-
-// Milestone in which each AC is first fully testable (spec 12.2).
-export const acDue = {
-  'AC-AUTH-1': 6, 'AC-AUTH-2': 6, 'AC-AUTH-3': 6, 'AC-AUTH-4': 6, 'AC-AUTH-6': 6,
-  'AC-GRP-1': 7, 'AC-GRP-2': 7, 'AC-GRP-3': 7, 'AC-GRP-4': 7, 'AC-GRP-5': 7,
-  'AC-FLAG-1': 7, 'AC-FLAG-2': 7, 'AC-FLAG-3': 7, 'AC-FLAG-4': 7, 'AC-FLAG-5': 7, 'AC-FLAG-6': 7,
-  'AC-EVAL-1': 3, 'AC-EVAL-2': 3, 'AC-EVAL-4': 3,
-  'AC-EVAL-3': 5, 'AC-EVAL-5': 5, 'AC-EVAL-6': 5, 'AC-EVAL-7': 5,
-  'AC-CACHE-1': 5, 'AC-CACHE-2': 5, 'AC-CACHE-3': 5, 'AC-CACHE-4': 5, 'AC-CACHE-5': 5,
-  'AC-CACHE-6': 5, 'AC-CACHE-7': 5, 'AC-CACHE-8': 5, 'AC-CACHE-9': 8,
-  'AC-AUD-1': 4, 'AC-AUD-2': 7, 'AC-AUD-3': 4,
-  'AC-OPS-1': 8, 'AC-OPS-2': 8, 'AC-OPS-3': 2, 'AC-OPS-4': 5,
-};
 
 const admin = [
   ['GET', '/admin/groups', [400, 401, 403]],
