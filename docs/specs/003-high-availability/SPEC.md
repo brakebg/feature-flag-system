@@ -86,7 +86,7 @@ V3 inserts the single row with `revision = 0`.
 | `revision` | `bigint primary key` | The value returned by the increment in the same transaction |
 | `type` | `varchar(20) not null` | `FLAG`, `GROUP`, `GROUP_DELETED`, `RECONCILE` |
 | `group_key` | `varchar(100)` | The group to reload. `null` for `RECONCILE` |
-| `created_at` | `timestamptz not null` | Server time |
+| `created_at` | `timestamptz not null` | Database time (`now()`), so retention does not depend on instance clocks |
 
 - Every change that today increments `revision` (`docs/architecture/api.md` 7.2 table, including a group name or
   description edit) MUST run, inside its transaction and after its data writes:
@@ -99,15 +99,21 @@ V3 inserts the single row with `revision = 0`.
   across writers, and nothing may run between the increment and the commit. So writers are
   serialised only for the commit tail (a few ms), not for the whole transaction. `lock_timeout`
   for the increment: 5 s; on timeout the write fails with the existing 500 problem detail (an
-  operational fault, not client input). Gate 13's admin p95 is the check that the span stays small.
+  operational fault, not client input). Gate 13 loads only the Evaluation API; the admin p95 is
+  checked in the production-like environment (`docs/architecture/non-functional.md` 9.2, decision 0007).
 - Retention: a daily job deletes `flag_change` rows older than `FF_CHANGE_RETENTION` (default
-  `P1D`). `cache_state` is never reset.
+  `P1D`). `cache_state` is never reset. This job and the audit purge run on every instance; their
+  deletes are idempotent, so no lock is needed.
+- Where the code lives: the increment and the insert MAY live in the audit write path
+  (`AuditService`), which every revision-changing write already calls as its last data write. In
+  the `evaluation` package the database is read only in `FlagCacheService` methods named `load*`
+  or `reloadAll` and in `CacheReconciliationJob` (ArchUnit rule of gate 3, unchanged).
 
 **Known limit (owner note).** The single counter row is a serialisation point for all admin
 writes. With a commit tail of a few ms it carries roughly a few hundred writes per second before
 the queue grows; an admin UI stays far below that. It becomes a bottleneck only with intensive
-automated updates on a large flag set. If gate 13 shows the admin p95 (`docs/architecture/non-functional.md` 9.2) failing because
-of this lock, that is the Level 3 trigger in section 7; the follow-up would be a different
+automated updates on a large flag set. If the production-like check of the admin p95
+(`docs/architecture/non-functional.md` 9.2) fails because of this lock, the follow-up would be a different
 revision source (for example a sequence plus a "visible up to" marker), not a change to the
 read side. Not built in M11.
 
@@ -142,7 +148,10 @@ One per instance, one thread, started after warm-up.
 
 After commit (the existing `AFTER_COMMIT` listener), the instance runs one sync (4.4 step 1 to 2)
 synchronously, before the HTTP response returns. The `FlagsChangedEvent` payload is no longer
-applied directly; the sync reloads from the database. Read-your-write holds on that instance.
+applied directly; the sync reloads from the database. The event and its payload are still
+published as today. Read-your-write holds on that instance. If this sync fails, the admin call
+still returns its normal 2xx (the write is committed); the error is logged at WARN and the next
+tick catches up.
 
 ### 4.6 ETag and the monotonic rule
 
@@ -154,7 +163,9 @@ applied directly; the sync reloads from the database. Read-your-write holds on t
   fails, the instance answers `304` with the client's ETag: the client keeps data at least as new
   as anything this instance could return. A client is therefore never shown an older revision after
   it has seen a newer one, whichever instance the load balancer picks.
-- An unparsable or weak `If-None-Match` is treated as no match (today's behaviour).
+- Matching of `If-None-Match` stays as today: a comma-separated list, weak tags compare equal
+  (AC-EVAL-6). The monotonic rule applies only when the header is one tag whose value is a
+  decimal number; anything else that does not match is no match.
 
 ### 4.7 Consistency bound
 
@@ -308,8 +319,6 @@ version (`[AC-HA-1 v1]`):
 - A change would break an item of section 3.
 - A test outside `<spec>/test-changes.md` would need more than a plumbing change.
 - The only way to make a gate green is a new exception, exclusion or ignore entry.
-- The row-lock serialisation makes the admin p95 (`docs/architecture/non-functional.md` 9.2)
-  fail under gate 13.
 
 ## 9. Definition of done
 
@@ -343,3 +352,81 @@ version (`[AC-HA-1 v1]`):
    `docs/project-acceptance-criteria.md` with versions; doc changes made on this branch).
 8. ~~AC-OPS-1 counts "three containers"~~ **Decided: AC-OPS-1 v2 counts every compose service**
    (found in the 2026-10-18 re-shape: two backend services break the v1 text and the e2e check).
+9. ~~Two-reviewer challenge~~ **Decided: run on 2026-10-18** (simplicity and robustness
+   reviewers, 20 findings). Fixed in the draft: weak `If-None-Match` matching stays as today
+   (4.6; the old text contradicted AC-EVAL-6); gate 13 does not measure the admin p95, so that
+   claim and its Level 3 trigger are gone (4.2, decision 0007); `flag_change.created_at` uses
+   database time; purge and retention jobs run on every instance (idempotent); where the code
+   lives for the ArchUnit rule (4.2); the event stays published and a failed post-commit sync
+   still returns 2xx (4.5). Rejected: keep AC-CACHE-4, 6, 7 at v1 (the owner chose to re-express
+   them on 2026-10-11; v2 makes the per-instance and cross-instance rule one line each); drop
+   `flag_change.type` (it costs one column and makes the log readable). Items 10 to 17 are open.
+10. **Open:** Upgrade moves the `ETag` down. 1.1.0 serves `max(audit_event.id)` plus later
+    increments; V3 starts `revision` at 0, so old client ETags are higher than the new revision
+    (a lower `ETag`, and later wrong `304`s for reused values). Options: a) V3 seeds
+    `coalesce(max(audit_event.id), 0) + 1000000` (reconciliation can push 1.1.0 above the max
+    audit id), AC-HA-9 v1 text gains "also across the upgrade from 1.1.0"; README says the same
+    for a database restore (raise the revision before starting instances) / b) seed from epoch
+    milliseconds. Proposal: a.
+11. **Open:** Monotonic rule (4.6). Today's text runs a sync on demand; a client can force a
+    database call on every request with a huge `If-None-Match`, and a successful sync that is
+    still behind would answer `200` with a lower revision. Options: a) no sync: a numeric
+    `If-None-Match` greater than the snapshot gets `304` with the client's tag; the syncer catches
+    up within 1 s / b) keep the sync, at most one per `FF_CACHE_SYNC_INTERVAL` per instance, 2 s
+    including the pool wait, then `304` if still behind. Either way section 3 item 2 names this
+    `304` as the one AC-backed exception (AC-HA-4). Proposal: a.
+12. **Open:** Snapshot and Caffeine (4.3) contradict each other: readers do not take
+    `writeLock`, cache misses load live data at any moment, a reload does not say what happens to
+    negative `flagCache` entries (a new flag stays 404 for 30 s, against AC-HA-2), and a miss
+    during a database outage gives 500 (against AC-HA-5). Options: a) the snapshot holds the
+    revision and complete immutable maps, swapped as one reference; a key absent from it is 404
+    without a database read; Caffeine stays only where AC-CACHE-2, 3, 9 need it (negative
+    entries and hit metrics), and a group reload drops every `flagCache` entry of that group /
+    b) keep the loaders and define the order of loads and swaps. Proposal: a, with AC-CACHE-2
+    and AC-CACHE-3 checked by the builder against it (an amendment if one breaks).
+13. **Open:** Compose entry point (4.12). The locked `scripts/owner-review.sh` and the gates
+    call `:8080/api/...` and `:8080/actuator/*`; the UI proxy forwards only `/api/`; `perf.sh`,
+    `perf/compose.limits.yml`, `smoke.sh`, `e2e.sh` and gate 10's `scan-images.sh` name the
+    service `backend`; a balanced `/actuator/prometheus` mixes the counters of AC-CACHE-9; and a
+    read right after a write through a balancer may hit the other instance (AC-EVAL-5 e2e and
+    smoke, AC-EVAL-6 e2e). Options: a) MUST: an `api-lb` nginx service (not named `backend-*`) on
+    `${FF_BACKEND_PORT:-8080}` that proxies `/api/` and `/actuator/` to `backend-1` only, and
+    the UI proxy balances across all backends; per-instance host ports `FF_BACKEND_1_PORT`,
+    `FF_BACKEND_2_PORT` for the HA tests; limits of 1 vCPU / 512 MB per backend service; service
+    renames in the scripts are plumbing / b) `api-lb` balances, AC-EVAL-5 and AC-EVAL-6 get v2
+    ("through a load balancer within 2 s") and join `test-changes.md`, `perf.sh` scrapes each
+    instance. Proposal: a. Also: mount only an `upstream backend {}` include into the UI image's
+    `conf.d` with `BACKEND_URL=http://backend`, so the image's own nginx config is what the
+    gates test (AC-OPS-4 headers, 413).
+14. **Open:** Traffic before warm-up. nginx `upstream` does not check readiness, Spring opens
+    the port before warm-up, and nginx does not retry a `503` by default; AC-HA-8 would be
+    flaky. Options: a) the Evaluation API answers `503` until warm-up ends, and the compose
+    upstream retries GETs on `error timeout http_502 http_503 http_504` / b) rely on the AC-HA-8
+    test waiting for readiness. Proposal: a.
+15. **Open:** Reconciliation (4.8). `pg_try_advisory_xact_lock` is released at commit, so
+    instances whose cron fires a little later run again ("exactly one" in AC-HA-10 is not
+    guaranteed); "a database snapshot at the same revision" cannot be requested; patching the
+    local snapshot before the increment gives a window with new data under the old `ETag`; and
+    `FFReconcileStale` would fire daily on the skipping instances. Options: a) every instance
+    reconciles; on drift it only commits the `RECONCILE` increment and then syncs like a writer
+    (no local patch); compare only when the revision read in the `REPEATABLE READ` transaction
+    equals the local one, else skip and retry next tick; AC-HA-10 v1 text: "a reconciliation
+    run that finds drift makes every instance return the corrected value within 2 s, and the
+    `ETag` changed" / b) keep one runner under a session-level lock held for the whole run, and
+    count a skip as success for the metric. Proposal: a.
+16. **Open:** Tests outside `test-changes.md` that V3 must change. Gate 16 works per file: a
+    file with an allowed tag may change freely (this covers all of `EvaluationIT`,
+    `FlagCacheServiceTest`, `ops.spec.ts`), and `scripts/*.sh` are not scanned. But
+    `MigrationIT.v1CreatesTheThreeTablesOnAnEmptyDatabase` (untagged) asserts exactly three
+    tables and Flyway version `1` after all migrations; V3 breaks it and no ID can allow it.
+    Options: a) owner commit on `main` before the branch: that test runs Flyway with
+    `target("1")`, so it stays exact for V1 and V3 adds its own test / b) accept a Level 3
+    escalation in M11. Proposal: a.
+17. **Open:** Black-box testability (section 7). The suite cannot pick an instance, trigger
+    reconciliation (03:00 cron, no endpoint), see query counts, or keep one instance behind.
+    Options: a) the suite uses the per-instance ports of item 13; a separate stack with
+    `FF_CACHE_RECONCILE_CRON` every 5 s and one with `FF_CACHE_SYNC_INTERVAL=PT1H` on one
+    instance; "p99 ≤ 2 s" means at least 100 changes with 99 visible within 2 s; zero queries
+    is proved by `cache_gets_total{result="miss"}` staying flat per instance / b) the HA
+    criteria are proved by the builder's integration tests only, and the suite checks AC-HA-8
+    and the `ETag` rules through the proxy. Proposal: a.
