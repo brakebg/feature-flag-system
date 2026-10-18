@@ -35,15 +35,10 @@ export function useGroup(id: string | undefined) {
 export function useCreateGroup() {
   return useMutation({
     mutationFn: (body: CreateGroupRequest) => groupsApi.create(body),
-    // No list refresh here: a refresh started here races the caller's navigation and can render
-    // the new group unselected. The caller selects it first, then calls useRefreshGroups (AC-GRP-1).
+    // No list refresh here: it would race the navigation to the new group, which React Router
+    // runs as a transition (ROUTER_FUTURE), so the list could render the group unselected.
+    // GroupsPage refreshes the list once the selected group is committed (AC-GRP-1).
   });
-}
-
-/** Refreshes the groups list. After a create: call it once the new group is selected. */
-export function useRefreshGroups() {
-  const qc = useQueryClient();
-  return () => void qc.invalidateQueries({ queryKey: keys.groups });
 }
 
 export function useUpdateGroup(id: string) {
