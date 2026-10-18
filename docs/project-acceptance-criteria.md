@@ -62,9 +62,9 @@ Groups are product areas. Spec 001 IDs were given by group and position (spec 00
 - [ ] **AC-CACHE-1** v1 · After warm-up, 1,000 evaluation calls for existing flags run zero database queries. · spec 001 · due M5
 - [ ] **AC-CACHE-2** v1 · Evicting one entry and reading it twice concurrently runs exactly one database query; the second read is a hit. · spec 001 · due M5
 - [ ] **AC-CACHE-3** v1 · Reading an unknown key twice within 30 s runs one database query. · spec 001 · due M5
-- [ ] **AC-CACHE-4** v2 · Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call on the instance that made the change; on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), with zero database queries for the evaluation call itself. · spec 001 · changed by spec 003 · due M11
+- [ ] **AC-CACHE-4** v2 · Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call on the instance that made the change; on every other instance within 2 s for at least 99 of 100 such changes (default `FF_CACHE_SYNC_INTERVAL`), with zero database queries for the evaluation call itself. · spec 001 · changed by spec 003 · due M11
 - [ ] **AC-CACHE-5** v1 · A write whose transaction rolls back leaves the cached value unchanged. · spec 001 · due M5
-- [ ] **AC-CACHE-6** v2 · The readiness probe reports DOWN until warm-up has finished, and stays UP when the database becomes unreachable after warm-up. · spec 001 · changed by spec 003 · due M11
+- [ ] **AC-CACHE-6** v2 · The readiness probe does not report UP until warm-up has finished (before that the instance refuses connections or reports DOWN), and stays UP when the database becomes unreachable after warm-up. · spec 001 · changed by spec 003 · due M11
 - [ ] **AC-CACHE-7** v2 · A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run (triggered in the test by calling the job), the next evaluation call returns the database value, a WARN is logged and the ETag changes; every other instance returns the database value within 2 s. · spec 001 · changed by spec 003 · due M11
 - [ ] **AC-CACHE-8** v1 · A reconciliation run with no differences logs no WARN and leaves the ETag unchanged. · spec 001 · due M5
 - [ ] **AC-CACHE-9** v1 · Under the 9.2 load test the cache hit rate metric is ≥ 99 %. · spec 001 · due M8
@@ -77,7 +77,7 @@ Groups are product areas. Spec 001 IDs were given by group and position (spec 00
 
 ## Operations
 
-- [ ] **AC-OPS-1** v2 · `make up` on a clean machine with Docker starts every service of the compose file (`postgres`, each backend service, `frontend`); `postgres` and each backend report healthy; UI reachable on port 3000 within 90 s. · spec 001 · changed by spec 003 · due M11
+- [ ] **AC-OPS-1** v2 · `make up` on a clean machine with Docker starts every service of the compose file (`postgres`, `backend-1`, `backend-2`, `api-lb`, `frontend`); `postgres` and each `backend-<n>` report healthy; UI reachable on port 3000 within 90 s. · spec 001 · changed by spec 003 · due M11
 - [ ] **AC-OPS-2** v1 · Backend image runs standalone with only env vars set (no UI needed); UI image runs standalone pointed at any `BACKEND_URL`. · spec 001 · due M8
 - [ ] **AC-OPS-3** v1 · `/actuator/health` reports UP with DB status. · spec 001 · due M2
 - [ ] **AC-OPS-4** v1 · With `FF_REQUIRE_HTTPS=true`, login and token requests carrying `X-Forwarded-Proto: http` are rejected with 403 `https-required`; the same requests with `https` succeed. Every UI response carries the security headers listed in 10.2 (HSTS only on requests with `X-Forwarded-Proto: https`). · spec 001 · due M5
@@ -97,15 +97,15 @@ Groups are product areas. Spec 001 IDs were given by group and position (spec 00
 integration tests run with N = 3; the compose stack runs with N = 2.
 
 - [ ] **AC-HA-1** v1 · N backend instances on one database serve the same flags from all three Evaluation endpoints, with the same `ETag`, for N = 3 in the test. · spec 003 · due M11
-- [ ] **AC-HA-2** v1 · A change made through one instance is visible on every other instance within 2 s (p99), with zero database queries for their evaluation calls. · spec 003 · due M11
+- [ ] **AC-HA-2** v1 · Of at least 100 changes made through one instance, at least 99 are visible on every other instance within 2 s, with zero database queries for their evaluation calls. · spec 003 · due M11
 - [ ] **AC-HA-3** v1 · The revision in the database follows commit order with no gaps: two overlapping admin writes on different instances get consecutive revisions, and a rolled-back write leaves the revision unchanged. · spec 003 · due M11
-- [ ] **AC-HA-4** v1 · Monotonic ETag: a client that got `ETag "<n>"` from one instance and sends `If-None-Match: "<n>"` to another instance that is still behind gets either `304` or a `200` with a revision ≥ n. It never gets older data. · spec 003 · due M11
+- [ ] **AC-HA-4** v1 · Monotonic ETag: a client that got `ETag "<n>"` from one instance and sends `If-None-Match: "<n>"` to another instance that is still behind gets `304` with `ETag: "<n>"` and no body, and no database query runs for that call. It never gets older data. · spec 003 · due M11
 - [ ] **AC-HA-5** v1 · With the database unreachable, every instance keeps answering every Evaluation call from its snapshot with the same `ETag` as before; readiness stays UP; admin writes fail as today. · spec 003 · due M11
 - [ ] **AC-HA-6** v1 · An instance restarted after changes were made on other instances serves the new state and the current revision as soon as it is ready. A new instance added to a running set does the same. · spec 003 · due M11
 - [ ] **AC-HA-7** v1 · An instance that lags by more than the retention of `flag_change` does a full reload and ends at the current revision with the current data. · spec 003 · due M11
 - [ ] **AC-HA-8** v1 · During a rolling restart of all instances, one at a time, a client polling the Evaluation API through the UI proxy gets no 5xx and never a lower revision than it already has. · spec 003 · due M11
-- [ ] **AC-HA-9** v1 · The revision of an instance never decreases, also across restart and full reload. · spec 003 · due M11
-- [ ] **AC-HA-10** v1 · Reconciliation runs on exactly one instance per schedule, whichever N; when it finds drift, every instance returns the corrected value within 2 s and the `ETag` changed. · spec 003 · due M11
+- [ ] **AC-HA-9** v1 · The revision of an instance never decreases, also across restart and full reload; after the upgrade from 1.1.0 the first `ETag` is greater than every `ETag` 1.1.0 served on the same database. · spec 003 · due M11
+- [ ] **AC-HA-10** v1 · A reconciliation run that finds drift on any instance makes every instance return the database value within 2 s, and the `ETag` changed; a run with no drift on any instance changes no revision. · spec 003 · due M11
 
 ## Test changes gate
 

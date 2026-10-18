@@ -80,7 +80,7 @@ Retention: audit events are kept for 1 year. A nightly `@Scheduled` job (cron `F
 | Column | Type | Constraints |
 | --- | --- | --- |
 | id | SMALLINT | PK, always 1 |
-| revision | BIGINT | NOT NULL; starts at 0, +1 in every change transaction, never reset |
+| revision | BIGINT | NOT NULL; V3 starts it at `coalesce(max(audit_event.id), 0) + 1000000` (above every `ETag` of 1.1.0), +1 in every change transaction, never reset |
 
 `flag_change` (since spec 003, the change log the instances sync from)
 
@@ -89,7 +89,7 @@ Retention: audit events are kept for 1 year. A nightly `@Scheduled` job (cron `F
 | revision | BIGINT | PK, the value returned by the `cache_state` increment in the same transaction |
 | type | VARCHAR(20) | NOT NULL, `FLAG`, `GROUP`, `GROUP_DELETED` or `RECONCILE` |
 | group\_key | VARCHAR(100) | NULL; the group to reload, `null` for `RECONCILE` |
-| created\_at | TIMESTAMPTZ | NOT NULL, server time |
+| created\_at | TIMESTAMPTZ | NOT NULL, database time `now()` |
 
 Every change that increments `revision` (`docs/architecture/api.md` 7.2) runs the increment and the `flag_change` insert as the last two statements of its transaction. Retention: a daily job deletes `flag_change` rows older than `FF_CHANGE_RETENTION` (default `P1D`).
 
@@ -116,4 +116,4 @@ Details:
 
 ### 4.3 Migrations
 
-Flyway scripts live in `backend/src/main/resources/db/migration`: `V1__init_schema.sql` (all three tables, indexes) and `V2__seed_demo_data.sql` that runs only in the `dev` profile (via `spring.flyway.locations`) and inserts group `orders` with flags `new-checkout` (true) and `split-payments` (false). `V3` (spec 003) adds `cache_state` with its single row (`revision` 0) and `flag_change`; `V1` and `V2` keep their checksums.
+Flyway scripts live in `backend/src/main/resources/db/migration`: `V1__init_schema.sql` (all three tables, indexes) and `V2__seed_demo_data.sql` that runs only in the `dev` profile (via `spring.flyway.locations`) and inserts group `orders` with flags `new-checkout` (true) and `split-payments` (false). `V3` (spec 003) adds `cache_state` with its single row and `flag_change`; `V1` and `V2` keep their checksums.

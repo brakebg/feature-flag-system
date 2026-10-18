@@ -15,7 +15,7 @@ this spec does not change still applies.
 | File | Change |
 | --- | --- |
 | `docs/product/overview.md` 1.2, 13 | Horizontal scaling is no longer a non-goal; a distributed cache still is. "Multi-instance backend" row: done by this spec |
-| `docs/architecture/api.md` 7.2 | Write path, `revision`, "Scope" and "Known limitation" replaced by the database revision, the syncer and the snapshot (4.1 to 4.7); reconciliation under an advisory lock (4.8); readiness (4.9). Read path, warm-up, no-expiry and `maximumSize` stay |
+| `docs/architecture/api.md` 7.2 | Write path, `revision`, "Scope" and "Known limitation" replaced by the database revision, the syncer and the snapshot (4.1 to 4.7); read path: snapshot first, Caffeine only for unknown keys (4.3); reconciliation on every instance without a local patch (4.8); warm-up before the port opens (4.9). No-expiry and `maximumSize` stay |
 | `docs/architecture/overview.md` 3 | Request paths: the revision increment in the write transaction, sync after commit and by poll; several instances |
 | `docs/architecture/data-model.md` 4.1, 4.3 | Tables `cache_state` and `flag_change`, Flyway `V3` (4.2) |
 | `docs/architecture/non-functional.md` 9.3, 9.4 | Sync metrics and the `FFCacheSyncStale` alert (4.10); `FF_CACHE_SYNC_INTERVAL`, `FF_CHANGE_RETENTION` (4.11) |
@@ -41,7 +41,9 @@ SDKs, high availability of PostgreSQL, a distributed cache.
 1. Every acceptance criterion in `docs/project-acceptance-criteria.md` passes at its current
    version, with the changes of section 5.
 2. HTTP behaviour for clients, byte for byte: status codes, headers, problem details, JSON,
-   `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules.
+   `ETag: "<revision>"`, body `revision`, `Cache-Control: no-cache`, `304` rules. One exception,
+   backed by AC-HA-4: the monotonic `304` of 4.6. Before warm-up an instance refuses connections
+   (4.9); that is not an HTTP change.
 3. Security rules of spec 001 section 5 (`docs/architecture/security.md`). No new endpoint.
 4. `backend/openapi.json` unchanged.
 5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
@@ -77,7 +79,10 @@ flowchart TD
 ### 4.2 Tables (Flyway V3)
 
 `cache_state`: columns `id smallint primary key` (always 1) and `revision bigint not null`.
-V3 inserts the single row with `revision = 0`.
+V3 inserts the single row with `revision = coalesce(max(audit_event.id), 0) + 1000000`. Release
+1.1.0 served `max(audit_event.id)` plus its later increments (reconciliation can add some without
+an audit row), so the first spec 003 `ETag` is greater than any `ETag` 1.1.0 served: an upgrade
+never moves a client's `ETag` down and never reuses a value for other data.
 
 `flag_change`:
 
@@ -120,11 +125,22 @@ read side. Not built in M11.
 ### 4.3 Snapshot
 
 Each instance holds one immutable `Snapshot { long revision; Map all; Map<group, Map> groups }`
-in a `volatile` field. A request reads that one reference, so its data and its `ETag` always come
-from the same moment. This replaces the 1.1.0 ordering of revision and data and
-the BF-1 workaround (`appliedSeq`, `loadedSeq`, `isLate`) in `FlagCacheService`. The three
-Caffeine caches of `api.md` 7.2 stay as the read structure; a swap replaces their content under the
-existing `writeLock`.
+in a `volatile` field. The maps are complete: every group and flag that exists at that revision.
+A request reads that one reference, so its data and its `ETag` always come from the same moment.
+A swap replaces the whole reference; nothing changes a snapshot in place. This replaces the 1.1.0
+ordering of revision and data and the BF-1 workaround (`appliedSeq`, `loadedSeq`, `isLate`) in
+`FlagCacheService`.
+
+- A key in the snapshot is answered from it, with no database read.
+- A key absent from the snapshot is `404` at the snapshot's revision. Caffeine stays only for this
+  path and for the hit metrics: the negative entry (30 s) and the one database read on its miss
+  that AC-CACHE-2 and AC-CACHE-3 count. That read never changes the answer or the `ETag`: the
+  answer is the snapshot's `404`, and a key that the database already has arrives with the next
+  sync. If the read fails (database down), the answer is still the `404` (AC-HA-5).
+- A sync that reloads a group drops every negative `flagCache` entry of that group, so a flag
+  created on another instance is found right after the sync, not 30 s later (AC-HA-2).
+- The builder checks AC-CACHE-2 and AC-CACHE-3 against this model in phase A. If one of them
+  cannot hold, that is a Level 3 escalation (an owner amendment), never a weaker test.
 
 ### 4.4 Syncer
 
@@ -158,11 +174,12 @@ tick catches up.
 - `ETag: "<revision>"` and body `revision` are the snapshot's revision. All instances give the
   same value for the same data; a restart gives the same value too.
 - **Monotonic rule.** If a request carries `If-None-Match` with a number **greater** than the
-  snapshot's revision, the instance runs one sync first (concurrent requests share one sync; a
-  sync started this way times out after 2 s), then answers from the new snapshot. If the sync
-  fails, the instance answers `304` with the client's ETag: the client keeps data at least as new
-  as anything this instance could return. A client is therefore never shown an older revision after
-  it has seen a newer one, whichever instance the load balancer picks.
+  snapshot's revision, the instance answers `304` with the client's tag
+  (`ETag: "<client's number>"`, `Cache-Control: no-cache`, no body) and runs no extra sync and no database read. The
+  client already holds data at least as new as anything this instance could return, and the
+  syncer catches up within `FF_CACHE_SYNC_INTERVAL`. A client is therefore never shown an older
+  revision after it has seen a newer one, whichever instance the load balancer picks. A client
+  that sends an invented, too-high number only keeps its own data; it cannot cause database load.
 - Matching of `If-None-Match` stays as today: a comma-separated list, weak tags compare equal
   (AC-EVAL-6). The monotonic rule applies only when the header is one tag whose value is a
   decimal number; anything else that does not match is no match.
@@ -177,18 +194,30 @@ is an instance cut off from the database while the others are not; 4.10 alerts o
 
 ### 4.8 Daily reconciliation
 
-As in 1.1.0 (`api.md` 7.2), with these changes: one instance runs it, guarded by
-`pg_try_advisory_xact_lock(<constant>)` (others skip the run and log at INFO); it compares its
-snapshot with a `REPEATABLE READ` database snapshot taken at the same revision; if any drift is
-found it fixes the local snapshot and, in one transaction, increments `cache_state.revision` and
-inserts a `RECONCILE` row, so every instance does a full reload on its next tick and the `ETag`
-changes. No drift: no row, no revision change (AC-CACHE-8 unchanged).
+As in 1.1.0 (`api.md` 7.2), with these changes. Every instance runs it on its own schedule; no
+lock is needed.
+
+1. In one `REPEATABLE READ` transaction read `cache_state.revision` and all groups and flags.
+2. If that revision is not equal to the local snapshot's revision, skip the compare (a sync is
+   due) and retry on the next syncer tick after the local revision has caught up; the run counts
+   as done when the compare ran.
+3. Compare. Each difference is logged at WARN as today. The local snapshot is **not** patched.
+4. Drift found: in one transaction increment `cache_state.revision` and insert a `RECONCILE` row,
+   then sync like a writer (4.5). Every other instance does a full reload on its next tick, so
+   all serve the corrected data under the new `ETag`.
+5. No drift: no row, no revision change (AC-CACHE-8 unchanged).
+
+`ff_cache_reconcile_last_success_seconds` is set by each instance's own completed compare, so
+`FFReconcileStale` keeps its meaning per instance.
 
 ### 4.9 Readiness
 
-UP after warm-up, as today. It does **not** depend on the database afterwards: a database outage
-must not remove every instance from the load balancer while they can still serve correct data.
-`/actuator/health` body unchanged.
+Warm-up runs before the HTTP port opens (for example during context refresh, before the web
+server starts), so an instance that is not warm refuses connections and serves nothing from an
+empty cache. Readiness is UP once the port is open, after warm-up. It does **not** depend on the
+database afterwards: a database outage must not remove every instance from the load balancer while
+they can still serve correct data. `/actuator/health` body unchanged. The compose upstream retries
+idempotent requests on another backend on `error timeout http_502 http_503 http_504` (4.12).
 
 ### 4.10 Observability
 
@@ -211,27 +240,46 @@ PostgreSQL. They run anywhere Docker runs; instances need only the database, nev
 (AC-OPS-2 stays). `docker-compose.yml` is the local stack and the test rig for the gates and the
 acceptance suite, not the deployment model.
 
-**Compose (local, gates).** `backend` becomes two named services `backend-1` and `backend-2`
-(same image, same environment). The host port mapping `8080:8080` moves to the UI proxy path: direct
-API clients (k6, smoke) call `http://localhost:3000/api/...` or a new `backend-lb` nginx service
-publishing 8080. The UI's nginx balances with an explicit `upstream` block:
+**Compose (local, gates).** The services are:
+
+| Service | Role | Host port |
+| --- | --- | --- |
+| `postgres` | as today | none |
+| `backend-1`, `backend-2` | same image, same environment, depend on healthy `postgres` | `${FF_BACKEND_1_PORT:-18081}`, `${FF_BACKEND_2_PORT:-18082}` (direct, for the HA tests) |
+| `api-lb` | nginx; proxies `/api/` and `/actuator/` to `backend-1` only | `${FF_BACKEND_PORT:-8080}` |
+| `frontend` | the UI image; its `/api/` proxy balances across all backends | `${FF_UI_PORT:-3000}` |
+
+- `api-lb` keeps one fixed backend on `:8080`, so the locked `scripts/owner-review.sh`, smoke,
+  perf and every API test that reads right after a write (AC-EVAL-5, AC-EVAL-6) see one
+  instance, and `/actuator/prometheus` counters (AC-CACHE-9) come from one instance. Its name is
+  not `backend-*`, so "each backend service" never includes it.
+- The UI's nginx balances with an explicit `upstream` block. Only that block is mounted, as a
+  file in the UI image's `/etc/nginx/conf.d/`, and the `frontend` service sets
+  `BACKEND_URL=http://backend`. So the gates test the image's own nginx config (AC-OPS-4 headers,
+  413 handling); the image does not change and keeps `BACKEND_URL` as its default (one backend,
+  AC-OPS-2 unchanged):
 
 ```
 upstream backend {
     server backend-1:8080 max_fails=2 fail_timeout=5s;
     server backend-2:8080 max_fails=2 fail_timeout=5s;
 }
-location /api/ { proxy_pass http://backend; ... }
+proxy_next_upstream error timeout http_502 http_503 http_504;   # idempotent requests only (nginx default)
 ```
 
-Round-robin; a backend that fails twice is skipped for 5 s. Chosen over DNS-based resolution
-because nginx resolves a name once at start and keeps a stale IP after a container restart unless
-a `resolver` with a short TTL is configured. The UI image keeps `BACKEND_URL` as its default (one backend, AC-OPS-2 unchanged); the
-`upstream` block is a compose-only override, mounted as the nginx config of the `frontend` service
-in `docker-compose.yml`. The image itself does not change.
+  Round-robin; a backend that fails twice is skipped for 5 s. Chosen over DNS-based resolution
+  because nginx resolves a name once at start and keeps a stale IP after a container restart
+  unless a `resolver` with a short TTL is configured.
+- `perf/compose.limits.yml` gives each backend service 1 vCPU / 512 MB. Renaming `backend` to
+  `backend-1` or `api-lb` in `perf.sh`, `perf/compose.limits.yml`, `smoke.sh`, `e2e.sh` and
+  `scan-images.sh` (gate 10) is plumbing: no check, value or threshold changes.
+- Settings for the HA tests (section 7): `docker-compose.yml` passes `FF_CACHE_SYNC_INTERVAL`
+  to `backend-2` as `${FF_BACKEND_2_CACHE_SYNC_INTERVAL:-${FF_CACHE_SYNC_INTERVAL:-PT1S}}`, so a
+  stack can keep one instance behind (AC-HA-4), and `FF_CACHE_RECONCILE_CRON` to every backend,
+  so a stack can reconcile every few seconds (AC-HA-10, AC-CACHE-7).
 
 The `make up` check (AC-OPS-1, `docs/architecture/deployment.md` 10.3) counts every service of the
-compose file: `postgres`, each backend service, `frontend` and `backend-lb` if the builder adds it.
+compose file: `postgres`, `backend-1`, `backend-2`, `api-lb`, `frontend`.
 
 **ECS / Fargate (production reference, not built or tested in M11).** Backend: one task definition,
 one service with `desiredCount ≥ 2`, an ALB target group with health check
@@ -258,24 +306,24 @@ is any instance count ≥ 2; main code MUST NOT assume a fixed count. Integratio
 the compose stack runs N = 2.
 
 - **AC-HA-1** · N instances on one database serve the same flags with the same `ETag`
-- **AC-HA-2** · a change through one instance is visible on every other within 2 s (p99), zero queries
+- **AC-HA-2** · of 100 changes through one instance, 99 are visible on every other within 2 s, zero queries
 - **AC-HA-3** · database revision follows commit order, no gaps; a rollback leaves it unchanged
-- **AC-HA-4** · monotonic `ETag` across instances: `304` or a revision ≥ the client's
+- **AC-HA-4** · monotonic `ETag`: a client ahead of an instance gets `304` with its own tag
 - **AC-HA-5** · database down: every instance keeps serving its snapshot, readiness UP, writes fail
 - **AC-HA-6** · a restarted or new instance serves the current state and revision when ready
 - **AC-HA-7** · an instance lagging more than the retention does a full reload
 - **AC-HA-8** · rolling restart through the UI proxy: no 5xx, never a lower revision
-- **AC-HA-9** · an instance's revision never decreases, also across restart and full reload
-- **AC-HA-10** · reconciliation on exactly one instance; drift reaches every instance within 2 s
+- **AC-HA-9** · an instance's revision never decreases, also across restart, full reload and the upgrade from 1.1.0
+- **AC-HA-10** · drift found by any instance's reconciliation reaches every instance within 2 s
 
 **Criteria that change** (same ID, same position, version + 1, `changed by spec 003`):
 
 | ID | Now | Becomes |
 | --- | --- | --- |
-| AC-CACHE-4 | v1: Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call | v2: Same on the instance that made the change; on every other instance within `FF_CACHE_SYNC_INTERVAL` (p99 ≤ 2 s), with zero database queries for the evaluation call itself |
-| AC-CACHE-6 | v1: The readiness probe reports DOWN until warm-up has finished | v2: Same, and readiness stays UP when the database becomes unreachable after warm-up |
+| AC-CACHE-4 | v1: Toggle, create and delete of a flag, and delete of a group, are each visible on the next evaluation call with zero database queries for that call | v2: Same on the instance that made the change; on every other instance within 2 s for at least 99 of 100 changes, with zero database queries for the evaluation call itself |
+| AC-CACHE-6 | v1: The readiness probe reports DOWN until warm-up has finished | v2: Not UP until warm-up has finished (before that the instance refuses connections or reports DOWN), and stays UP when the database becomes unreachable after warm-up |
 | AC-CACHE-7 | v1: A flag changed directly in the database keeps its old cached value until reconciliation runs; after a reconciliation run, the next evaluation call returns the database value, a WARN is logged and the ETag changes | v2: Same, and every other instance returns the database value within 2 s |
-| AC-OPS-1 | v1: `make up` on a clean machine with Docker starts all three containers; UI reachable on port 3000 within 90 s | v2: `make up` starts every service of the compose file (postgres, each backend service, frontend); postgres and each backend healthy; UI reachable on port 3000 within 90 s |
+| AC-OPS-1 | v1: `make up` on a clean machine with Docker starts all three containers; UI reachable on port 3000 within 90 s | v2: `make up` starts every service of the compose file (`postgres`, `backend-1`, `backend-2`, `api-lb`, `frontend`); `postgres` and each `backend-<n>` healthy; UI reachable on port 3000 within 90 s |
 
 AC-CACHE-1, 2, 3, 5, 8, 9 and AC-OPS-2, 3, 4 unchanged. Note for the builder: AC-CACHE-1 counts
 queries on `EvaluationQueries`; the syncer MUST use its own repository so its tick is not counted.
@@ -293,8 +341,15 @@ For the black-box acceptance suite (`docs/process/validation.md`); the tests nam
 version (`[AC-HA-1 v1]`):
 
 - Added: AC-HA-1 … AC-HA-10
-- Changed: AC-CACHE-4, AC-CACHE-6, AC-CACHE-7, AC-OPS-1: an N-instance variant (a change on one instance checked on the others; readiness checked with the database stopped; reconciliation checked on every instance; `make up` counts every backend service)
+- Changed: AC-CACHE-4, AC-CACHE-6, AC-CACHE-7, AC-OPS-1: an N-instance variant (a change on one instance checked on the others; readiness checked with the database stopped; reconciliation checked on every instance; `make up` counts the five services)
 - Retired: none
+
+How the suite reaches the instances (decided, section 10 item 17): each backend has its own host
+port (`FF_BACKEND_1_PORT`, `FF_BACKEND_2_PORT`, 4.12); `:8080` is `api-lb` (one fixed backend),
+`:3000/api/` is balanced. Extra stacks: one with `FF_CACHE_RECONCILE_CRON` every 5 s (AC-HA-10,
+AC-CACHE-7) and one with `FF_BACKEND_2_CACHE_SYNC_INTERVAL=PT1H` (AC-HA-4). "Zero database
+queries" is proved per instance by `cache_gets_total{result="miss"}` staying flat. Starting these
+stacks in `scripts/owner-review.sh` is an owner change to that locked script, outside this spec.
 
 ## 8. Process
 
@@ -360,73 +415,37 @@ version (`[AC-HA-1 v1]`):
    lives for the ArchUnit rule (4.2); the event stays published and a failed post-commit sync
    still returns 2xx (4.5). Rejected: keep AC-CACHE-4, 6, 7 at v1 (the owner chose to re-express
    them on 2026-10-11; v2 makes the per-instance and cross-instance rule one line each); drop
-   `flag_change.type` (it costs one column and makes the log readable). Items 10 to 17 are open.
-10. **Open:** Upgrade moves the `ETag` down. 1.1.0 serves `max(audit_event.id)` plus later
-    increments; V3 starts `revision` at 0, so old client ETags are higher than the new revision
-    (a lower `ETag`, and later wrong `304`s for reused values). Options: a) V3 seeds
-    `coalesce(max(audit_event.id), 0) + 1000000` (reconciliation can push 1.1.0 above the max
-    audit id), AC-HA-9 v1 text gains "also across the upgrade from 1.1.0"; README says the same
-    for a database restore (raise the revision before starting instances) / b) seed from epoch
-    milliseconds. Proposal: a.
-11. **Open:** Monotonic rule (4.6). Today's text runs a sync on demand; a client can force a
-    database call on every request with a huge `If-None-Match`, and a successful sync that is
-    still behind would answer `200` with a lower revision. Options: a) no sync: a numeric
-    `If-None-Match` greater than the snapshot gets `304` with the client's tag; the syncer catches
-    up within 1 s / b) keep the sync, at most one per `FF_CACHE_SYNC_INTERVAL` per instance, 2 s
-    including the pool wait, then `304` if still behind. Either way section 3 item 2 names this
-    `304` as the one AC-backed exception (AC-HA-4). Proposal: a.
-12. **Open:** Snapshot and Caffeine (4.3) contradict each other: readers do not take
-    `writeLock`, cache misses load live data at any moment, a reload does not say what happens to
-    negative `flagCache` entries (a new flag stays 404 for 30 s, against AC-HA-2), and a miss
-    during a database outage gives 500 (against AC-HA-5). Options: a) the snapshot holds the
-    revision and complete immutable maps, swapped as one reference; a key absent from it is 404
-    without a database read; Caffeine stays only where AC-CACHE-2, 3, 9 need it (negative
-    entries and hit metrics), and a group reload drops every `flagCache` entry of that group /
-    b) keep the loaders and define the order of loads and swaps. Proposal: a, with AC-CACHE-2
-    and AC-CACHE-3 checked by the builder against it (an amendment if one breaks).
-13. **Open:** Compose entry point (4.12). The locked `scripts/owner-review.sh` and the gates
-    call `:8080/api/...` and `:8080/actuator/*`; the UI proxy forwards only `/api/`; `perf.sh`,
-    `perf/compose.limits.yml`, `smoke.sh`, `e2e.sh` and gate 10's `scan-images.sh` name the
-    service `backend`; a balanced `/actuator/prometheus` mixes the counters of AC-CACHE-9; and a
-    read right after a write through a balancer may hit the other instance (AC-EVAL-5 e2e and
-    smoke, AC-EVAL-6 e2e). Options: a) MUST: an `api-lb` nginx service (not named `backend-*`) on
-    `${FF_BACKEND_PORT:-8080}` that proxies `/api/` and `/actuator/` to `backend-1` only, and
-    the UI proxy balances across all backends; per-instance host ports `FF_BACKEND_1_PORT`,
-    `FF_BACKEND_2_PORT` for the HA tests; limits of 1 vCPU / 512 MB per backend service; service
-    renames in the scripts are plumbing / b) `api-lb` balances, AC-EVAL-5 and AC-EVAL-6 get v2
-    ("through a load balancer within 2 s") and join `test-changes.md`, `perf.sh` scrapes each
-    instance. Proposal: a. Also: mount only an `upstream backend {}` include into the UI image's
-    `conf.d` with `BACKEND_URL=http://backend`, so the image's own nginx config is what the
-    gates test (AC-OPS-4 headers, 413).
-14. **Open:** Traffic before warm-up. nginx `upstream` does not check readiness, Spring opens
-    the port before warm-up, and nginx does not retry a `503` by default; AC-HA-8 would be
-    flaky. Options: a) the Evaluation API answers `503` until warm-up ends, and the compose
-    upstream retries GETs on `error timeout http_502 http_503 http_504` / b) rely on the AC-HA-8
-    test waiting for readiness. Proposal: a.
-15. **Open:** Reconciliation (4.8). `pg_try_advisory_xact_lock` is released at commit, so
-    instances whose cron fires a little later run again ("exactly one" in AC-HA-10 is not
-    guaranteed); "a database snapshot at the same revision" cannot be requested; patching the
-    local snapshot before the increment gives a window with new data under the old `ETag`; and
-    `FFReconcileStale` would fire daily on the skipping instances. Options: a) every instance
-    reconciles; on drift it only commits the `RECONCILE` increment and then syncs like a writer
-    (no local patch); compare only when the revision read in the `REPEATABLE READ` transaction
-    equals the local one, else skip and retry next tick; AC-HA-10 v1 text: "a reconciliation
-    run that finds drift makes every instance return the corrected value within 2 s, and the
-    `ETag` changed" / b) keep one runner under a session-level lock held for the whole run, and
-    count a skip as success for the metric. Proposal: a.
-16. **Open:** Tests outside `test-changes.md` that V3 must change. Gate 16 works per file: a
-    file with an allowed tag may change freely (this covers all of `EvaluationIT`,
-    `FlagCacheServiceTest`, `ops.spec.ts`), and `scripts/*.sh` are not scanned. But
-    `MigrationIT.v1CreatesTheThreeTablesOnAnEmptyDatabase` (untagged) asserts exactly three
-    tables and Flyway version `1` after all migrations; V3 breaks it and no ID can allow it.
-    Options: a) owner commit on `main` before the branch: that test runs Flyway with
-    `target("1")`, so it stays exact for V1 and V3 adds its own test / b) accept a Level 3
-    escalation in M11. Proposal: a.
-17. **Open:** Black-box testability (section 7). The suite cannot pick an instance, trigger
-    reconciliation (03:00 cron, no endpoint), see query counts, or keep one instance behind.
-    Options: a) the suite uses the per-instance ports of item 13; a separate stack with
-    `FF_CACHE_RECONCILE_CRON` every 5 s and one with `FF_CACHE_SYNC_INTERVAL=PT1H` on one
-    instance; "p99 ≤ 2 s" means at least 100 changes with 99 visible within 2 s; zero queries
-    is proved by `cache_gets_total{result="miss"}` staying flat per instance / b) the HA
-    criteria are proved by the builder's integration tests only, and the suite checks AC-HA-8
-    and the `ETag` rules through the proxy. Proposal: a.
+   `flag_change.type` (it costs one column and makes the log readable). Items 10 to 17 were open and are decided below.
+10. ~~Upgrade moves the `ETag` down~~ **Decided: V3 seeds `revision` with
+    `coalesce(max(audit_event.id), 0) + 1000000`; AC-HA-9 covers the upgrade** (owner,
+    2026-10-18; 4.2). The README says the same step for a database restore: raise
+    `cache_state.revision` above any value already served before starting instances.
+11. ~~Monotonic rule with an on-demand sync~~ **Decided: no sync; a numeric `If-None-Match`
+    greater than the snapshot gets `304` with the client's tag** (owner, 2026-10-18; 4.6,
+    AC-HA-4). Section 3 item 2 names it as the one exception.
+12. ~~Snapshot and Caffeine contradict each other~~ **Decided: one complete immutable snapshot,
+    swapped as one reference; a key absent from it is `404`; Caffeine stays only for that path and
+    the hit metrics; a group reload drops that group's negative entries** (owner, 2026-10-18;
+    4.3). AC-CACHE-2 and AC-CACHE-3 are checked by the builder in phase A; if one cannot hold,
+    Level 3.
+13. ~~Compose entry point~~ **Decided: `api-lb` on `:8080` to `backend-1` only for `/api/` and
+    `/actuator/`; the UI proxy balances; per-instance host ports; 1 vCPU / 512 MB per backend;
+    only the `upstream` block is mounted into the UI image's `conf.d`; service renames in the
+    scripts are plumbing** (owner, 2026-10-18; 4.12).
+14. ~~Traffic before warm-up~~ **Decided: warm-up runs before the HTTP port opens, and the
+    compose upstream retries idempotent requests on `error timeout http_502 http_503 http_504`**
+    (owner, 2026-10-18; 4.9). Refusing connections, not a new `503`, keeps `openapi.json` and the
+    HTTP behaviour unchanged.
+15. ~~Reconciliation "exactly one"~~ **Decided: every instance reconciles; compare only at its own
+    revision; on drift only the `RECONCILE` increment, then a sync; no local patch** (owner,
+    2026-10-18; 4.8, AC-HA-10).
+16. ~~`MigrationIT` cannot change~~ **Decided: owner commit on `main` before this branch:
+    `v1CreatesTheThreeTablesOnAnEmptyDatabase` migrates with Flyway `target("1")`, so it stays
+    exact for V1** (owner, 2026-10-18). The builder adds its own V3 test. The other changed test
+    files carry an allowed tag (gate 16 works per file: `EvaluationIT`, `FlagCacheServiceTest`,
+    `ops.spec.ts`); `scripts/*.sh` are not scanned by gate 16.
+17. ~~Black-box testability~~ **Decided: per-instance ports, extra stacks with a short reconcile
+    cron and a slow sync on `backend-2`, "99 of 100 changes within 2 s", zero queries proved by
+    miss counters** (owner, 2026-10-18; section 7, 4.12).
+
+Accepted by the owner on 2026-10-18.
