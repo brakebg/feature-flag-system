@@ -33,15 +33,17 @@ export function useGroup(id: string | undefined) {
 }
 
 export function useCreateGroup() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateGroupRequest) => groupsApi.create(body),
-    // Not awaited: the dialog selects the new group first, so the refreshed list never shows it
-    // unselected (AC-GRP-1).
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: keys.groups });
-    },
+    // No list refresh here: a refresh started here races the caller's navigation and can render
+    // the new group unselected. The caller selects it first, then calls useRefreshGroups (AC-GRP-1).
   });
+}
+
+/** Refreshes the groups list. After a create: call it once the new group is selected. */
+export function useRefreshGroups() {
+  const qc = useQueryClient();
+  return () => void qc.invalidateQueries({ queryKey: keys.groups });
 }
 
 export function useUpdateGroup(id: string) {

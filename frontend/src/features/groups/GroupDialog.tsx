@@ -7,7 +7,7 @@ import { Modal } from '../../components/Modal';
 import { OptionalLabel } from '../../components/OptionalLabel';
 import { TextField } from '../../components/TextField';
 import { useToast } from '../../components/toastContext';
-import { useCreateGroup, useUpdateGroup } from '../../hooks/queries';
+import { useCreateGroup, useRefreshGroups, useUpdateGroup } from '../../hooks/queries';
 import { errorText, isVersionConflict, formFieldErrors } from '../../lib/errors';
 import {
   groupCreateSchema,
@@ -27,6 +27,7 @@ export function NewGroupDialog({
 }) {
   const toast = useToast();
   const create = useCreateGroup();
+  const refreshGroups = useRefreshGroups();
   const [keyTouched, setKeyTouched] = useState(false);
   const form = useForm<GroupCreateForm>({
     resolver: zodResolver(groupCreateSchema),
@@ -43,6 +44,8 @@ export function NewGroupDialog({
       });
       toast.success(`Group ${group.key} created`);
       onCreated(group.id);
+      // After the selection, so the refreshed list shows the new group selected (AC-GRP-1).
+      refreshGroups();
     } catch (e) {
       const fields = formFieldErrors(e, ['key', 'name', 'description'] as const);
       if (fields.length > 0) {
