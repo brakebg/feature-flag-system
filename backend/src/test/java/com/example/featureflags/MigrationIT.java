@@ -34,9 +34,14 @@ class MigrationIT {
   }
 
   private static JdbcTemplate freshDatabase(String name, String... locations) {
+    return freshDatabaseUpTo(name, "latest", locations);
+  }
+
+  /** Migrates up to {@code target} only, so a later migration does not change what V1 proves. */
+  private static JdbcTemplate freshDatabaseUpTo(String name, String target, String... locations) {
     new JdbcTemplate(ds(PG.getDatabaseName())).execute("CREATE DATABASE " + name);
     DriverManagerDataSource ds = ds(name);
-    Flyway.configure().dataSource(ds).locations(locations).load().migrate();
+    Flyway.configure().dataSource(ds).locations(locations).target(target).load().migrate();
     return new JdbcTemplate(ds);
   }
 
@@ -52,7 +57,7 @@ class MigrationIT {
 
   @Test
   void v1CreatesTheThreeTablesOnAnEmptyDatabase() {
-    JdbcTemplate db = freshDatabase("schema_only", PROD);
+    JdbcTemplate db = freshDatabaseUpTo("schema_only", "1", PROD);
 
     List<String> tables =
         db.queryForList(
