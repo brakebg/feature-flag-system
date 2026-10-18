@@ -120,8 +120,7 @@ commit. M8 has no separate milestone audit; the final review (section 6) covers 
 | M7 | `spec-auditor`, `test-auditor`, `design-checker`, `ecc:react-reviewer` |
 | M9 | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (scope backend). Cloud session, no vendor agents (spec 002 section 7a); no separate final review |
 | M10 | None: spec 004 was built by the owner, no builder session |
-| M11 | `spec-auditor`, `test-auditor`, `security-reviewer`, `final-reviewer` (scope backend) (spec 003 section 8); no separate final review |
-| M12 | `spec-auditor`, `test-auditor`, `design-checker` (against the designs of spec 005 section 4.1), `final-reviewer` (scope frontend) (spec 005 section 8); no separate final review |
+| M11 and later | The agents named in the active spec's section 8 ("Milestone audit") |
 
 A new change spec names its audit agents in its section 8; the owner adds its row here.
 

@@ -1,9 +1,8 @@
 <!doctype html>
 <!--
-  Spec 005 · design 4 · Delete group confirmation. Redesign C, balanced colours.
-  Plain HTML and CSS: read the exact values below.
-  The Google Fonts link is only for viewing this file; the app bundles the fonts (spec 001 section 10.2). Names and texts in the markup are sample data.
-  The Delete flag dialog uses the same styles without the list and the text field (design 6).
+  Design 4 · Delete group confirmation. Updated 2026-10-13 to match the built UI (frontend/src, v1.1.0).
+  Plain HTML and CSS: read the exact values below. Names and texts in the markup are sample data.
+  The Delete flag dialog uses the same ConfirmDialog styles without the list and the text field.
 -->
 <html lang="en">
 <head>
@@ -12,79 +11,66 @@
 <title>Delete group confirmation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* Tokens: spec 005 section 4.2 */
+  /* Tokens: same names and values as frontend/src/styles/tokens.css */
   :root {
-    --color-bg: #f1f2f4;
+    --color-bg: #f4f5f7;
     --color-surface: #ffffff;
-    --color-text: #1c2433;
-    --color-text-soft: #3d4556;
-    --color-text-muted: #5b6475;
-    --color-border: #dde0e6;
-    --color-primary: #3d59a8;
-    --color-ink: #1c2433;
-    --color-apricot: #e8a87c;
-    --color-danger: #b5473a;
-    --color-danger-text: #9a3a2f;
-    --color-danger-soft: #f5e0dc;
-    --color-danger-border: #e6bdb6;
-    --color-overlay: rgba(28, 36, 51, 0.62);
+    --color-surface-muted: #f8f9fa;
+    --color-text: #15181d;
+    --color-text-soft: #3b424c;
+    --color-border: #dce0e5;
+    --color-border-strong: #c7cdd4;
+    --color-danger: #a8231a;
+    --color-danger-soft: #fbeae8;
+    --color-danger-disabled: #e6b9b4;
+    --color-badge: #eef0f3;
+    --color-overlay: rgba(59, 66, 76, 0.75);
     --font-sans: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
-    --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --radius-field: 16px;
-    --radius-row: 22px;
-    --radius-dialog: 36px;
-    --radius-pill: 999px;
-    --shadow-dialog: 0 24px 60px rgba(28, 36, 51, 0.35);
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-md: 8px;
+    --radius-xl: 12px;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 14px; }
 
   /* ConfirmDialog (role="alertdialog") */
-  .overlay { position: fixed; inset: 0; padding: 24px; background: var(--color-overlay); display: flex; align-items: center; justify-content: center; }
-  /* max-height + overflow: on a short window the dialog scrolls, so the delete button stays reachable */
-  .dialog { width: 100%; max-width: 540px; max-height: calc(100vh - 48px); overflow: auto; background: var(--color-surface); border-radius: var(--radius-dialog); box-shadow: var(--shadow-dialog); display: flex; flex-direction: column; }
-  .top { padding: 32px 32px 0; display: flex; flex-direction: column; gap: 18px; }
-  /* Decorative cluster: danger square with trash, apricot half circle, ink dot (aria-hidden) */
-  .cluster { display: flex; align-items: center; gap: 8px; }
-  .cluster .square { width: 56px; height: 56px; border-radius: 16px; background: var(--color-danger); color: #ffffff; display: flex; align-items: center; justify-content: center; }
-  .cluster .half { width: 28px; height: 56px; border-radius: 0 56px 56px 0; background: var(--color-apricot); }
-  .cluster .dot { width: 14px; height: 14px; border-radius: var(--radius-pill); background: var(--color-ink); align-self: flex-end; }
+  .overlay { position: fixed; inset: 0; z-index: 20; padding: 24px; background: var(--color-overlay); display: flex; align-items: center; justify-content: center; }
+  .dialog { width: 100%; max-width: 500px; background: var(--color-surface); border-radius: var(--radius-xl); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; }
+  .top { padding: 24px 24px 0; display: flex; gap: 16px; }
+  .icon { width: 40px; height: 40px; flex-shrink: 0; border-radius: 999px; background: var(--color-danger-soft); display: flex; align-items: center; justify-content: center; }
   .heading { display: flex; flex-direction: column; gap: 8px; }
-  .title { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.1; overflow-wrap: anywhere; }
-  .text { margin: 0; color: var(--color-text-soft); font-size: 15px; line-height: 1.5; }
-  .body { padding: 22px 32px 0; display: flex; flex-direction: column; gap: 18px; }
-  .footer { display: flex; justify-content: flex-end; gap: 10px; padding: 26px 32px 30px; }
+  .title { margin: 0; font-size: 18px; font-weight: 600; }
+  .text { margin: 0; color: var(--color-text-soft); line-height: 1.5; }
+  .body { padding: 20px 24px 0; display: flex; flex-direction: column; gap: 16px; }
+  .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding: 16px 24px; border-top: 1px solid var(--color-border); background: var(--color-surface-muted); border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
 
-  /* Flag list: each key with a small danger square (aria-hidden) */
-  .list { margin: 0; padding: 14px 18px; list-style: none; border-radius: var(--radius-row); background: var(--color-bg); display: flex; flex-direction: column; gap: 8px; font-family: var(--font-mono); font-size: 14px; max-height: 220px; overflow: auto; }
-  .list li { display: flex; align-items: center; gap: 10px; overflow-wrap: anywhere; }
-  .list .mark { width: 9px; height: 9px; flex-shrink: 0; border-radius: 2px; background: var(--color-danger); }
-  .field { display: flex; flex-direction: column; gap: 8px; }
+  /* Delete group parts */
+  .list { margin: 0; padding: 12px 16px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 13px; max-height: 200px; overflow: auto; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
   .label { font-weight: 500; }
-  .key { font-family: var(--font-mono); padding: 2px 10px; border-radius: var(--radius-pill); background: var(--color-danger-soft); color: var(--color-danger-text); }
-  .input { height: 52px; padding: 0 18px; border: 1.5px solid var(--color-border); border-radius: var(--radius-field); font-family: var(--font-mono); font-size: 15px; color: var(--color-text); }
+  .key { font-family: var(--font-mono); padding: 1px 6px; border-radius: var(--radius-sm); background: var(--color-badge); }
+  .input { height: 44px; padding: 0 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius); font-family: var(--font-mono); font-size: 14px; color: var(--color-text); }
 
   /* Buttons */
-  .button { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 22px; border-radius: var(--radius-pill); font: inherit; font-weight: 500; cursor: pointer; }
-  .button.secondary { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
-  .button.danger { padding: 0 24px; border: 0; background: var(--color-danger); color: #ffffff; font-weight: 600; }
-  .button.danger:disabled { background: var(--color-danger-border); cursor: not-allowed; }
-
-  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+  .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--radius); font: inherit; cursor: pointer; }
+  .button:disabled { cursor: not-allowed; }
+  .button.secondary { border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); }
+  .button.danger { border: 0; background: var(--color-danger); color: #ffffff; font-weight: 600; }
+  .button.danger:disabled { background: var(--color-danger-disabled); }
 </style>
 </head>
 <body>
 <div class="overlay">
   <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
     <div class="top">
-      <div class="cluster" aria-hidden="true">
-        <span class="square"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span>
-        <span class="half"></span><span class="dot"></span>
-      </div>
+      <span class="icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A8231A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+      </span>
       <div class="heading">
         <h2 class="title" id="confirm-title">Delete group “Orders”?</h2>
         <p class="text" id="confirm-text">This permanently deletes the group and all 4 flags in it. Services reading these flags will get 404.</p>
@@ -92,10 +78,10 @@
     </div>
     <div class="body">
       <ul class="list" aria-label="Flags that will be deleted">
-        <li><span class="mark" aria-hidden="true"></span>orders.guest-reorder</li>
-        <li><span class="mark" aria-hidden="true"></span>orders.new-checkout</li>
-        <li><span class="mark" aria-hidden="true"></span>orders.order-tracking-v2</li>
-        <li><span class="mark" aria-hidden="true"></span>orders.split-payments</li>
+        <li>orders.guest-reorder</li>
+        <li>orders.new-checkout</li>
+        <li>orders.order-tracking-v2</li>
+        <li>orders.split-payments</li>
       </ul>
       <div class="field">
         <label for="confirm-key" class="label">Type <span class="key">orders</span> to confirm</label>

@@ -137,7 +137,7 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 
 **Write path (write-through after commit)**
 
-**Since spec 003 (several instances):** every admin write increments the one-row `cache_state.revision` counter under its row lock as the last statements of its transaction and writes a `flag_change(revision, type, group_key)` row; each instance polls the counter every `FF_CACHE_SYNC_INTERVAL` (1 s) and reloads the named groups into an immutable snapshot; the writing instance syncs itself after commit, before the HTTP response returns. Full design, ETag rule, reconciliation lock and consistency bound: `docs/specs/003-high-availability/SPEC.md` section 5. The table below describes the resulting cache content per change; the `FlagsChangedEvent` payload of 1.0.0 is no longer applied directly.
+Every admin write publishes a `FlagsChangedEvent` describing what changed (keys and new values). A `@TransactionalEventListener(phase = AFTER_COMMIT)` applies it to the cache synchronously, before the HTTP response returns to the UI:
 
 | Change in the UI | Cache update |
 | --- | --- |
@@ -149,7 +149,7 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 
 - Applying only after commit means a rolled-back write never reaches the cache.
 - If applying an update fails, the listener invalidates the affected entries plus all-flags instead (logged at WARN), so the next read reloads them from the database.
-- Each applied change, including a group name or description edit, increases `revision` (since spec 003: the database value `cache_state.revision`, commit-ordered, never reset; in 1.0.0 and 1.1.0: a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`. Monotonic rule across instances: spec 003 section 5.5.
+- Each applied change, including a group name or description edit, increments `revision` by 1 (a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
 - All three Evaluation endpoints return the current `revision` as `ETag: "<revision>"` and `Cache-Control: no-cache` on 200 and 304. A 304 has no body and repeats the ETag. Rejected or failed writes and no-op writes (6.1) do not change `revision`.
 
 **Freshness safety net**
@@ -159,9 +159,9 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 - Daily reconciliation: a `@Scheduled` job (cron from `FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`, server time zone) loads all groups and flags from the database, compares them with the cache and fixes every difference using the same copy-on-write updates as the write path. Each difference is logged at WARN with the key, cached value and database value; if any were found, `revision` increments. It also reports `ff_cache_reconcile_drift_total` and `ff_cache_reconcile_last_success_seconds`. A run that fails is logged at ERROR and leaves the cache as it was. There is no manual reconcile trigger in v1: an urgent direct database fix is picked up by the next nightly run, or immediately by restarting the service, which re-warms the cache.
 - `maximumSize` 100,000 entries per cache; `recordStats()` on, exported to Micrometer as `cache_gets_total{cache,result}`.
 
-**Scope: service-level cache only.** The cache lives in the memory of each backend process. A distributed cache (Redis, Hazelcast or similar) is out of scope, and the agent MUST NOT add one, nor any messaging between instances. Instances coordinate only through the database (spec 003).
+**Scope: service-level cache only.** The cache lives in the memory of the backend process. A distributed cache (Redis, Hazelcast or similar) is explicitly out of scope for v1, and the agent MUST NOT add one, nor any messaging between instances.
 
-Since spec 003 the backend runs as any number of instances (N ≥ 2 in the HA tests; `replicas: 1` still works). Daily reconciliation runs on one instance under a PostgreSQL advisory lock and increments the revision when it finds drift. Upgrade to the spec 003 release: stop the old instance before starting the first new instance; the README MUST state this.
+Known limitation, accepted for v1: with more than one backend instance, a change made through one instance updates only that instance's cache, so other instances would serve old values until their daily reconciliation. Therefore v1 is deployed as exactly one backend instance (`replicas: 1` in docker-compose and any orchestrator), and the README MUST state this. The path to multiple instances is listed in section 13.
 
 ### 7.3 Client usage (documented in README)
 

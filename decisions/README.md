@@ -20,6 +20,6 @@ Numbers are global and unchanged, so a reference such as "decision 0008" still n
 | 0008 | [Accept known vulnerabilities, excluded from Trivy gate 10](../docs/process/decisions/0008-accept-known-vulnerabilities.md) | Accepted |
 | 0009 | [Spec 002: upgrade the backend to Spring Boot 4.1](../docs/architecture/decisions/0009-upgrade-spring-boot-4.md) | Accepted |
 | 0010 | [One folder per spec; parallel builder sessions](../docs/process/decisions/0010-spec-folders.md) | Accepted |
-| 0011 | [Spec 003: high availability with per-instance caches and a database revision](../docs/architecture/decisions/0011-high-availability.md) | Accepted |
+| 0011 | Spec 003: high availability with per-instance caches and a database revision. On branch `feature/high-availability` until spec 003 is merged | Accepted |
 | 0012 | [Spec 004: gate 16 enforces test-changes.md](../docs/process/decisions/0012-test-changes-gate.md) | Accepted |
-| 0013 | [Spec 005: redesign the admin UI with balanced colours and a shape language](../docs/specs/005-ui-redesign/history/0013-ui-redesign.md) | Proposed |
+| 0013 | Spec 005: redesign the admin UI with balanced colours and a shape language. On branch `feature/ui-redesign` until spec 005 is merged | Proposed |
