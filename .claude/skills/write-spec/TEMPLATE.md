@@ -185,7 +185,9 @@ spec.json stays "draft" while any item is Open (check fails on "ready" with an O
 ## File 3: `docs/specs/<NNN>-<name>/test-changes.md`
 
 The plumbing clause is fixed: copy it byte for byte. The test list comes from
-`node .claude/skills/write-spec/spec-tool.mjs tests --md <IDs>`.
+`node .claude/skills/write-spec/spec-tool.mjs tests --md <IDs>`. Gate 16 does not read this file:
+it frees the tests of every criterion whose version went up or that was retired (File 4). The
+file says the same in words for the builder and `test-auditor`; `check` keeps the two equal.
 
 ```markdown
 # Test changes — spec <NNN>
@@ -194,7 +196,7 @@ Owner-authored, locked. Read by the builder and by `test-auditor`.
 
 ## Allowed behaviour changes
 
-<AC-YYY-n, AC-YYY-m, ERR-METHOD-path-status>
+<AC-YYY-n, AC-YYY-m>
 (every test tagged with one of these IDs may change freely)
 
 ## Plumbing allowed everywhere
@@ -204,12 +206,12 @@ No assertion method, expected value, @Tag or [AC-…] title may change in any ot
 
 ## Tagged tests today
 
-<output of `spec-tool.mjs tests --md <IDs>`, for reference; the IDs above are the rule>
+<output of `spec-tool.mjs tests --md <IDs>`, for reference>
 ```
 
 No allowed IDs: write `none` under "Allowed behaviour changes" and leave the list out.
-ERR IDs (`ERR-<METHOD>-<path>-<status>`, gate 14) are allowed too when an error case changes;
-`check` validates them against `errIds` in `scripts/lib/trace-registry.mjs`.
+ERR IDs (`ERR-<METHOD>-<path>-<status>`) cannot be listed: an error case that changes belongs to
+a criterion, and that criterion's version goes up.
 
 ---
 

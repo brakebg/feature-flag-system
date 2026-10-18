@@ -135,7 +135,7 @@ flowchart TD
 | --- | --- | --- |
 | Builder's unit / integration / e2e tests (spec 11) | Builder | Code does what the builder understood |
 | Mutation testing, PIT (spec gate 7) | Tool | Builder's backend tests really assert something |
-| Traceability + integrity gates (spec gates 14, 15, 16) | Builder, checked by owner review | Every AC has a test; no skipped tests or lowered thresholds; only tests listed in `test-changes.md` change beyond plumbing |
+| Traceability + integrity gates (spec gates 14, 15, 16) | Builder, checked by owner review | Every AC has a test; no skipped tests or lowered thresholds; only tests of changed or retired criteria change beyond plumbing |
 | Black-box acceptance suite | Tester session, reviewed by owner | Running system meets spec 11.2, independent of the builder |
 | Owner review script | Owner, from `main` | Locked files and values unchanged, no weakened tests, suite passes |
 | Planted bugs | Owner, at review | Builder's tests catch real bugs |

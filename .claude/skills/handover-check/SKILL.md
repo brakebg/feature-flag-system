@@ -54,7 +54,7 @@ Run every check below inside that worktree, unless the check says otherwise.
 | 6 | Owner steps before the build | read `SPEC.md` sections 8 and 10, and the issue's owner checklist | every step the spec says the owner does first is in the tagged commit (for example design files copied) |
 | 7 | Branch holds the tag | `git merge-base --is-ancestor spec-NNN-ready origin/<branch from spec.json>` | exit 0. Commits after the tag: the build has started; say so and point to the resume prompt (section 3) |
 | 8 | CI on the spec branch | `gh run list --branch <branch> --workflow ci.yml --limit 1 --json headSha,status,conclusion` | latest run is for the branch head and `success`. Running: say so. Failed: read `gh run view <id> --log-failed`, name the gate |
-| 9 | Gate baseline without Docker | `node scripts/check-integrity.mjs`, `node scripts/check-test-changes.mjs --base origin/main --spec NNN` | both exit 0 (gates 15 and 16; the builder's startup ritual runs `make verify-fast` and stalls on a red baseline it may not fix) |
+| 9 | Gate baseline without Docker | `node scripts/check-integrity.mjs`, `node scripts/check-test-changes.mjs --base origin/main` | both exit 0 (gates 15 and 16; the builder's startup ritual runs `make verify-fast` and stalls on a red baseline it may not fix) |
 | 10 | Acceptance branch | in the acceptance repo: branch `spec-NNN` exists | exists. Missing: WARN, the tester has not started (it may run in parallel, spec-flow.md section 1) |
 
 Check 8 is the full proof (CI runs `make verify-all`). Check 9 is the fast local signal and also

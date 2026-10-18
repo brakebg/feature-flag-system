@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// Self-test of gate 16 (scripts/check-test-changes.mjs), spec 004 AC-TC-1 and AC-TC-2.
+// Self-test of gate 16 (scripts/check-test-changes.mjs), AC-TC-1 and AC-TC-2 (spec 004, changed
+// by spec 006).
 // Runs in gate 14 before check-traceability and writes
 // build/reports/script-results/check-test-changes.json ([{ title, status }]) for it.
 //
-// Each case builds a fixture repository in a temp folder: on main, a spec whose
-// test-changes.md allows AC-X-2, a JUnit test tagged AC-X-1 (not allowed), one tagged AC-X-2
-// (allowed), a Vitest test tagged AC-X-1 and docs/project-acceptance-criteria.md. The case then plants
-// a change on a branch and runs the gate against main.
+// Each case builds a fixture repository in a temp folder: on main, a JUnit test tagged AC-X-1,
+// one tagged AC-X-2, a Vitest test tagged AC-X-1 and docs/project-acceptance-criteria.md with
+// both criteria at v1. The case then plants a change on a branch (any name) and runs the gate
+// against main. A case that raises AC-X-2 to v2 frees the tests tagged AC-X-2.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -17,36 +18,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const GATE = path.join(ROOT, 'scripts/check-test-changes.mjs');
 const OUT = path.join(ROOT, 'build/reports/script-results/check-test-changes.json');
 
-// The fixed plumbing clause, as in .claude/skills/write-spec/TEMPLATE.md (File 4).
-const CLAUSE = `Imports, annotations, helper signatures, type renames inside an unchanged assertion.
-No assertion method, expected value, @Tag or [AC-…] title may change in any other test.`;
-
 const FOO = 'backend/src/test/java/demo/FooTest.java';
 const BAR = 'backend/src/test/java/demo/BarTest.java';
 const SUM = 'frontend/src/sum.test.ts';
 const REG = 'docs/project-acceptance-criteria.md';
-const TC = 'docs/specs/900-fixture/test-changes.md';
 
 const fixture = {
-  'docs/specs/900-fixture/spec.json': JSON.stringify({
-    id: '900',
-    title: 'Fixture',
-    owner: 'owner',
-    status: 'ready',
-    branch: 'feature/fixture',
-    milestones: [99],
-  }),
-  [TC]: `# Test changes — spec 900
-
-## Allowed behaviour changes
-
-AC-X-2
-(every test tagged with one of these IDs may change freely)
-
-## Plumbing allowed everywhere
-
-${CLAUSE}
-`,
   // Line numbers matter: the cases below name them.
   [FOO]: `package demo;
 
@@ -118,7 +95,7 @@ function repo() {
   }
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', 'base');
-  git(dir, 'switch', '-q', '-c', 'feature/fixture');
+  git(dir, 'switch', '-q', '-c', 'any-branch-name');
   return dir;
 }
 
@@ -131,12 +108,15 @@ function edit(dir, file, from, to) {
 }
 
 function gate(dir, extra = []) {
-  const r = spawnSync('node', [GATE, '--root', dir, '--base', 'main', '--spec', '900', ...extra], { cwd: ROOT, encoding: 'utf8' });
+  const r = spawnSync('node', [GATE, '--root', dir, '--base', 'main', ...extra], { cwd: ROOT, encoding: 'utf8' });
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
+/** The owner's spec commit: AC-X-2 v1 -> v2, changed by spec 900. */
+const raiseX2 = (d) => edit(d, REG, '**AC-X-2** v1 · The limit is 10. · spec 800 · due M98', '**AC-X-2** v2 · The limit is 20. · spec 800 · changed by spec 900 · due M99');
+
 const cases = [
-  // AC-TC-1: a planted change in a test not in the allowed list fails with the file and line.
+  // AC-TC-1: a planted change in a test whose criterion did not change fails with the file and line.
   {
     title: '[AC-TC-1] changed expected value in an unlisted JUnit test fails with file and line',
     plant: (d) => edit(d, FOO, 'isEqualTo(5)', 'isEqualTo(6)'),
@@ -170,6 +150,7 @@ const cases = [
   {
     title: '[AC-TC-1] an allowed tag added on the branch does not free an unlisted test',
     plant: (d) => {
+      raiseX2(d);
       edit(d, FOO, '  @Tag("AC-X-1")\n', '  @Tag("AC-X-1")\n  @Tag("AC-X-2")\n');
       edit(d, FOO, 'isEqualTo(5)', 'isEqualTo(6)');
     },
@@ -190,26 +171,34 @@ const cases = [
     fails: [`${FOO}: test file deleted`],
   },
   {
-    title: '[AC-TC-1] changed registry line of an unlisted AC ID fails with file and line',
+    title: '[AC-TC-1] a criterion text changed without raising its version fails',
     plant: (d) => edit(d, REG, 'is 5.', 'is 6.'),
     fails: [`${REG}:3`],
   },
   {
-    title: '[AC-TC-1] added registry line of an AC ID that is not the spec\'s own fails',
-    plant: (d) => edit(d, REG, 'The limit is 10. · spec 800 · due M98\n', 'The limit is 10. · spec 800 · due M98\n- [ ] **AC-Y-1** v1 · Something else. · spec 800 · due M98\n'),
+    title: '[AC-TC-1] a removed criterion line fails',
+    plant: (d) => edit(d, REG, '- [ ] **AC-X-1** v1 · The total of 2 and 3 is 5. · spec 800 · due M98\n', ''),
+    fails: [`${REG}:3: AC-X-1 removed`],
+  },
+  {
+    title: '[AC-TC-1] a version raised by more than 1 fails',
+    plant: (d) => edit(d, REG, '**AC-X-2** v1 · The limit is 10. · spec 800 · due M98', '**AC-X-2** v3 · The limit is 20. · spec 800 · changed by spec 900 · due M99'),
+    fails: [`${REG}:4`],
+  },
+  {
+    title: '[AC-TC-1] a new criterion that does not start at v1 fails',
+    plant: (d) => edit(d, REG, 'The limit is 10. · spec 800 · due M98\n', 'The limit is 10. · spec 800 · due M98\n- [ ] **AC-Y-1** v2 · Something else. · spec 900 · due M99\n'),
     fails: [`${REG}:5`],
   },
   {
-    title: '[AC-TC-1] added note line without the spec\'s own new criterion fails',
-    plant: (d) => edit(d, REG, '# Project acceptance criteria\n', '# Project acceptance criteria\n\nA new note.\n'),
-    fails: [`${REG}:3`],
+    title: '[AC-TC-1] a raised criterion frees only its own tests',
+    plant: (d) => {
+      raiseX2(d);
+      edit(d, FOO, 'isEqualTo(5)', 'isEqualTo(6)');
+    },
+    fails: [`${FOO}:15`],
   },
-  {
-    title: 'a test-changes.md with a changed plumbing clause fails',
-    plant: (d) => edit(d, TC, 'helper signatures, ', ''),
-    fails: [`${TC}: the plumbing clause differs`],
-  },
-  // AC-TC-2: plumbing in an unlisted test passes; a listed test may change its expected value.
+  // AC-TC-2: plumbing passes; a test whose criterion went up or was retired may change freely.
   {
     title: '[AC-TC-2] import, annotation, signature and type-only changes in an unlisted JUnit test pass',
     plant: (d) => {
@@ -231,13 +220,39 @@ const cases = [
     passes: true,
   },
   {
-    title: '[AC-TC-2] changed expected value in a listed test passes',
-    plant: (d) => edit(d, BAR, 'isEqualTo(10)', 'isEqualTo(20)'),
+    title: '[AC-TC-2] changed expected value in a test whose criterion version went up passes',
+    plant: (d) => {
+      raiseX2(d);
+      edit(d, BAR, 'isEqualTo(10)', 'isEqualTo(20)');
+    },
     passes: true,
   },
   {
-    title: '[AC-TC-2] changed registry line of a listed AC ID passes',
-    plant: (d) => edit(d, REG, 'limit is 10.', 'limit is 20.'),
+    title: '[AC-TC-2] changed expected value in a test whose criterion was retired passes',
+    plant: (d) => {
+      edit(d, REG, '**AC-X-2** v1 · The limit is 10. · spec 800 · due M98', '**AC-X-2** v1 · The limit is 10. · spec 800 · retired by spec 900');
+      edit(d, BAR, 'isEqualTo(10)', 'isEqualTo(20)');
+    },
+    passes: true,
+  },
+  {
+    title: '[AC-TC-2] the same commit checked from a tag (no branch) passes',
+    plant: (d) => {
+      raiseX2(d);
+      edit(d, BAR, 'isEqualTo(10)', 'isEqualTo(20)');
+      git(d, 'commit', '-q', '-am', 'spec and test');
+      git(d, 'tag', 'spec-900-ready');
+      git(d, 'switch', '-q', '--detach', 'spec-900-ready');
+    },
+    args: ['--head', 'spec-900-ready'],
+    passes: true,
+  },
+  {
+    title: '[AC-TC-2] a ticked checkbox, a heading and a note in the registry pass',
+    plant: (d) => {
+      edit(d, REG, '- [ ] **AC-X-1**', '- [x] **AC-X-1**');
+      edit(d, REG, '# Project acceptance criteria\n', '# Project acceptance criteria\n\n## Totals\n\nA note.\n');
+    },
     passes: true,
   },
   {

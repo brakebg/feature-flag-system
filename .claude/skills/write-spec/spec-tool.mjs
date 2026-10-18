@@ -439,13 +439,13 @@ function cmdCheck(args) {
       if (ia >= 0 && !allowed.length && !/^none\b/im.test(body.trim())) err('test-changes.md: list the allowed AC / ERR IDs or write "none"');
       for (const id of allowed) {
         if (allowedErr.includes(id)) {
-          if (!(id in errIds)) err(`test-changes.md: ${id} is not a known ERR ID (scripts/lib/trace-registry.mjs errIds)`);
+          err(`test-changes.md: ${id}: gate 16 frees tests only through a changed or retired criterion (spec 006); change the criterion the error case belongs to and list that`);
         } else if (!changedIds.includes(id) && !retiredIds.includes(id)) {
           err(`test-changes.md: ${id} may change but this spec does not change or retire it`);
         }
         if (!findTests(id).length) warn(`test-changes.md: ${id} has no tagged test in the repo today`);
       }
-      for (const id of [...changedIds, ...retiredIds]) if (!allowed.includes(id) && findTests(id).length) warn(`${id} changes but its tests are not allowed to change (test-changes.md); fine only if no test asserts the old text`);
+      for (const id of [...changedIds, ...retiredIds]) if (!allowed.includes(id) && findTests(id).length) warn(`${id} changes, so gate 16 lets its tests change; list it in test-changes.md`);
       const s6 = sec['Test changes'];
       if (s6 !== undefined) {
         if (!s6.includes('test-changes.md')) err('SPEC.md section 6: must point to `<spec>/test-changes.md`');
@@ -497,7 +497,7 @@ function cmdCheck(args) {
 
 // ---------------------------------------------------------------------------------- main
 
-// Only when run as a command: gate 16 (scripts/check-test-changes.mjs) imports PLUMBING and idsIn.
+// Only when run as a command; other scripts may import PLUMBING and idsIn.
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const [cmd, ...rest] = process.argv.slice(2);
   if (cmd === 'next') cmdNext(rest);

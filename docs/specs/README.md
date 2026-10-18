@@ -50,7 +50,8 @@ docs/specs/<NNN-name>/
   spec.json                 owner   id, title, owner, status (draft | ready | done), milestones,
                                     branch, issue, release, scope (optional)
   SPEC.md                   owner   the spec; section 10 is its decision log
-  test-changes.md           owner   AC IDs whose tests may change; the fixed plumbing clause
+  test-changes.md           owner   AC IDs whose tests may change (= changed and retired criteria;
+                                    gate 16 reads the criteria file); the fixed plumbing clause
   design/                   owner   designs, when the spec has any
   history/                  owner   old decision records that belong to this spec only
   builder/                  builder the builder's memory, nothing else:
