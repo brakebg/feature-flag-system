@@ -36,7 +36,11 @@ export function useCreateGroup() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateGroupRequest) => groupsApi.create(body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.groups }),
+    // Not awaited: the dialog selects the new group first, so the refreshed list never shows it
+    // unselected (AC-GRP-1).
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.groups });
+    },
   });
 }
 
