@@ -22,7 +22,7 @@ Build a standalone Feature Flag Service: a Java 21 backend that stores boolean f
 - Multiple environments (dev/stage/prod) inside one instance. One deployment = one environment.
 - Client SDKs. Clients call the HTTP API directly.
 - Real-time push (SSE/WebSocket) to clients. Clients poll with ETag caching.
-- Distributed cache (Redis, Hazelcast or similar) and horizontal scaling. The cache lives inside the service process, so v1 runs as exactly one backend instance (see section 7.2).
+- Distributed cache (Redis, Hazelcast or similar). The cache lives inside each service process. Horizontal scaling (several backend instances) is in scope since spec 003: see `docs/architecture/api.md` 7.2.
 - Rate limiting inside the service. It is done at the edge (CDN, API gateway or ingress), which sees the real client IP; see section 5.3 and decision `docs/architecture/decisions/0002-rate-limiting-at-edge.md`.
 
 ### 1.3 Glossary
@@ -44,7 +44,7 @@ These are out of scope for v1 but shape today's design so they can be added with
 | Real users, roles (viewer/editor), SSO/OIDC | `AdminAuthenticator` interface; `actor` already recorded in audit |
 | Environments (dev/stage/prod per flag) | Add `environment` table + `flag_value(flag_id, env_id, enabled)`; evaluation path gains `/{env}` |
 | Percentage rollouts and targeting rules | Add `rules JSONB` column to `feature_flag`; evaluation becomes `POST` with a context body |
-| Multi-instance backend | Broadcast cache updates between instances with Postgres `LISTEN/NOTIFY` |
+| Multi-instance backend | Done in spec 003 (database revision counter + per-instance poll). A `LISTEN/NOTIFY` doorbell to sync within milliseconds is a possible later spec |
 | Push updates to clients | SSE endpoint `/api/v1/evaluate/stream` emitting revisions |
 | Java/TS client SDKs | Wrap the polling + ETag logic from 7.3 |
 | Flag lifecycle (stale-flag reports, owner, expiry date) | Add nullable `owner`, `expires_at` columns |

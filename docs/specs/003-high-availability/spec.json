@@ -1,0 +1,12 @@
+{
+  "id": "003",
+  "title": "High availability",
+  "owner": "brakebg",
+  "status": "draft",
+  "milestones": [
+    11
+  ],
+  "branch": "feature/high-availability",
+  "issue": null,
+  "release": null
+}

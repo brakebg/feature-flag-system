@@ -13,9 +13,9 @@ The UI talks only to the Admin API; client services talk only to the Evaluation 
 
 Request paths:
 
-1. Admin edits: browser → nginx (UI image) → `/api/v1/admin/**` with an admin JWT → service layer → PostgreSQL, with an audit event in the same transaction.
-2. After commit: the service publishes a `FlagsChangedEvent`; the flag cache updates the affected entries and the revision increments.
+1. Admin edits: browser → nginx (UI image) → `/api/v1/admin/**` with an admin JWT → service layer → PostgreSQL, with an audit event, the `cache_state.revision` increment and a `flag_change` row in the same transaction (since spec 003).
+2. After commit: the writing instance syncs its flag cache from the database before it answers; every other backend instance syncs within `FF_CACHE_SYNC_INTERVAL` (1 s) by polling the revision (`api.md` 7.2).
 3. Consumer authentication: consumer → `POST /api/v1/auth/token` with client id and secret → short-lived JWT (scope `flags:read`), cached until near expiry.
 4. Client reads: consumer → `/api/v1/evaluate/**` with `Authorization: Bearer <jwt>` → flag cache (database only on a miss) → JSON with `ETag`.
 
-The backend is stateless apart from the flag cache, so restarting it is safe: the cache is warmed from the database on startup before the readiness probe reports UP.
+The backend is stateless apart from the flag cache, so restarting it is safe: the cache is warmed from the database on startup before the readiness probe reports UP. Since spec 003 it runs as any number of instances behind a load balancer; they share only the database.

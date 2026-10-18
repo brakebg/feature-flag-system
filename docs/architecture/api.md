@@ -117,7 +117,7 @@ Unknown flags return 404, never a silent `false`. Clients decide their own defau
 
 ### 7.2 Caching
 
-Every Evaluation API request is answered from an in-process Caffeine cache. The database is queried only on a cache miss, and every change made in the UI is written into the cache right after it commits, so the cache never serves a stale value. The Admin API reads straight from the database (low volume, and it needs the latest `version` numbers).
+Every Evaluation API request is answered from an in-process Caffeine cache. The database is queried only on a cache miss. Since spec 003 the backend runs as any number of instances, each with its own cache; instances never talk to each other and coordinate only through the database. A change made in the UI is visible on the writing instance before the HTTP response returns and on every other instance within `FF_CACHE_SYNC_INTERVAL` (1 s). The Admin API reads straight from the database (low volume, and it needs the latest `version` numbers).
 
 **Caches** (all inside `FlagCacheService`; `Optional.empty()` = a negative entry for a key that does not exist):
 
@@ -135,9 +135,11 @@ All maps stored in the cache are immutable; updates build a new map and `put` it
 2. Miss → the Caffeine `LoadingCache` loader queries the database, stores the result and returns it. Concurrent misses on the same key run one query, not many.
 3. Key not in the database → store a negative entry (expires after 30 s) and return 404, so repeated lookups of unknown keys do not hit the database.
 
-**Write path (write-through after commit)**
+**Write path (database revision, since spec 003)**
 
-Every admin write publishes a `FlagsChangedEvent` describing what changed (keys and new values). A `@TransactionalEventListener(phase = AFTER_COMMIT)` applies it to the cache synchronously, before the HTTP response returns to the UI:
+Every admin write that changes data runs, as the last two statements of its transaction, `UPDATE cache_state SET revision = revision + 1 WHERE id = 1 RETURNING revision` (row lock, `lock_timeout` 5 s) and an insert of a `flag_change(revision, type, group_key)` row (`docs/architecture/data-model.md` 4.1). Revision order is therefore commit order, with no gaps. Rejected, failed and no-op writes do neither; a rollback rolls back both.
+
+Each instance holds one immutable snapshot (revision plus the three caches' content) in a `volatile` field; a request reads that one reference, so its data and its `ETag` come from the same moment. A syncer thread per instance reads `cache_state.revision` every `FF_CACHE_SYNC_INTERVAL`; when the database is ahead it reads the `flag_change` rows after its local revision in one `REPEATABLE READ` transaction, reloads the groups they name and swaps the snapshot. A gap in `flag_change` (retention, or a new instance) gives a full reload, as warm-up does. A sync never lowers the local revision; a failed sync is logged at WARN and retried on the next tick while the current snapshot keeps serving. After its own commit, the writing instance runs one sync synchronously (the existing `AFTER_COMMIT` listener), before the HTTP response returns; the `FlagsChangedEvent` payload is no longer applied directly. Full design: `docs/specs/003-high-availability/SPEC.md` section 4. The resulting cache content per change:
 
 | Change in the UI | Cache update |
 | --- | --- |
@@ -147,21 +149,21 @@ Every admin write publishes a `FlagsChangedEvent` describing what changed (keys 
 | Group deleted | `put` negative entries for the group and each of its flags; remove those flags from all-flags |
 | Group name or description edited | No cache entry changes (the Evaluation API uses keys only); `revision` still increments |
 
-- Applying only after commit means a rolled-back write never reaches the cache.
-- If applying an update fails, the listener invalidates the affected entries plus all-flags instead (logged at WARN), so the next read reloads them from the database.
-- Each applied change, including a group name or description edit, increments `revision` by 1 (a long held in memory, initialised from `max(audit_event.id)` at startup). It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
+- Syncing only from committed data means a rolled-back write never reaches the cache.
+- Each change, including a group name or description edit, increments `revision` by 1: the database value `cache_state.revision`, commit-ordered, never reset (in 1.0.0 and 1.1.0: a long held in memory, initialised from `max(audit_event.id)` at startup). It is the snapshot's revision, the same on every instance for the same data and after a restart. It is returned as `ETag: "<revision>"` with `Cache-Control: no-cache`; a request whose `If-None-Match` matches gets `304 Not Modified`.
+- Monotonic rule across instances: a request whose `If-None-Match` is a number greater than the snapshot's revision makes the instance run one sync first (shared by concurrent requests, 2 s timeout), then answer from the new snapshot; if that sync fails, the answer is `304` with the client's ETag. A client never gets older data than it has seen, whichever instance answers. An unparsable or weak `If-None-Match` is no match.
 - All three Evaluation endpoints return the current `revision` as `ETag: "<revision>"` and `Cache-Control: no-cache` on 200 and 304. A 304 has no body and repeats the ETag. Rejected or failed writes and no-op writes (6.1) do not change `revision`.
 
 **Freshness safety net**
 
-- Warm-up: at startup all groups and flags are loaded into the three caches; the readiness probe reports UP only after warm-up finishes, so live traffic starts at a near-100 % hit rate.
+- Warm-up: at startup all groups and flags and `cache_state.revision` are loaded in one `REPEATABLE READ` transaction (a full reload) into the three caches; the readiness probe reports UP only after warm-up finishes, so live traffic starts at a near-100 % hit rate. After warm-up readiness does not depend on the database: a database outage must not take every instance out of the load balancer while they can still serve correct data.
 - No time-based expiry on positive entries: all changes are expected to go through the UI/Admin API, which keeps the cache current. Only negative entries expire (30 s).
-- Daily reconciliation: a `@Scheduled` job (cron from `FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`, server time zone) loads all groups and flags from the database, compares them with the cache and fixes every difference using the same copy-on-write updates as the write path. Each difference is logged at WARN with the key, cached value and database value; if any were found, `revision` increments. It also reports `ff_cache_reconcile_drift_total` and `ff_cache_reconcile_last_success_seconds`. A run that fails is logged at ERROR and leaves the cache as it was. There is no manual reconcile trigger in v1: an urgent direct database fix is picked up by the next nightly run, or immediately by restarting the service, which re-warms the cache.
+- Daily reconciliation: a `@Scheduled` job (cron from `FF_CACHE_RECONCILE_CRON`, default `0 0 3 * * *`, server time zone) runs on one instance only, guarded by `pg_try_advisory_xact_lock` (the others skip the run and log at INFO). It loads all groups and flags in a `REPEATABLE READ` transaction at its snapshot's revision, compares them with the cache and fixes every difference in its local snapshot. Each difference is logged at WARN with the key, cached value and database value; if any were found, one transaction increments `cache_state.revision` and inserts a `RECONCILE` `flag_change` row, so every instance does a full reload on its next tick and the `ETag` changes. It also reports `ff_cache_reconcile_drift_total` and `ff_cache_reconcile_last_success_seconds`. A run that fails is logged at ERROR and leaves the cache as it was. There is no manual reconcile trigger in v1: an urgent direct database fix is picked up by the next nightly run, or immediately by restarting the service, which re-warms the cache.
 - `maximumSize` 100,000 entries per cache; `recordStats()` on, exported to Micrometer as `cache_gets_total{cache,result}`.
 
-**Scope: service-level cache only.** The cache lives in the memory of the backend process. A distributed cache (Redis, Hazelcast or similar) is explicitly out of scope for v1, and the agent MUST NOT add one, nor any messaging between instances.
+**Scope: service-level cache only.** The cache lives in the memory of each backend process. A distributed cache (Redis, Hazelcast or similar) is out of scope, and the agent MUST NOT add one, nor any messaging between instances. Instances coordinate only through the database (spec 003).
 
-Known limitation, accepted for v1: with more than one backend instance, a change made through one instance updates only that instance's cache, so other instances would serve old values until their daily reconciliation. Therefore v1 is deployed as exactly one backend instance (`replicas: 1` in docker-compose and any orchestrator), and the README MUST state this. The path to multiple instances is listed in section 13.
+Since spec 003 the backend runs as any number of instances (N ≥ 2 in the HA tests; one instance still works); code never assumes a fixed count. An instance that cannot reach the database keeps serving its last snapshot; the `FFCacheSyncStale` alert (`docs/architecture/non-functional.md` 9.3) fires when its sync is older than 30 s. Upgrade to the spec 003 release: stop the old instance before starting the first new instance; the README MUST state this, with the version number.
 
 ### 7.3 Client usage (documented in README)
 

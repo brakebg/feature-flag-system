@@ -53,7 +53,7 @@ Implemented once in a `@RestControllerAdvice` (`GlobalExceptionHandler`). DB uni
 - Never log passwords, client secrets or JWTs. Evaluation requests log the consumer's client id (JWT sub).
 - Actuator: `/actuator/health` (with DB check, liveness and readiness groups), `/actuator/info`, `/actuator/prometheus` (Micrometer; admin token, see 5.4).
 - `GET /actuator/health` is public and returns 200 `{"status":"UP","components":{"db":{"status":"UP"}}}` (components are shown without authentication). `GET /actuator/health/liveness` and `/actuator/health/readiness` are public and return 200 `{"status":"UP"}`, or 503 `{"status":"DOWN"}`. `GET /actuator/info` is public and contains `build.version` and `git.commit.id`.
-- Custom metrics: `ff_evaluations_total{endpoint,result,client}` (`endpoint`: `all`, `group`, `flag`; `result`: `found`, `not_found`; `client`: the token `sub`), `ff_admin_writes_total{action}` (`action`: the audit action names).
+- Custom metrics: `ff_evaluations_total{endpoint,result,client}` (`endpoint`: `all`, `group`, `flag`; `result`: `found`, `not_found`; `client`: the token `sub`), `ff_admin_writes_total{action}` (`action`: the audit action names). Since spec 003: `ff_cache_revision` (gauge, per instance), `ff_cache_sync_age_seconds` (time since the last successful sync), `ff_cache_syncs_total{result=noop|partial|full|error}`. Each partial or full sync logs at DEBUG with the revision range, each sync error at WARN.
 
 Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts.yml`, validated with `promtool check rules` in gate 1. Delivering alerts (Alertmanager, e-mail, chat) is not wired in v1.
 
@@ -64,6 +64,7 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 | `FFNotReady` | Readiness probe DOWN for more than 5 min | critical |
 | `FFHighErrorRate` | 5xx responses above 1 % of requests over 10 min | critical |
 | `FFSlowEvaluation` | Evaluation API p95 latency above 50 ms over 15 min | warning |
+| `FFCacheSyncStale` | `ff_cache_sync_age_seconds` above 30 s for 1 min on any instance (spec 003) | warning |
 
 ### 9.4 Configuration (environment variables)
 
@@ -80,4 +81,6 @@ Alert rules: the agent writes them as Prometheus rules in `ops/prometheus/alerts
 | `FF_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | UI origin(s) |
 | `FF_REQUIRE_HTTPS` | `false` (`true` in `prod`) | Reject login and token requests that did not arrive over HTTPS (10.2) |
 | `SERVER_PORT` | `8080` | HTTP port |
+| `FF_CACHE_SYNC_INTERVAL` | `PT1S` | Cache sync tick, each instance (spec 003) |
+| `FF_CHANGE_RETENTION` | `P1D` | Retention of `flag_change` rows (spec 003) |
 | `VITE_API_BASE_URL` (UI build) | `/api` | API base URL |
