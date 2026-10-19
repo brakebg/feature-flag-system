@@ -33,14 +33,11 @@ export function useGroup(id: string | undefined) {
 }
 
 export function useCreateGroup() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateGroupRequest) => groupsApi.create(body),
-    // Not awaited: the dialog selects the new group first, so the refreshed list never shows it
-    // unselected (AC-GRP-1).
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: keys.groups });
-    },
+    // No list refresh here: it would race the navigation to the new group, which React Router
+    // runs as a transition (ROUTER_FUTURE), so the list could render the group unselected.
+    // GroupsPage refreshes the list once the selected group is committed (AC-GRP-1).
   });
 }
 

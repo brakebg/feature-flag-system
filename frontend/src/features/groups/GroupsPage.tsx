@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../../api/ApiError';
 import { EmptyState } from '../../components/EmptyState';
-import { useGroup, useGroups } from '../../hooks/queries';
+import { keys, useGroup, useGroups } from '../../hooks/queries';
 import { loadErrorText } from '../../lib/errors';
 import { NewGroupDialog } from './GroupDialog';
 import { GroupList } from './GroupList';
@@ -16,6 +17,16 @@ export function GroupsPage() {
   const groups = useGroups();
   const group = useGroup(groupId);
   const [creating, setCreating] = useState(false);
+  const qc = useQueryClient();
+
+  // A selected group that the loaded list does not hold yet (just created, here or elsewhere):
+  // refresh the list. It runs after the selection is committed, so the list never shows the new
+  // group unselected, however late the navigation renders (AC-GRP-1).
+  const loaded = groups.data !== undefined;
+  const listed = !!groupId && !!groups.data?.some((g) => g.id === groupId);
+  useEffect(() => {
+    if (groupId && loaded && !listed) void qc.invalidateQueries({ queryKey: keys.groups });
+  }, [groupId, loaded, listed, qc]);
 
   const unknown =
     group.error instanceof ApiError && (group.error.status === 404 || group.error.status === 400);
