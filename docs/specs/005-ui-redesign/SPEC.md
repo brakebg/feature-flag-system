@@ -82,8 +82,9 @@ texts; these files decide appearance. Each file's token block is a subset of sec
 ### 4.2 Tokens
 
 `frontend/src/styles/tokens.css` MUST define these custom properties with these values. Old
-tokens that no longer have a use are removed. Components use tokens, not raw values, except
-`#ffffff` (text on filled buttons and toasts, focus ring on ink).
+tokens that no longer have a use are removed. Colours in components use tokens, not raw values,
+except `#ffffff` (text on filled buttons and toasts, focus ring on ink) and the logo fills (4.5).
+Sizes and radii without a token come from the design `.html`.
 
 | Token | Value | Use |
 | --- | --- | --- |
@@ -157,7 +158,7 @@ All IBM Plex, self-hosted (section 4.7). Body 14 px (sign-in page 15 px), weight
 | Element | Font | Size / weight |
 | --- | --- | --- |
 | `h1` on pages (`Sign in`, group name, `Audit log`, `Page not found`) | `--font-display` | Sign in 48 / 600; group name, `Audit log`, 404: 56 / 600; line height 1 |
-| Dialog titles (`h2`) | `--font-display` | 32 / 600, line height 1.1 |
+| Dialog titles (`h2`) | `--font-display` | 32 / 600, line height 1.1; Delete flag 28 / 600 (design 6) |
 | `Groups` heading | `--font-display` | 22 / 600 |
 | Labels, buttons | `--font-sans` | 14–15 / 500; primary and danger buttons 600 |
 | Column heads | `--font-sans` | 12 / 600, uppercase, letter spacing 0.06em, `--color-text-muted` |
@@ -167,14 +168,15 @@ All IBM Plex, self-hosted (section 4.7). Body 14 px (sign-in page 15 px), weight
 
 ### 4.4 Components
 
-Exact values are in the design files; this table is the summary the builder implements once in
+Exact sizes and spacing are in the design `.html` files; where a summary in 4.3, 4.4 or 4.6
+differs from them, the design file decides appearance. This table is the summary the builder implements once in
 `src/components/` (`docs/architecture/frontend.md` 8.7) and reuses.
 
 | Component | Look |
 | --- | --- |
-| Button `primary` | Pill, height 48 (44 in the header), `--color-primary`, white text, weight 600; `New flag` carries a decorative plus in a 32 px white circle |
+| Button `primary` | Pill, height 48, `--color-primary`, white text, weight 600; `New flag` carries a decorative plus in a 32 px white circle |
 | Button `soft` | Pill, height 40, `--color-primary-soft`, `--color-primary-dark`, weight 600; `New group` carries a plus in a 28 px `--color-primary` circle |
-| Button `secondary` | Pill, 1.5 px `--color-border`, white, `--color-text`, weight 500 |
+| Button `secondary` | Pill, height 44 in the top bar and group header, 1.5 px `--color-border`, white, `--color-text`, weight 500 |
 | Button `danger-outline` | Pill, 1.5 px `--color-danger-border`, white, `--color-danger` |
 | Button `danger` | Pill, `--color-danger`, white, weight 600; disabled: `--color-danger-border` |
 | Button `dark` | Pill, `--color-ink`, white (`Sign in` 56 px high with an apricot arrow circle, `Load more`) |
@@ -196,8 +198,10 @@ Exact values are in the design files; this table is the summary the builder impl
 
 ### 4.5 Shapes
 
-Every shape is decorative: inside an element with `aria-hidden="true"`, not focusable, no text
-that matters, and removing it changes no behaviour (AC-UI-6).
+Every shape is decorative: inside an element with `aria-hidden="true"`, not focusable, and
+removing it changes no behaviour (AC-UI-6). A shape contains no text node: the `i` of the info
+circle in design 1 is drawn with SVG or CSS, so `textContent` of banners, toasts, alerts and labels
+stays exactly the spec 001 text (existing tests assert it, for example `[AC-AUTH-4]`).
 
 | Shape | Where | Rule |
 | --- | --- | --- |
@@ -212,8 +216,8 @@ that matters, and removing it changes no behaviour (AC-UI-6).
 
 ### 4.6 Screens and layout
 
-- **App shell.** The top bar is a white pill (min height 64, 20 px from the window edges at the
-  top and sides): logo and name, nav pill group, avatar circle (sage, initial of the username,
+- **App shell.** The top bar is a white pill (min height 64, 20 px from the top and 24 px from the
+  sides of the window): logo and name, nav pill group, avatar circle (sage, initial of the username,
   `aria-hidden`) with the username, `Sign out` (`secondary`). The version footer stays (12 px,
   `--color-text-muted`, right).
 - **Workspace.** Groups panel (white card, `--radius-panel`, flex basis 280 px) and the main area
@@ -232,8 +236,7 @@ that matters, and removing it changes no behaviour (AC-UI-6).
   targets and details, dialog titles, toasts) wraps with `overflow-wrap: anywhere`; nothing is
   clipped or overlaps (AC-UI-8).
 - **Motion.** Only what exists today: the switch knob transition (0.15 s) and the spinner
-  rotation. With `prefers-reduced-motion: reduce` the knob transition is off; the spinner still
-  shows.
+  rotation. No new motion rule.
 
 ### 4.7 Dependency
 
@@ -246,8 +249,24 @@ two Plex packages already used) and import weight 600 in `src/main.tsx`. No othe
 (`Button`, `TextField`, `Toggle`, `Modal`, `ConfirmDialog`, `Toast`, `EmptyState`, `FlagLogo`,
 `Spinner`) and of `features/` (`shell`, `auth`, `groups`, `flags`, `audit`); `src/main.tsx`;
 `frontend/package.json` and lock file; `frontend/e2e/style.spec.ts` (AC-STYLE-1); new
-tests for AC-UI-1 to AC-UI-9; the five screenshot baselines; `docs/design-compare/`.
-`GroupsPage.test.tsx` checks `aria-hidden` on the plus `svg`; section 4.4 keeps it true.
+tests for AC-UI-1 to AC-UI-9; the five screenshot baselines; `docs/design-compare/` and
+`scripts/design-compare.sh` (its image path still points to the old `docs/design/` folder; it
+must read `docs/product/design/`).
+
+Existing tests depend on these DOM hooks; they MUST stay (the tests may change only by plumbing):
+the plus `svg` keeps `aria-hidden="true"` (`GroupsPage.test.tsx`); the spinner keeps
+`data-spinner` (`LoginPage.test.tsx`); the group meta is a `<p>` that starts with `Created by`;
+the badge is its own element inside the group button with text `<enabled>/<total>`; flag rows keep
+`[role="row"] > [role="cell"]:first-child` and relative times end in `ago` or `just now` (the masks
+of `screenshots.spec.ts`).
+
+**ARIA snapshots (AC-UI-6).** In phase A, before any change under `frontend/src/`, the builder
+records the snapshots of the screens with `toMatchAriaSnapshot` at 1440 × 900 on the seeded
+screenshot stack, relative times as patterns, in one commit that touches no `frontend/src/` file,
+named in `<spec>/builder/DECISIONS.md`. Recording them from the running pre-redesign code is the
+point of the criterion ("unchanged"), so CLAUDE.md section 4 ("expected values never from running
+the code") does not apply to them. They never change after that commit; `test-auditor` checks it.
+The black-box suite records its own baseline from the `spec-005-ready` build.
 
 ## 5. Acceptance criteria
 
@@ -309,7 +328,8 @@ version (`[AC-UI-1 v1]`):
   `docs/design-compare/` regenerated, release: the next free minor version (`VERSION`,
   `CHANGELOG.md`).
 - Milestone audit (`docs/process/builder-agents.md` section 5): `spec-auditor`, `test-auditor`,
-  `design-checker` (against the designs of section 4.1), `final-reviewer` (scope frontend).
+  `design-checker` (against the six designs of section 4.1; tell it to include `6 · States`, its
+  prompt says five screens), `final-reviewer` (scope frontend).
 
 **Level 3 triggers for M12** (in addition to `docs/process/escalation.md`)
 
@@ -357,3 +377,18 @@ version (`[AC-UI-1 v1]`):
 7. ~~Template~~ **Decided: spec re-shaped to the spec-flow template on 2026-10-19** (design
    unchanged; criteria in `docs/project-acceptance-criteria.md` with versions; designs and doc
    changes on this branch).
+8. ~~Second two-reviewer challenge~~ **Decided: run on 2026-10-19** against the current repo (20
+   findings). Fixed: AC-UI-1 loads the three faces before `check` (a face is loaded only when used);
+   AC-UI-2 exact names and the two confirm buttons; AC-UI-5 names the label element; AC-UI-7
+   "horizontally inside the viewport" and the `table` elements; AC-UI-8 adds 1120 px, the Delete
+   flag title and toast, and only the header shapes; a 50-character group key in "long data";
+   AC-UI-6 snapshot recording and protection (4.8); shapes hold no text node (4.5), because tagged
+   tests assert exact `textContent`; the DOM hooks existing tests use (4.8);
+   `scripts/design-compare.sh` path into scope; summaries yield to the design files (4.4), with
+   the top bar side gap, the Delete flag title and the button heights corrected; the token rule
+   covers colours only; the reduced-motion rule dropped (new behaviour without an AC, and the goal
+   adds no motion); design README sizes and wording. Rejected: fold AC-UI-1 and AC-UI-2 into
+   AC-STYLE-1 (the overlap is small, and the acceptance suite is built around the nine IDs); drop
+   AC-UI-4 (it is the only check that the pie shows the right share, for one small test).
+
+Accepted by the owner on 2026-10-15; re-shaped and re-checked on 2026-10-19.

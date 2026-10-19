@@ -2,7 +2,7 @@
   "id": "005",
   "title": "UI redesign",
   "owner": "brakebg",
-  "status": "draft",
+  "status": "ready",
   "milestones": [
     12
   ],
@@ -12,6 +12,7 @@
   "scope": [
     "frontend/**",
     "docs/design-compare/**",
+    "scripts/design-compare.sh",
     "VERSION",
     "CHANGELOG.md"
   ]
