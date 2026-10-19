@@ -26,7 +26,7 @@ such as "spec 9.1" still point here. Map of all sections: `docs/README.md`.
 - With `FF_REQUIRE_HTTPS=true` (default in `prod`, `false` in `dev`), `POST /api/v1/auth/login` and `POST /api/v1/auth/token` reject requests that did not arrive over HTTPS with `403` and problem type `https-required`, so credentials are never accepted in clear text. A request without `X-Forwarded-Proto` or with `http` counts as not HTTPS. Only these two POST endpoints are affected. The 403 body is a problem detail with type `https-required`, also for the token endpoint. In the AC-OPS-4 check, the login and token requests are sent to the backend port directly; whether nginx passes `X-Forwarded-Proto` on to the backend is not specified.
 - Local docker-compose stays plain HTTP in the `dev` profile.
 
-**Security headers.** IBM Plex fonts are bundled with the UI via `@fontsource` packages, so the UI loads nothing from other origins. nginx adds to every UI response:
+**Security headers.** IBM Plex fonts are bundled with the UI via three `@fontsource` packages (IBM Plex Sans, IBM Plex Sans Condensed since spec 005, IBM Plex Mono), so the UI loads nothing from other origins. nginx adds to every UI response:
 
 | Header | Value |
 | --- | --- |

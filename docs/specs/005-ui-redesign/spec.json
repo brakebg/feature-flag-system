@@ -1,0 +1,18 @@
+{
+  "id": "005",
+  "title": "UI redesign",
+  "owner": "brakebg",
+  "status": "draft",
+  "milestones": [
+    12
+  ],
+  "branch": "feature/ui-redesign",
+  "issue": 36,
+  "release": null,
+  "scope": [
+    "frontend/**",
+    "docs/design-compare/**",
+    "VERSION",
+    "CHANGELOG.md"
+  ]
+}
