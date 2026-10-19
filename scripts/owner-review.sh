@@ -292,20 +292,19 @@ if [ -n "$removed" ]; then warn "commits that removed assertion lines (count, co
 else pass "no assertion lines removed"; fi
 
 # ---------------------------------------------------------------- 3b. Test changes (gate 16, main's copy)
-# Every changed test outside the spec's test-changes.md must be plumbing only (spec 004).
+# Every changed test whose criteria did not change must be plumbing only (spec 004, spec 006).
 log ""
 log "## 3b. Test changes (gate 16, scripts/check-test-changes.mjs from main)"
-# main's script, run on a copy of the branch: the spec's test-changes.md exists only there.
+# main's script, run on a copy of the branch: the raised criterion versions exist only there.
 TC_WT=$(mktemp -d)/tc
 git worktree add --quiet --detach "$TC_WT" "$REF"
 tc_args=(--base "$TC_BASE" --head "$REF" --root "$TC_WT")
-[ -n "$SPEC_DIR" ] && tc_args+=(--spec "$SPEC_ID")
 tc_ok=1; tc_out=$(node scripts/check-test-changes.mjs "${tc_args[@]}" 2>&1) || tc_ok=0
 git worktree remove --force "$TC_WT" >/dev/null 2>&1
 if [ "$tc_ok" = "1" ]; then
   pass "only allowed tests changed beyond plumbing ($(printf '%s\n' "$tc_out" | tail -1))"
 else
-  fail "tests changed beyond plumbing outside test-changes.md:"
+  fail "tests changed beyond plumbing whose criteria did not change:"
   printf '%s\n' "$tc_out" | sed 's/^/    /' | tee -a "$REPORT"
 fi
 

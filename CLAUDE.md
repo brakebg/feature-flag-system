@@ -79,8 +79,9 @@ How to write tests:
 - Tag every test with the IDs it proves: JUnit `@Tag("AC-FLAG-3")`, Vitest/Playwright
   title contains `[AC-FLAG-3]`. Error cases use `ERR-<METHOD>-<path>-<status>`.
 
-Gate 16 checks test changes: a test that `<spec>/test-changes.md` does not list may change
-only by the plumbing clause in that file. A blocked plumbing change is a `DECISIONS.md` note
+Gate 16 checks test changes: a test may change beyond the plumbing clause only when a
+criterion it is tagged with got a higher version or was retired in
+`docs/project-acceptance-criteria.md` (listed in `<spec>/test-changes.md`). A blocked plumbing change is a `DECISIONS.md` note
 and a Level 3 escalation, never an edit of the gate.
 
 A test may change ONLY when it contradicts the spec; record in `builder/DECISIONS.md` the AC ID,

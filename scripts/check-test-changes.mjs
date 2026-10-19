@@ -1,28 +1,32 @@
 #!/usr/bin/env node
-// Gate 16 (spec 004): test changes. A test may change beyond plumbing only when the active
-// spec's test-changes.md lists one of its IDs (issue #22, decision 0012).
+// Gate 16 (spec 004, changed by spec 006): test changes. A test may change beyond plumbing only
+// when a criterion it proves has changed (issue #22, decision 0012, spec 006).
 //
-// Usage: node scripts/check-test-changes.mjs [--base <ref>] [--head <ref>] [--spec <id>] [--root <dir>]
-//   --base  compare from the merge base of this ref and the head (default: origin/main, else main)
+// Usage: node scripts/check-test-changes.mjs [--base <ref>] [--head <ref>] [--root <dir>]
+//   --base  compare the tests from the merge base of this ref and the head (default:
+//           origin/main, else main)
 //   --head  the commit to check (default: the working tree, committed and uncommitted changes)
-//   --spec  the spec whose test-changes.md applies (default: the active spec,
-//           scripts/lib/active-spec.mjs). No spec or no test-changes.md: nothing is allowed.
 //   --root  the git repository to check (default: this one; the self-test uses a fixture repo)
 //
 // Paths: backend/src/test/**, frontend/src/**/*.test.*, frontend/e2e/**, docs/project-acceptance-criteria.md.
+//
+// Allowed IDs come from docs/project-acceptance-criteria.md alone: every criterion whose version
+// went up, or that was retired, between the point where the head left main (merge base with
+// origin/main, else main) and the head. No branch name, no active spec, no test-changes.md.
 //
 // 1. A changed test file passes when its tags on the base include an allowed ID. Tags are the
 //    gate-14 IDs in string literals: JUnit @Tag("ID"), "[ID]" in Vitest / Playwright titles.
 //    Tags added on the branch do not count.
 // 2. Any other changed test file: every changed or removed line must be plumbing (the clause in
-//    test-changes.md): an import, an annotation without arguments (not @Tag, not a test
-//    annotation), a comment, a helper signature, a field or variable type, or an identifier-only
-//    change that keeps every literal, operator and assertion method. Added lines are free.
+//    every spec's test-changes.md): an import, an annotation without arguments (not @Tag, not a
+//    test annotation), a comment, a helper signature, a field or variable type, or an
+//    identifier-only change that keeps every literal, operator and assertion method. Added lines
+//    are free.
 // 3. A deleted test file, or a tag that disappears from a file: FAIL.
-// 4. docs/project-acceptance-criteria.md: every changed or removed line must name only allowed
-//    AC IDs. Exception (issue #31): the active spec's own new criteria (lines "spec <its id>"
-//    without "changed by") may be added, and with them added lines without an ID (a heading or
-//    a note); it is the spec appending its criteria.
+// 4. docs/project-acceptance-criteria.md follows the version rules (docs/process/traceability.md):
+//    a changed criterion has its version + 1, a retired one keeps its version, a new one starts
+//    at v1, no criterion line is removed. Checkbox ticks, headings and notes are free. Only the
+//    owner edits the file (locked; locked-files-guard reports every other change).
 // Tuned towards false blocks: a blocked plumbing change is a DECISIONS.md note and an
 // escalation, never an edit of this script.
 //
@@ -33,15 +37,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-process.chdir(HERE); // spec-tool.mjs reads this repo's registry
-const { activeSpec } = await import('./lib/active-spec.mjs');
-const { PLUMBING, idsIn } = await import('../.claude/skills/write-spec/spec-tool.mjs');
 
 const USAGE = 2;
 const ID_RE = /\b(?:AC|ERR)-[A-Za-z0-9{}/._-]*[A-Za-z0-9}]/g; // gate 14
 const REGISTRY = 'docs/project-acceptance-criteria.md';
 const PATHS = [':(glob)backend/src/test/**', ':(glob)frontend/src/**/*.test.*', ':(glob)frontend/e2e/**', REGISTRY];
-const OWN_LINE = (id) => new RegExp(`^- \\[[ x]\\] \\*\\*AC-[A-Z]+-\\d+\\*\\* v\\d+ · .* · spec ${id} · due M\\d+$`);
+/** A criterion line: id, version, the text after the version (checkbox not included). */
+const CRITERION = /^- \[[ x]\] \*\*(AC-[A-Z]+-\d+)\*\* v(\d+) · (.*)$/;
 
 // ------------------------------------------------------------------------------ arguments
 
@@ -49,8 +51,8 @@ const opts = {};
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const k = argv[i].replace(/^--/, '');
-  if (!['base', 'head', 'spec', 'root'].includes(k) || !argv[i].startsWith('--') || !argv[i + 1]) {
-    console.error('usage: check-test-changes.mjs [--base <ref>] [--head <ref>] [--spec <id>] [--root <dir>]');
+  if (!['base', 'head', 'root'].includes(k) || !argv[i].startsWith('--') || !argv[i + 1]) {
+    console.error('usage: check-test-changes.mjs [--base <ref>] [--head <ref>] [--root <dir>]');
     process.exit(USAGE);
   }
   opts[k] = argv[++i];
@@ -89,46 +91,36 @@ if (!from) {
 
 // ------------------------------------------------------------------------------ allowed IDs
 
-if (opts.spec) process.env.FF_SPEC = opts.spec;
-let spec;
-try {
-  spec = activeSpec(ROOT);
-} catch (e) {
-  console.error(`check-test-changes: ${e.message}`);
-  process.exit(USAGE);
+// The criteria are compared from where the head left main, whatever --base says: the spec's own
+// commits before its ready tag are the ones that raise the versions.
+const mainRef = commit('origin/main') ? 'origin/main' : commit('main') ? 'main' : baseRef;
+const mainBase = git(['merge-base', mainRef, head ?? 'HEAD'])?.trim() ?? from;
+
+/** Criteria of one version of the registry: Map id -> { version, rest, retired, n }. */
+function criteria(text) {
+  const out = new Map();
+  (text ?? '').split('\n').forEach((line, i) => {
+    const m = CRITERION.exec(line);
+    if (m) out.set(m[1], { version: Number(m[2]), rest: m[3], retired: / · retired by /.test(m[3]), n: i + 1 });
+  });
+  return out;
 }
 
-function section(text, title) {
-  const m = new RegExp(`^## ${title}[ \\t]*$`, 'm').exec(text);
-  if (!m) return null;
-  const rest = text.slice(m.index + m[0].length);
-  const end = rest.search(/^## /m);
-  return (end < 0 ? rest : rest.slice(0, end)).trim();
-}
+const show = (ref, file) => git(['show', `${ref}:${file}`]);
+const headText = (file) => (head ? show(head, file) : existsSync(path.join(ROOT, file)) ? readFileSync(path.join(ROOT, file), 'utf8') : null);
 
+const oldCriteria = criteria(show(mainBase, REGISTRY));
+const newCriteria = criteria(headText(REGISTRY));
 const allowed = new Set();
-let source = 'no active spec';
-if (spec) {
-  const rel = `${spec.dir}/test-changes.md`;
-  source = `spec ${spec.id}, no test-changes.md`;
-  if (existsSync(path.join(ROOT, rel))) {
-    source = `spec ${spec.id}, ${rel}`;
-    const text = readFileSync(path.join(ROOT, rel), 'utf8');
-    const body = section(text, 'Allowed behaviour changes');
-    if (body === null) fail(rel, 0, 'section "## Allowed behaviour changes" is missing');
-    if (section(text, 'Plumbing allowed everywhere') !== PLUMBING) fail(rel, 0, 'the plumbing clause differs from the fixed text (spec-tool.mjs PLUMBING)');
-    for (const id of [...idsIn(body ?? ''), ...((body ?? '').match(ID_RE) ?? []).filter((x) => x.startsWith('ERR-'))]) allowed.add(id);
-  }
+for (const [id, now] of newCriteria) {
+  const was = oldCriteria.get(id);
+  if (was && (now.version > was.version || (now.retired && !was.retired))) allowed.add(id);
 }
-
-/** A line that adds one of the active spec's own new criteria (issue #31). */
-const ownLine = spec ? OWN_LINE(spec.id) : null;
+const source = `${REGISTRY} against ${mainRef} (merge base ${mainBase.slice(0, 7)})`;
 
 // ------------------------------------------------------------------------------ diff
 
 const range = head ? [from, head] : [from];
-const show = (ref, file) => git(['show', `${ref}:${file}`]);
-const headText = (file) => (head ? show(head, file) : existsSync(path.join(ROOT, file)) ? readFileSync(path.join(ROOT, file), 'utf8') : null);
 
 /** Changed and removed lines of one file, grouped by hunk: [{ del: [{n, text}], add: [{n, text}] }]. */
 function hunks(oldFile, newFile) {
@@ -285,17 +277,18 @@ function checkTestFile(file, oldFile, status) {
 
 function checkRegistry(status) {
   if (status === 'D') return fail(REGISTRY, 0, 'deleted');
-  const hs = hunks(REGISTRY, REGISTRY);
-  // Added lines without an ID (heading, note) pass only next to the spec's own new criteria.
-  const appends = Boolean(ownLine) && hs.some((h) => h.add.some((l) => ownLine.test(l.text)));
-  for (const h of hs) {
-    for (const [l, side] of [...h.del.map((l) => [l, 'removed']), ...h.add.map((l) => [l, 'changed'])]) {
-      if (!l.text.trim()) continue;
-      const ids = l.text.match(/\bAC-[A-Z]+-\d+\b/g) ?? [];
-      if (side === 'changed' && ownLine && (ownLine.test(l.text) || (appends && !ids.length))) continue;
-      const bad = ids.filter((id) => !allowed.has(id));
-      if (!ids.length || bad.length) fail(REGISTRY, l.n, `${side} line ${ids.length ? `of ${bad.join(', ')} (not allowed)` : 'without an allowed AC ID'}: ${short(l.text)}`);
+  for (const [id, was] of oldCriteria) {
+    if (!newCriteria.has(id)) fail(REGISTRY, was.n, `${id} removed (line number on the base): retire a criterion, never delete it`);
+  }
+  for (const [id, now] of newCriteria) {
+    const was = oldCriteria.get(id);
+    if (!was) {
+      if (now.version !== 1) fail(REGISTRY, now.n, `new ${id} must start at v1 (found v${now.version})`);
+      continue;
     }
+    if (now.version === was.version + 1) continue;
+    if (now.version !== was.version) fail(REGISTRY, now.n, `${id} v${was.version} -> v${now.version}: a changed criterion goes up by exactly 1`);
+    else if (now.rest !== was.rest && !(now.retired && !was.retired)) fail(REGISTRY, now.n, `${id} text changed without raising its version (v${now.version})`);
   }
 }
 
@@ -326,7 +319,7 @@ console.log(`check-test-changes: ${what}; ${source}; allowed: ${[...allowed].joi
 if (notes.length) console.log(notes.join('\n'));
 if (problems.length) {
   console.log(problems.join('\n'));
-  console.log(`\ncheck-test-changes: ${problems.length} violation(s) in ${checked} changed file(s). A test outside test-changes.md may change only by the plumbing clause.`);
+  console.log(`\ncheck-test-changes: ${problems.length} violation(s) in ${checked} changed file(s). A test whose criteria did not change may change only by the plumbing clause.`);
   process.exit(1);
 }
 console.log(`check-test-changes: ${checked} changed file(s), no violations`);

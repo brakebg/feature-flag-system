@@ -93,5 +93,5 @@ Groups are product areas. Spec 001 IDs were given by group and position (spec 00
 
 ## Test changes gate
 
-- [x] **AC-TC-1** v1 · A planted change in a test whose tags are not in the active spec's `test-changes.md` (expected value, assertion method, removed assertion, `@Tag` or `[ID]` title, deleted file) makes gate 16 fail and print the file and line. · spec 004 · due M10
-- [x] **AC-TC-2** v1 · An import, annotation, helper signature or type-only change in a test that is not listed passes gate 16; a listed test with a changed expected value passes. · spec 004 · due M10
+- [x] **AC-TC-1** v2 · A planted change in a test whose tags on `main` name no criterion with a raised version or a retirement since the branch left `main` (expected value, assertion method, removed assertion, `@Tag` or `[ID]` title, deleted file) makes gate 16 fail and print the file and line; so does, in `docs/project-acceptance-criteria.md`, a text change without a version + 1, a removed criterion line, a version jump of more than 1 or a new criterion not at v1. · spec 004 · changed by spec 006 · due M13
+- [x] **AC-TC-2** v2 · An import, annotation, helper signature or type-only change in any test passes gate 16; a test tagged with a criterion whose version went up or that was retired may change its expected value and passes, whatever the branch name, also when the commit is checked from a tag. · spec 004 · changed by spec 006 · due M13

@@ -42,9 +42,10 @@ The active spec and `docs/product/`, `docs/architecture/` (behaviour); `docs/arc
 - Weakening in history: run `git diff <range> -- '*Test*' '*test*' '*.spec.*' '*.test.*'`
   and the config files. Report removed or loosened assertions, deleted tests, changed
   thresholds and new exclusions without a matching `<spec>/builder/DECISIONS.md` entry.
-- Change specs (gate 16): every test changed beyond plumbing must carry an ID listed in
-  `<spec>/test-changes.md`. Run `node scripts/check-test-changes.mjs --base <range start>`
-  and read the changed tests it lets through.
+- Change specs (gate 16): every test changed beyond plumbing must carry an ID whose criterion
+  version went up or that was retired (listed in `<spec>/test-changes.md`). Run
+  `node scripts/check-test-changes.mjs --base <range start>` and read the changed tests it lets
+  through.
 - Planted-bug thinking: pick at least 5 important lines of production code in scope (a
   condition, a status code, a cache update). For each, name the test that fails if the
   line is broken. No test fails = finding.
