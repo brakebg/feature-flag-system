@@ -55,7 +55,8 @@ change, accessibility tooling (axe, still parked in spec 001).
    of `docs/architecture/deployment.md` 10.2. The UI loads nothing from other origins: fonts stay
    self-hosted. The Google Fonts `<link>` in the design files is only for viewing them and MUST
    NOT be copied.
-4. No backend file changes; `backend/openapi.json` unchanged.
+4. No backend file changes, except the `<version>` line of `backend/pom.xml` for the release
+   (section 10 item 9, ESC-001); `backend/openapi.json` unchanged.
 5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. Styling stays CSS Modules plus CSS variables. No UI component library, no CSS framework, no
    CSS-in-JS. The only new dependency is the one in section 4.7. No Flyway migration.
@@ -390,5 +391,9 @@ version (`[AC-UI-1 v1]`):
    adds no motion); design README sizes and wording. Rejected: fold AC-UI-1 and AC-UI-2 into
    AC-STYLE-1 (the overlap is small, and the acceptance suite is built around the nine IDs); drop
    AC-UI-4 (it is the only check that the pie shows the right share, for one small test).
+9. ~~Release version in `backend/pom.xml`~~ **Decided: A (2026-10-20, ESC-001).** Gate 15 needs
+   the `<version>` of `backend/pom.xml` to equal `VERSION`. For the 1.2.0 release the builder
+   changes that one line, with `VERSION`, `frontend/package.json` and `CHANGELOG.md`. No other
+   backend file changes; `backend/openapi.json` stays the same.
 
 Accepted by the owner on 2026-10-15; re-shaped and re-checked on 2026-10-19.

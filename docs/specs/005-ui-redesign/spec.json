@@ -13,6 +13,7 @@
     "frontend/**",
     "docs/design-compare/**",
     "scripts/design-compare.sh",
+    "backend/pom.xml",
     "VERSION",
     "CHANGELOG.md"
   ]

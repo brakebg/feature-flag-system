@@ -10,10 +10,12 @@ Approved screen designs. Spec decides behaviour; the design decides appearance
 
 ## The screens
 
-"The screens" in the acceptance criteria (for example AC-UI-1, AC-UI-3, AC-UI-6) are exactly
-these five. `6 · States` is a reference sheet, not a screen.
+"The screens" in the acceptance criteria (AC-UI-1, AC-UI-3, AC-UI-6, AC-UI-7, AC-UI-9) are
+defined in `docs/project-acceptance-criteria.md`, in the note above the spec 005 criteria: 12
+states (pages, empty states, the 404 page and each dialog open). The five designs below show
+how they look; `6 · States` shows the empty states, the 404 page and the other dialogs.
 
-| Design file | Screen |
+| Design file | Shows |
 | --- | --- |
 | `1 · Sign in` | `/login?expired=1` |
 | `2 · Flags workspace` | `/groups/<id>`, group selected |
