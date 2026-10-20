@@ -1,0 +1,9 @@
+- text: Feature Flags
+- heading "Sign in" [level=1]
+- paragraph: Use your admin credentials to manage flags.
+- status: Your session expired. Please sign in again.
+- text: Username
+- textbox "Username"
+- text: Password
+- textbox "Password"
+- button "Sign in"

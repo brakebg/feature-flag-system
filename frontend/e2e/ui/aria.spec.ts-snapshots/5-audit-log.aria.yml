@@ -1,0 +1,120 @@
+- banner:
+    - text: Feature Flags
+    - navigation "Main":
+        - link "Flags":
+            - /url: /groups
+        - link "Audit log":
+            - /url: /audit
+    - text: admin
+    - button "Sign out"
+- main:
+    - heading "Audit log" [level=1]
+    - paragraph: Every change to groups and flags, newest first.
+    - text: Filter by target key
+    - searchbox "Filter by target key"
+    - table "Audit events":
+        - rowgroup:
+            - row "Time Actor Action Target Details":
+                - columnheader "Time"
+                - columnheader "Actor"
+                - columnheader "Action"
+                - columnheader "Target"
+                - columnheader "Details"
+        - rowgroup:
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created notifications\.quiet-hours Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "notifications.quiet-hours"
+                - cell "Created on"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created notifications\.sms-shipping-updates Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell /notifications\.sms-shipping-updates/
+                - cell "Created on"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created notifications\.push-digest Created off/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "notifications.push-digest"
+                - cell "Created off"
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Group created notifications Name: Notifications/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Group created"
+                - cell "notifications"
+                - 'cell "Name: Notifications"'
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created search\.typo-tolerance Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "search.typo-tolerance"
+                - cell "Created on"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created search\.semantic-search Created off/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "search.semantic-search"
+                - cell "Created off"
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Group created search Name: Search/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Group created"
+                - cell "search"
+                - 'cell "Name: Search"'
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created payments\.crypto-checkout Created off/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "payments.crypto-checkout"
+                - cell "Created off"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created payments\.three-ds-v2 Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "payments.three-ds-v2"
+                - cell "Created on"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created payments\.apple-pay Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "payments.apple-pay"
+                - cell "Created on"
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Group created payments Name: Payments/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Group created"
+                - cell "payments"
+                - 'cell "Name: Payments"'
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created orders\.guest-reorder Created off/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "orders.guest-reorder"
+                - cell "Created off"
+            - row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag created orders\.order-tracking-v2 Created on/:
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag created"
+                - cell "orders.order-tracking-v2"
+                - cell "Created on"
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag updated orders\.split-payments Description: “” → “Pay one order with two cards”/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag updated"
+                - cell "orders.split-payments"
+                - 'cell "Description: “” → “Pay one order with two cards”"'
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Flag updated orders\.new-checkout Description: “” → “New one-page checkout flow”/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Flag updated"
+                - cell "orders.new-checkout"
+                - 'cell "Description: “” → “New one-page checkout flow”"'
+            - 'row /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) admin Group updated orders Description: “” → “Checkout and order lifecycle”/':
+                - cell /\d+\/\d+\/\d+, \d+:\d+:\d+ [AP]M (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+                - cell "admin"
+                - cell "Group updated"
+                - cell "orders"
+                - 'cell "Description: “” → “Checkout and order lifecycle”"'
+- contentinfo: v1.1.0
