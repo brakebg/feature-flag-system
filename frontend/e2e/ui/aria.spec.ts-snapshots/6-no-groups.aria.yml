@@ -1,0 +1,19 @@
+- banner:
+    - text: Feature Flags
+    - navigation "Main":
+        - link "Flags":
+            - /url: /groups
+        - link "Audit log":
+            - /url: /audit
+    - text: admin
+    - button "Sign out"
+- complementary "Groups":
+    - heading "Groups" [level=2]
+    - button "New group"
+    - text: Search groups
+    - searchbox "Search groups"
+    - paragraph: No groups yet
+    - button "Create your first group"
+- main:
+    - paragraph: Select a group or create one
+- contentinfo: v1.1.0

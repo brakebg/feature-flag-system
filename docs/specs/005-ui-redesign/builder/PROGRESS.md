@@ -12,4 +12,6 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-20 | 39b0c99 | M12 | header shapes in a clipping layer; e2e tests AC-UI-7, AC-UI-8 | verify-fast: as baseline; local e2e chromium-desktop + narrow, repeat-each 2: all pass except the old screenshot baselines |
 | 2026-10-20 | e0d3482 | M12 | five screenshot baselines re-recorded (D-005), design-compare path and gallery (D-006), search icon colour from a token | verify-fast: as baseline (gates 15, 16 pass with the new baselines); screenshots + aria 20/20 with repeat-each 2 |
 | 2026-10-20 | 15497d2 | M12 | merge origin/main (owner contract, flow changes) | verify-fast: as baseline |
-| 2026-10-20 | (this) | M12 | CHANGELOG Unreleased entry; ESC-001 raised (release version vs "no backend file changes") | verify-fast: as baseline |
+| 2026-10-20 | cb7c7e9 | M12 | CHANGELOG Unreleased entry; ESC-001 raised (release version vs "no backend file changes") | verify-fast: as baseline |
+| 2026-10-20 | 88e014a | M12 | milestone audit report (before fixes) | docs only |
+| 2026-10-20 | (this) | M12 | ARIA snapshots of the other screens recorded from spec-005-ready, strict compare (D-007) | verify-fast: as baseline; aria.spec 48/48 on the spec-005-ready UI |

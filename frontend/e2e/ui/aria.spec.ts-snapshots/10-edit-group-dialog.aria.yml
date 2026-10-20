@@ -1,0 +1,101 @@
+- banner:
+    - text: Feature Flags
+    - navigation "Main":
+        - link "Flags":
+            - /url: /groups
+        - link "Audit log":
+            - /url: /audit
+    - text: admin
+    - button "Sign out"
+- complementary "Groups":
+    - heading "Groups" [level=2]
+    - button "New group"
+    - text: Search groups
+    - searchbox "Search groups"
+    - navigation "Flag groups":
+        - button "Notifications notifications 2/3"
+        - button "Orders orders 2/4"
+        - button "Payments payments 2/3"
+        - button "Search search 1/2"
+- main:
+    - heading "Orders" [level=1]
+    - text: orders
+    - button "Copy group key"
+    - paragraph: Checkout and order lifecycle · 2 of 4 flags on
+    - paragraph: /Created by system · Updated by admin, (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+    - button "Edit group"
+    - button "Delete group"
+    - region "Flags":
+        - text: Search flags
+        - searchbox "Search flags"
+        - group "Filter by status":
+            - button "All" [pressed]
+            - button "On"
+            - button "Off"
+        - button "New flag"
+        - table "Flags":
+            - rowgroup:
+                - row "Key Description Status Created by Updated Actions":
+                    - columnheader "Key"
+                    - columnheader "Description"
+                    - columnheader "Status"
+                    - columnheader "Created by"
+                    - columnheader "Updated"
+                    - columnheader "Actions"
+            - rowgroup:
+                - row /guest-reorder orders\.guest-reorder Reorder without signing in Toggle orders\.guest-reorder Off admin (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin Edit orders\.guest-reorder Delete orders\.guest-reorder/:
+                    - cell "guest-reorder orders.guest-reorder"
+                    - cell "Reorder without signing in"
+                    - cell "Toggle orders.guest-reorder Off":
+                        - switch "Toggle orders.guest-reorder"
+                        - text: ''
+                    - cell "admin"
+                    - cell /(?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin/
+                    - cell "Edit orders.guest-reorder Delete orders.guest-reorder":
+                        - button "Edit orders.guest-reorder"
+                        - button "Delete orders.guest-reorder"
+                - row /new-checkout orders\.new-checkout New one-page checkout flow Toggle orders\.new-checkout On system (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin Edit orders\.new-checkout Delete orders\.new-checkout/:
+                    - cell "new-checkout orders.new-checkout"
+                    - cell "New one-page checkout flow"
+                    - cell "Toggle orders.new-checkout On":
+                        - switch "Toggle orders.new-checkout" [checked]
+                        - text: ''
+                    - cell "system"
+                    - cell /(?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin/
+                    - cell "Edit orders.new-checkout Delete orders.new-checkout":
+                        - button "Edit orders.new-checkout"
+                        - button "Delete orders.new-checkout"
+                - row /order-tracking-v2 orders\.order-tracking-v2 Live courier tracking map Toggle orders\.order-tracking-v2 On admin (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin Edit orders\.order-tracking-v2 Delete orders\.order-tracking-v2/:
+                    - cell "order-tracking-v2 orders.order-tracking-v2"
+                    - cell "Live courier tracking map"
+                    - cell "Toggle orders.order-tracking-v2 On":
+                        - switch "Toggle orders.order-tracking-v2" [checked]
+                        - text: ''
+                    - cell "admin"
+                    - cell /(?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin/
+                    - cell "Edit orders.order-tracking-v2 Delete orders.order-tracking-v2":
+                        - button "Edit orders.order-tracking-v2"
+                        - button "Delete orders.order-tracking-v2"
+                - row /split-payments orders\.split-payments Pay one order with two cards Toggle orders\.split-payments Off system (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin Edit orders\.split-payments Delete orders\.split-payments/:
+                    - cell "split-payments orders.split-payments"
+                    - cell "Pay one order with two cards"
+                    - cell "Toggle orders.split-payments Off":
+                        - switch "Toggle orders.split-payments"
+                        - text: ''
+                    - cell "system"
+                    - cell /(?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago) by admin/
+                    - cell "Edit orders.split-payments Delete orders.split-payments":
+                        - button "Edit orders.split-payments"
+                        - button "Delete orders.split-payments"
+    - dialog "Edit group":
+        - heading "Edit group" [level=2]
+        - button "Close"
+        - text: Key
+        - textbox "Key": orders
+        - text: Name
+        - textbox "Name": Orders
+        - text: Description (optional)
+        - textbox "Description (optional)": Checkout and order lifecycle
+        - button "Cancel"
+        - button "Save changes"
+- contentinfo: v1.1.0

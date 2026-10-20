@@ -63,3 +63,28 @@ Playwright image (`mcr.microsoft.com/playwright:v1.63.0-noble`) against a fresh 
 The gallery linked the design PNGs at `../design/`, the folder before the docs split. It now links
 `../product/design/` (spec 005 section 4.8 names this fix). `docs/design-compare/` regenerated
 from the new baselines.
+
+## D-007 · 2026-10-20 · 4.8, AC-UI-6, audit SA-1, TA-1, TA-5 · All screens of the criteria, strict ARIA comparison
+
+The criteria file (`docs/project-acceptance-criteria.md`, "UI redesign") says "the screens" means
+11 states: the five design screens plus `/groups` with no groups, a group with no flags, the 404
+page and the New group, Edit group, Edit flag and Delete flag dialogs.
+`docs/product/design/README.md` (amend-1) calls only the five design screens "the screens". The
+builder tests the 11 states. That covers both texts, so no doc has to be chosen over the other.
+
+Recording, in the commit "M12 aria: record the ARIA snapshots of the other screens from the
+spec-005-ready build" (touches no `frontend/src/` file):
+- The six new `*.aria.yml` files (`6-no-groups` … `12-delete-flag-dialog`) and the
+  `*-states-<project>-linux.txt` files of all 12 screens were recorded with
+  `--update-snapshots=missing`. The UI was built from the tag `spec-005-ready` (release 1.1.0 UI,
+  the build the criterion names), at 1440 x 900. The five screens of D-003 and the dialogs ran on
+  the seeded screenshot stack. "group without flags" ran on the main stack: its group list depends
+  on other tests, so only its `main` landmark is compared.
+- Only patterns were edited after recording: relative times as in D-003, and the group key of
+  `7-group-without-flags` as `/e2e-[a-z0-9-]+/`. The five files of D-003 did not change.
+- `aria.spec.ts` now compares each recorded file with `- /children: deep-equal`, so an extra or
+  missing node fails ("equals", TA-1). It also compares a list of every `aria-checked`,
+  `aria-pressed`, `aria-current` and `aria-invalid` value, including false values (TA-1, TA-5).
+  All 12 screens passed twice in both chromium projects against the `spec-005-ready` build.
+- Screenshot baselines are re-recorded only with `--update-snapshots` limited to
+  `screenshots.spec.ts` (TA-7). These snapshot files never change after this commit.
