@@ -66,7 +66,7 @@ Run every check below inside that worktree, unless the check says otherwise.
 | 7 | Tag state | no tag: nothing to check. Tag exists: `git merge-base --is-ancestor spec-NNN-ready origin/<branch>` | no tag: pass (expected). Tag exists: exit 0. Commits after the tag: the build has started; say so and point to the resume prompt (section 3) |
 | 8 | CI on the candidate | `gh run list --branch <branch> --workflow ci.yml --limit 5 --json headSha,status,conclusion` | a run for the candidate SHA ended `success`. Running: say so. Failed: read `gh run view <id> --log-failed`, name the gate |
 | 9 | Gate baseline without Docker | `node scripts/check-integrity.mjs`, `node scripts/check-test-changes.mjs --base origin/main` | both exit 0 (gates 15 and 16; the builder's startup ritual runs `make verify-fast` and stalls on a red baseline it may not fix) |
-| 10 | Acceptance branch | in the acceptance repo: branch `spec-NNN` exists | exists. Missing: WARN, never a blocker. Before the tag it is always missing: the tester starts from the tag (spec-flow.md section 1, step 4) |
+| 10 | Acceptance branch | no tag: nothing to check. Tag exists: `gh api repos/<owner>/feature-flag-acceptance/branches/spec-NNN` | no tag: skip, the acceptance repo's intake workflow creates it from the tag (spec-flow.md section 1, step 4). Tag exists: the branch exists. Missing: WARN, never a blocker: run the intake, `gh workflow run spec-intake.yml -R <owner>/feature-flag-acceptance` |
 
 Check 8 is the full proof (CI runs `make verify-all`). Check 9 is the fast local signal and also
 runs when CI is still running.
@@ -99,7 +99,9 @@ Remove the worktree (`git worktree remove --force <path>`), then print:
    git push origin spec-NNN-ready
    ```
 
-   After the tag push, the owner copies the tester's input (spec-flow.md section 1, step 4)
-   and can start the cloud session; no second run is needed.
+   After the tag push, the acceptance repo's intake workflow copies the tester's input within
+   30 minutes (spec-flow.md section 1, step 4). To start it at once:
+   `gh workflow run spec-intake.yml -R <owner>/feature-flag-acceptance`. The owner can start
+   the cloud session right away; no second run of this check is needed.
 6. When READY: the task line to paste into the section 5 prompt, `Task issue: #<n>` or
    `Active spec: docs/specs/<NNN-name>/`.
