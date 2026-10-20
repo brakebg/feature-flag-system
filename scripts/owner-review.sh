@@ -329,6 +329,9 @@ else
 
   # Criteria versions (spec-flow.md section 4): every criterion that counts for this branch needs
   # a suite test titled "[<ID> v<N>]" at its current version; "[<ID>]" alone counts as v1.
+  # Skipped: retired criteria, and criteria the suite's docs/coverage.md marks "White-box only" or
+  # "Removed" (the builder's own tests cover them). Same rule as the suite's npm run spec:versions
+  # (issue #62); the skipped IDs are listed so the owner sees them.
   live=$(for d in $(git ls-tree --name-only "$REF" docs/specs/); do
     git cat-file -e "$REF:$d/builder/MILESTONE" 2>/dev/null && basename "$d" | cut -c1-3
   done | tr '\n' ' ')
@@ -344,6 +347,11 @@ for l in sys.stdin.read().split("\n"):
     if by and by in live: want[m.group(1)] = int(m.group(2))
     elif by: want[m.group(1)] = 1 if spec in live else None
     elif spec in live: want[m.group(1)] = int(m.group(2))
+skip = {}
+cov = pathlib.Path(sys.argv[3], "docs", "coverage.md")
+for l in (cov.read_text(errors="ignore").split("\n") if cov.is_file() else []):
+    m = re.match(r"^\| (AC-[A-Z]+-\d+)(?: v\d+)? \| ([^|]+) \|", l)
+    if m and re.match(r"(White-box only|Removed)", m.group(2).strip()): skip[m.group(1)] = m.group(2).strip()
 have = {}
 for f in pathlib.Path(sys.argv[3]).rglob("*"):
     if "node_modules" in f.parts or not f.is_file() or f.suffix not in (".ts", ".js", ".mjs"): continue
@@ -352,9 +360,18 @@ for f in pathlib.Path(sys.argv[3]).rglob("*"):
 for i, v in sorted(want.items()):
     if v is None: continue
     if v not in have.get(i, set()):
+        if i in skip:
+            print(f"SKIP {i}  ({skip[i]})")
+            continue
         got = ", ".join(f"v{x}" for x in sorted(have.get(i, set())))
-        print(f"{i}  criteria v{v} · " + (f"tests {got}" if got else "no test"))
+        print(f"STALE {i}  criteria v{v} · " + (f"tests {got}" if got else "no test"))
 ' "$live" "${SPEC_ID:-000}" "$ACCEPTANCE_DIR")
+  skipped=$(printf '%s\n' "$stale" | sed -n 's/^SKIP //p')
+  stale=$(printf '%s\n' "$stale" | sed -n 's/^STALE //p')
+  if [ -n "$skipped" ]; then
+    pass "criteria without a suite test, skipped because the suite's docs/coverage.md marks them White-box only or Removed (check this list):"
+    printf '%s\n' "$skipped" | sed 's/^/    /' | tee -a "$REPORT"
+  fi
   if [ -n "$stale" ]; then
     fail "suite is stale for these criteria — update spec-$SPEC_ID first (spec-flow.md section 4):"
     printf '%s\n' "$stale" | sed 's/^/    /' | tee -a "$REPORT"
