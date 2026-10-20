@@ -191,7 +191,8 @@ The repo is your only memory; a new session continues from it alone. It lives in
 `escalations/`, `reviews/`, `verify-report.md`. Rules: `docs/process/session-memory.md`.
 
 Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`) may also change in a
-parallel spec. Before you mark your PR ready, merge `origin/main` into your working branch,
+parallel spec. `backend/openapi.json` is generated from your code; it must match the owner
+contract `docs/architecture/openapi.json` (gate 8). Never edit the contract: escalate. Before you mark your PR ready, merge `origin/main` into your working branch,
 resolve conflicts, and run `make verify-all` again. This merge is always allowed (section 8a).
 
 ## 10. Writing style for docs, commits and PR comments

@@ -67,6 +67,7 @@ Run every check below inside that worktree, unless the check says otherwise.
 | 8 | CI on the candidate | `gh run list --branch <branch> --workflow ci.yml --limit 5 --json headSha,status,conclusion` | a run for the candidate SHA ended `success`. Running: say so. Failed: read `gh run view <id> --log-failed`, name the gate |
 | 9 | Gate baseline without Docker | `node scripts/check-integrity.mjs`, `node scripts/check-test-changes.mjs --base origin/main` | both exit 0 (gates 15 and 16; the builder's startup ritual runs `make verify-fast` and stalls on a red baseline it may not fix) |
 | 10 | Acceptance branch | no tag: nothing to check. Tag exists: `gh api repos/<owner>/feature-flag-acceptance/branches/spec-NNN` | no tag: skip, the acceptance repo's intake workflow creates it from the tag (spec-flow.md section 1, step 4). Tag exists: the branch exists. Missing: WARN, never a blocker: run the intake, `gh workflow run spec-intake.yml -R <owner>/feature-flag-acceptance` |
+| 11 | API contract | `node scripts/check-openapi-contract.mjs --validate`; `git diff --name-only origin/main <candidate SHA> -- docs/architecture/api.md docs/architecture/openapi.json` | valid OpenAPI 3. When `api.md` changed and `openapi.json` did not: WARN, ask the owner to confirm that the API itself does not change (gate 8 then needs no new code) |
 
 Check 8 is the full proof (CI runs `make verify-all`). Check 9 is the fast local signal and also
 runs when CI is still running.
@@ -86,7 +87,7 @@ runs when CI is still running.
 Remove the worktree (`git worktree remove --force <path>`), then print:
 
 1. Verdict: **READY** or **NOT READY**, with the branch and the candidate SHA.
-2. The table of checks 1 to 10: result and one line of evidence each.
+2. The table of checks 1 to 11: result and one line of evidence each.
 3. Blockers: for each failed check, what is wrong and who fixes it (owner; never the builder
    when the fix touches a locked file). No tag yet: the fix is a new commit on the branch, then
    run this check again on the new head.

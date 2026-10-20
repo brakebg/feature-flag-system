@@ -25,6 +25,8 @@ CLAUDE.md
 scripts/locked-paths.txt
 scripts/owner-review.sh
 scripts/check-test-changes.mjs
+scripts/check-api-contract.sh
+scripts/check-openapi-contract.mjs
 scripts/test/**
 .github/workflows/locked-files-guard.yml
 .github/ISSUE_TEMPLATE/**

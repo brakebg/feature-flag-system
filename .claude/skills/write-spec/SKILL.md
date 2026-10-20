@@ -31,7 +31,7 @@ Files of this skill:
 | `docs/specs/<NNN>-<name>/SPEC.md` | File 2: the 10 sections, fixed order; section 10 is the decision log |
 | `docs/specs/<NNN>-<name>/test-changes.md` | File 3: allowed AC IDs + fixed plumbing clause |
 | lines in `docs/project-acceptance-criteria.md` | File 4: new criteria `v1`; changed ones in place, version + 1 |
-| `docs/product/`, `docs/architecture/` | File 5: describe the system after this spec |
+| `docs/product/`, `docs/architecture/` | File 5: describe the system after this spec; an API change also updates the contract `docs/architecture/openapi.json` |
 | `docs/specs/<NNN>-<name>/design/` | only when the spec has designs |
 
 Never code, never a builder file: no `builder/` folder (the builder creates it). No decision
@@ -82,7 +82,9 @@ Fill File 1 to File 5. Rules:
   black-box scenario gains; Retired = retired IDs with a reason each, or `none`. Each kind on
   one line; name no other IDs in that line.
 - File 5: edit the `docs/product/` and `docs/architecture/` files so they describe the system
-  after this spec, and name each one in section 1.
+  after this spec, and name each one in section 1. An API change in `api.md` also changes the
+  contract `docs/architecture/openapi.json` (TEMPLATE.md file 5); draft it, show the owner the
+  changed operations, and run `node scripts/check-openapi-contract.mjs --validate`.
 - Leave no `<!--` and no `<word>` placeholder outside code; only `<spec>`, `<n>`, `<area>`,
   `<what>` may stay.
 
