@@ -16,10 +16,11 @@ line from this issue. Everything below is for people; the spec decides the work.
 
 ## Before the builder starts (owner)
 
-- [ ] The tag `spec-<NNN>-ready` is on the commit that sets `"status": "ready"` in `spec.json`
+- [ ] `spec.json` says `"status": "ready"` on the branch head
 - [ ] No `**Open:**` item left in section 10 of its `SPEC.md`
-- [ ] Every owner step the spec names before the build is in the tagged commit
+- [ ] Every owner step the spec names before the build is on the branch
 - [ ] `/handover-check #<this issue>` says READY (launch checks of `docs/process/builder-prompt.md` section 5)
+- [ ] The tag `spec-<NNN>-ready` is pushed on the commit `/handover-check` checked
 
 ## Start
 

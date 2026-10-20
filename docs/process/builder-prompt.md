@@ -225,13 +225,14 @@ that spec's folder and branch. Continue autonomously until done.
 One prompt for every change spec (flow: `docs/process/spec-flow.md`). It holds no spec id: you fill in one task line, either the spec folder or a builder task issue (section 6).
 The session works on that one spec only.
 
-Before you launch (owner). `/handover-check <issue or spec folder>` runs these checks on the
-spec's `spec-NNN-ready` tag and prints READY or NOT READY:
+Before you tag and launch (owner). `/handover-check <issue or spec folder>` runs these checks on
+the head of the spec's branch, before the `spec-NNN-ready` tag, and prints READY or NOT READY.
+READY prints the tag commands for the checked commit; tag it, then launch:
 
 | # | Check |
 | --- | --- |
-| 1 | The tag `spec-NNN-ready` exists and is in the spec's branch `feature/<name>`. At the tag: `spec.json` says `"status": "ready"`, `SPEC.md` and `test-changes.md` exist, its criteria are in `docs/project-acceptance-criteria.md`, no `**Open:**` item is left in section 10. Specs that run in parallel need different branches and milestone numbers |
-| 2 | Every owner step the spec names before the build is in the tagged commit (for example design files copied) |
+| 1 | The spec is on its branch `feature/<name>`; no `spec-NNN-ready` tag yet (or, if tagged, the tag is in that branch). At the checked commit: `spec.json` says `"status": "ready"`, `SPEC.md` and `test-changes.md` exist, its criteria are in `docs/project-acceptance-criteria.md`, no `**Open:**` item is left in section 10. Specs that run in parallel need different branches and milestone numbers |
+| 2 | Every owner step the spec names before the build is in the checked commit (for example design files copied) |
 | 3 | Task by issue: the issue was opened by you from the builder task template (section 6), is open, and its first line names the spec folder |
 | 4 | Section 1.3 (phase 2, cloud session) checks are still true |
 | 5 | After the first push, enable Auto-fix on the new draft PR (section 1.3 #3) |
