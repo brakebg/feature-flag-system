@@ -20,9 +20,12 @@ export function AuditPage() {
   return (
     <main className={styles.main}>
       <div className={styles.hero}>
-        <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
-        <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
-        <span className={`${styles.shape} ${styles.square}`} aria-hidden="true" />
+        {/* Clips the shapes, so they never widen the card (AC-UI-8). */}
+        <span className={styles.shapes}>
+          <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.square}`} aria-hidden="true" />
+        </span>
         <div className={styles.heading}>
           <h1 className={styles.title}>Audit log</h1>
           <p className={styles.subtitle}>Every change to groups and flags, newest first.</p>

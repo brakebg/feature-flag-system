@@ -50,9 +50,12 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
   return (
     <main className={styles.main}>
       <div className={styles.hero}>
-        <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
-        <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
-        <span className={`${styles.shape} ${styles.dot}`} aria-hidden="true" />
+        {/* Clips the shapes, so they never widen the card (AC-UI-8). */}
+        <span className={styles.shapes}>
+          <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.dot}`} aria-hidden="true" />
+        </span>
         <div className={styles.heroContent}>
           <div className={styles.heading}>
             <div className={styles.titleRow}>

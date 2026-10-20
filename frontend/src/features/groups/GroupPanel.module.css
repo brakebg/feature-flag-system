@@ -13,6 +13,13 @@
   background: var(--color-surface);
   border-radius: var(--radius-hero);
 }
+.shapes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
 .shape {
   position: absolute;
   display: block;

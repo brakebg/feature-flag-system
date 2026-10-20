@@ -16,13 +16,13 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 1. Memory files.
 2. AC-UI-6 ARIA snapshots (`frontend/e2e/ui/aria.spec.ts`), no `frontend/src/` change.
 3. Font package, tokens, global styles, components; AC-STYLE-1 v2; tests AC-UI-1, 2, 3, 9 (d95afcd).
-4. Screens (shell, sign-in, workspace, dialogs, audit); pie; tests AC-UI-4, 5, 6.
+4. Screens (shell, sign-in, workspace, dialogs, audit); pie; tests AC-UI-4, 5, 6 (4a662ee).
+5. Layout and long data: tests AC-UI-7, AC-UI-8; header shapes clipped in a layer.
 
 ## Next 3 steps
 
-1. Phase C: e2e tests AC-UI-7 (768/800/1024/1440 widths, no sideways scroll, row actions visible,
-   panel above table at <= 1024, art panel hidden < 860) and AC-UI-8 (long data at 1440/1120/800,
-   header text vs shapes, 1280 x 600 delete dialog with 30 flags); fix layout until green.
+1. Check the states of design 6 (toasts, sign-in error, field error, switch in flight, Edit
+   flag, Delete flag, 404) against the built UI.
 2. Re-record the five screenshot baselines (`FF_UPDATE_BASELINES=1`; one DECISIONS entry per screen),
    regenerate `docs/design-compare/` (`scripts/design-compare.sh`, fix its path to
    `docs/product/design/`).
@@ -51,6 +51,8 @@ None.
 - `npm i -g npm@11` before `npm ci` in `frontend/` (D-002). Gate tools: `make tools`.
 - Commit only after `make verify-fast > build/last.log 2>&1` is green.
 - Push only to `feature/ui-redesign` (D-001).
+- Local dev stacks keep audit events between runs; e2e keys are deterministic, so count
+  assertions (AC-AUD-2, AC-GRP-5) fail on a reused stack. Use a fresh stack (`down -v`).
 - Local e2e: Docker builds cannot reach package repos here (D-004). Build host artifacts and
   package them; run Playwright in `mcr.microsoft.com/playwright:v1.63.0-noble` against a local
   stack seeded with `scripts/lib/seed-shots.sh`. Gates 11-13 run in CI only.
