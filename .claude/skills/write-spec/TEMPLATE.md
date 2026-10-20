@@ -232,6 +232,9 @@ Line format (gates 14 to 16 parse it; `docs/process/traceability.md`):
   text, `spec <its creator>`, `· changed by spec <NNN>`, `due M<M>`.
 - **Retired criterion:** keep the line, end it with `· retired by spec <NNN>` instead of the due
   part. Never delete a line.
+- **Stands alone:** a new or changed line names sections of `docs/product/` only, with the file
+  (`` `docs/product/ui.md` 8.4 ``); values from architecture or a SPEC.md go into the line itself
+  (rule at the top of the criteria file). `check` fails a line that names another section.
 - Never touch another spec's line for any other reason. `check` compares the file with the
   branch base.
 

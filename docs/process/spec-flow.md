@@ -29,9 +29,11 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
    after a READY check, so it always marks a checked spec.
 4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
    Input is only a snapshot the acceptance repo's intake workflow copies to `input/spec-NNN/`:
-   the criteria file, the contract `docs/architecture/openapi.json` and `docs/product/design/`,
-   all at the tag. Each `spec-NNN-amend-<k>` refreshes all three. Never `backend/openapi.json`:
-   the builder's code generates it. Each snapshot opens an
+   the criteria file, the contract `docs/architecture/openapi.json` and all of `docs/product/`
+   (`ui.md`, `overview.md`, `design/`), all at the tag. Each `spec-NNN-amend-<k>` refreshes all
+   three. Criteria may name `docs/product/` sections, so the tester needs them; product docs are
+   owner-written and hold no implementation detail. The rest of `docs/architecture/` stays out.
+   Never `backend/openapi.json`: the builder's code generates it. Each snapshot opens an
    issue "Write tests for spec NNN" in the acceptance repo; the owner starts the tester session.
    The acceptance repo pulls from this public repo; this repo never pushes to it and holds no
    token for it. The tester never sees this repo; the builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.

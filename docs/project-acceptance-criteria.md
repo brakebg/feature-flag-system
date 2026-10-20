@@ -16,6 +16,10 @@ Line format (gates 14, 15, 16 and `spec-tool` parse it):
 - `spec <NNN>`: the spec that created it. `changed by spec <MMM>`: the spec that last changed it.
 - `due M<n>`: from the end of milestone n every test of it must pass (gate 14).
 - A `v1` line of spec 001 equals its text in spec 001 section 11.2 (gate 15).
+- A criterion stands alone. It may name sections of `docs/product/` only (the tester gets them).
+  Values from anywhere else (architecture, a spec's SPEC.md) go into the line itself. Name the
+  file with the section, for example `` `docs/product/ui.md` 8.4 ``. `spec-tool check` fails a
+  new or changed line that names any other section.
 
 Groups are product areas. Spec 001 IDs were given by group and position (spec 001 section 11.4).
 
