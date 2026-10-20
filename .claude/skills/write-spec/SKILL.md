@@ -19,12 +19,11 @@ Files of this skill:
 - `TEMPLATE.md` — every output file, with placeholders.
 - `spec-tool.mjs` — `next` (numbers), `tests` (tagged tests per ID), `check` (validation),
   `list` (all specs).
-  Run it from the repo root: `node .claude/skills/write-spec/spec-tool.mjs <cmd>`.
+  Run it from the repo root: `node .claude/skills/write-spec/spec-tool.mjs <cmd>`. Its self-test:
+  `node scripts/test/spec-tool.test.mjs`.
 
 ## Output (one pass, nothing else)
 
-| File | Note |
-| --- | --- |
 | File | Note |
 | --- | --- |
 | `docs/specs/<NNN>-<name>/spec.json` | File 1: the spec's facts, `status` `draft` → `ready` |
@@ -76,6 +75,9 @@ Fill File 1 to File 5. Rules:
   by one and it says `changed by spec <NNN>`. Copy its current text into the "Now" column. Never
   give a changed old criterion a new ID.
 - New IDs must not clash with any existing ID in `docs/project-acceptance-criteria.md`.
+- A criterion stands alone (rule at the top of `docs/project-acceptance-criteria.md`): it names
+  sections of `docs/product/` only, with the file (`` `docs/product/ui.md` 8.4 ``); values from
+  anywhere else go into the line. `check` fails a new or changed line that names another section.
 - No new, changed or retired ID at all: section 5 is the single line "No behaviour change."
   `check` fails on zero IDs without it.
 - Acceptance delta (section 7): Added = all new IDs; Changed = all changed IDs, with what the
@@ -111,7 +113,9 @@ the touched `docs/product/` and `docs/architecture/` files and code paths, and t
 > Read-only review. Do not edit, create or delete any file, do not run git commands that change
 > state. Review the draft spec for <change> with a **<bias>** bias. Find real problems only:
 > wrong or missing behaviour, untestable or ambiguous criteria, a broken "MUST stay the same"
-> item, a hidden change without an AC ID, a test-changes list that is too wide or too narrow.
+> item, a hidden change without an AC ID, a test-changes list that is too wide or too narrow,
+> a criterion that does not stand alone (it names a section outside `docs/product/` or a term
+> only SPEC.md defines; rule at the top of `docs/project-acceptance-criteria.md`).
 > For each finding: section, problem, why it matters, a concrete fix. Max 10 findings, worst
 > first. Plain English.
 
@@ -135,7 +139,8 @@ The check covers: folder name and `spec.json` fields; id, branch and milestones 
 all specs (also on other branches); no per-spec criteria file and no builder files; the criteria
 file against the branch base (new lines `v1 · spec <NNN>`, changed lines version + 1 and
 `changed by spec <NNN>`, retired lines `retired by spec <NNN>`, due milestone of this spec, no
-other line touched, no line deleted); section 1 names every changed `docs/product/` and
+other line touched, no line deleted, new and changed lines name `docs/product/` sections only);
+section 1 names every changed `docs/product/` and
 `docs/architecture/` file; the 10 headings in order; section 5 and section 7 equal the criteria
 diff; `test-changes.md` shape, plumbing clause and allowed IDs (all changed or retired);
 section 10 items marked; status `draft` while items are Open; placeholders and comments left;
