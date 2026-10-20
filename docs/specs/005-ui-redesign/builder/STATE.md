@@ -2,7 +2,7 @@
 
 ## Current milestone and chunk
 
-M12 running. Phase A, chunk 2: AC-UI-6 ARIA snapshots recorded (D-003). Status: done.
+M12 running. Phases A and B done (tokens, components, all five screens, tests AC-UI-1 to 6 and 9). Next: phase C.
 
 ## Last green commit and last full verify
 
@@ -15,13 +15,19 @@ M12 running. Phase A, chunk 2: AC-UI-6 ARIA snapshots recorded (D-003). Status: 
 
 1. Memory files.
 2. AC-UI-6 ARIA snapshots (`frontend/e2e/ui/aria.spec.ts`), no `frontend/src/` change.
+3. Font package, tokens, global styles, components; AC-STYLE-1 v2; tests AC-UI-1, 2, 3, 9 (d95afcd).
+4. Screens (shell, sign-in, workspace, dialogs, audit); pie; tests AC-UI-4, 5, 6.
 
 ## Next 3 steps
 
-1. Open the draft PR `feature/ui-redesign` -> `main` (body: `Closes #36`), if not open yet.
-2. Phase A styling: `@fontsource/ibm-plex-sans-condensed` 5.3.0, tokens.css (4.2), global.css,
-   components (4.4); style.spec.ts to AC-STYLE-1 v2; tests AC-UI-1, 2, 3, 9.
-3. Phase B screens (4.5, 4.6), AC-UI-4, 5, 6 (aria-hidden not focusable).
+1. Phase C: e2e tests AC-UI-7 (768/800/1024/1440 widths, no sideways scroll, row actions visible,
+   panel above table at <= 1024, art panel hidden < 860) and AC-UI-8 (long data at 1440/1120/800,
+   header text vs shapes, 1280 x 600 delete dialog with 30 flags); fix layout until green.
+2. Re-record the five screenshot baselines (`FF_UPDATE_BASELINES=1`; one DECISIONS entry per screen),
+   regenerate `docs/design-compare/` (`scripts/design-compare.sh`, fix its path to
+   `docs/product/design/`).
+3. Release: next free minor on main (VERSION, CHANGELOG); milestone audit; merge origin/main;
+   verify-all; PR ready.
 
 ## Open escalations and blockers
 
@@ -33,7 +39,7 @@ None.
 
 ## Last processed PR comment
 
-None (no PR yet). Task issue: #36.
+None from the owner (PR #65 has only the locked-files-guard bot comment 6291324314). Task issue: #36.
 
 ## Untrusted requests seen
 

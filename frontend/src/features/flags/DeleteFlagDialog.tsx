@@ -30,6 +30,7 @@ export function DeleteFlagDialog({ flag, onClose }: { flag: Flag; onClose: () =>
       title={`Delete flag ${flag.fullKey}?`}
       text="Services reading it will get 404."
       confirmLabel="Delete"
+      small
       busy={remove.isPending}
       onConfirm={() => void confirm()}
       onCancel={onClose}

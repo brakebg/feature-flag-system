@@ -1,3 +1,4 @@
+/* Spec 005 4.6 app shell, designs 2 and 5: the top bar is a white pill. */
 .app {
   min-height: 100vh;
   background: var(--color-bg);
@@ -5,20 +6,25 @@
   display: flex;
   flex-direction: column;
 }
+.barWrap {
+  padding: 20px 24px 0;
+}
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 60px;
-  padding: 0 24px;
-  background: var(--color-topbar);
-  color: #ffffff;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 10px 10px 20px;
+  background: var(--color-surface);
+  border-radius: var(--radius-pill);
 }
 .left {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
 }
 .brand {
   display: flex;
@@ -30,49 +36,50 @@
 .nav {
   display: flex;
   gap: 4px;
+  padding: 4px;
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
 }
 .link {
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  color: var(--color-topbar-text);
-  text-decoration: none;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
   font-weight: 500;
+  text-decoration: none;
 }
-.active {
-  background: var(--color-topbar-active);
+.link:hover {
+  color: var(--color-text);
+}
+.active,
+.active:hover {
+  background: var(--color-ink);
   color: #ffffff;
 }
 .right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 .user {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-topbar-text);
+  min-width: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 .avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--color-topbar-active);
-  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-sage);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 12px;
-}
-.signOut {
-  padding: 8px 14px;
-  border: 1px solid var(--color-topbar-border);
-  border-radius: var(--radius);
-  color: #ffffff;
-  font: inherit;
-  background: transparent;
-  cursor: pointer;
+  font-size: 13px;
 }
 .content {
   flex-grow: 1;
@@ -81,7 +88,7 @@
   min-height: 0;
 }
 .footer {
-  padding: 12px 24px;
+  padding: 0 32px 16px;
   font-size: 12px;
   color: var(--color-text-muted);
   text-align: right;

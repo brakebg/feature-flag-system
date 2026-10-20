@@ -32,7 +32,7 @@ export function FlagTable({ group, flags, onEdit, onDelete }: Props) {
           </div>
         </div>
       </div>
-      <div role="rowgroup">
+      <div role="rowgroup" className={styles.body}>
         {flags.map((flag) => (
           <FlagRow key={flag.id} group={group} flag={flag} onEdit={onEdit} onDelete={onDelete} />
         ))}
@@ -78,18 +78,18 @@ function FlagRow({
         />
         <span className={flag.enabled ? styles.on : styles.off}>{flag.enabled ? 'On' : 'Off'}</span>
       </div>
-      <div role="cell" className={`${styles.muted} ${styles.hideSm}`}>
+      <div role="cell" className={`${styles.soft} ${styles.hideSm}`}>
         {flag.createdBy}
       </div>
       <div role="cell" className={`${styles.updated} ${styles.hideSm}`}>
-        <span className={styles.muted}>{relativeTime(flag.updatedAt)}</span>
+        <span>{relativeTime(flag.updatedAt)}</span>
         <span className={styles.by}>by {flag.updatedBy}</span>
       </div>
       <div role="cell" className={styles.actions}>
         <button
           type="button"
           aria-label={`Edit ${flag.fullKey}`}
-          className={styles.icon}
+          className={`${styles.icon} ${styles.edit}`}
           onClick={() => onEdit(flag)}
         >
           <svg
@@ -97,7 +97,7 @@ function FlagRow({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#3B424C"
+            stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -109,7 +109,7 @@ function FlagRow({
         <button
           type="button"
           aria-label={`Delete ${flag.fullKey}`}
-          className={styles.icon}
+          className={`${styles.icon} ${styles.delete}`}
           onClick={() => onDelete(flag)}
         >
           <svg
@@ -117,7 +117,7 @@ function FlagRow({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#A8231A"
+            stroke="currentColor"
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"

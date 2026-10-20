@@ -49,60 +49,64 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
 
   return (
     <main className={styles.main}>
-      <div className={styles.header}>
-        <div className={styles.heading}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>{group.name}</h1>
-            <span className={styles.keyChip}>
-              {group.key}
-              <button
-                type="button"
-                aria-label="Copy group key"
-                className={styles.copy}
-                onClick={() => void copyKey()}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#59616C"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+      <div className={styles.hero}>
+        <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
+        <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
+        <span className={`${styles.shape} ${styles.dot}`} aria-hidden="true" />
+        <div className={styles.heroContent}>
+          <div className={styles.heading}>
+            <div className={styles.titleRow}>
+              <h1 className={styles.title}>{group.name}</h1>
+              <span className={styles.keyChip}>
+                <span className={styles.keyText}>{group.key}</span>
+                <button
+                  type="button"
+                  aria-label="Copy group key"
+                  className={styles.copy}
+                  onClick={() => void copyKey()}
                 >
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-                </svg>
-              </button>
-            </span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                  </svg>
+                </button>
+              </span>
+            </div>
+            <p className={styles.description}>
+              {group.description ? `${group.description} · ${count}` : count}
+            </p>
+            <p className={styles.meta}>
+              Created by <span className={styles.who}>{group.createdBy}</span> · Updated by{' '}
+              <span className={styles.who}>{group.updatedBy}</span>, {relativeTime(group.updatedAt)}
+            </p>
           </div>
-          <p className={styles.description}>
-            {group.description ? `${group.description} · ${count}` : count}
-          </p>
-          <p className={styles.meta}>
-            Created by <span className={styles.who}>{group.createdBy}</span> · Updated by{' '}
-            <span className={styles.who}>{group.updatedBy}</span>, {relativeTime(group.updatedAt)}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button medium onClick={() => setDialog({ kind: 'edit-group' })}>
-            Edit group
-          </Button>
-          <Button variant="danger-outline" onClick={() => setDialog({ kind: 'delete-group' })}>
-            Delete group
-          </Button>
+          <div className={styles.headerActions}>
+            <Button onClick={() => setDialog({ kind: 'edit-group' })}>Edit group</Button>
+            <Button variant="danger-outline" onClick={() => setDialog({ kind: 'delete-group' })}>
+              Delete group
+            </Button>
+          </div>
         </div>
       </div>
 
-      <section aria-label="Flags" className={styles.card}>
+      <section aria-label="Flags" className={styles.flags}>
         <div className={styles.toolbar}>
           <div className={styles.filters}>
             <div className={styles.search}>
               <label htmlFor="flag-search" className="visually-hidden">
                 Search flags
               </label>
+              <SearchIcon />
               <input
                 id="flag-search"
                 type="search"
@@ -111,7 +115,6 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <SearchIcon />
             </div>
             <div role="group" aria-label="Filter by status" className={styles.segments}>
               {FILTERS.map(([value, label]) => (
@@ -136,14 +139,16 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
           </Button>
         </div>
         {total === 0 ? (
-          <EmptyState
-            text="No flags in this group"
-            action={
-              <Button variant="primary" onClick={() => setDialog({ kind: 'new-flag' })}>
-                Add flag
-              </Button>
-            }
-          />
+          <div className={styles.emptyCard}>
+            <EmptyState
+              text="No flags in this group"
+              action={
+                <Button variant="primary" onClick={() => setDialog({ kind: 'new-flag' })}>
+                  Add flag
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <FlagTable
@@ -152,7 +157,11 @@ export function GroupPanel({ group, onDeleted }: { group: GroupDetail; onDeleted
               onEdit={(flag) => setDialog({ kind: 'edit-flag', flag })}
               onDelete={(flag) => setDialog({ kind: 'delete-flag', flag })}
             />
-            {shown.length === 0 && <EmptyState text="No flags match this filter." />}
+            {shown.length === 0 && (
+              <div className={styles.emptyCard}>
+                <EmptyState text="No flags match this filter." />
+              </div>
+            )}
           </>
         )}
       </section>

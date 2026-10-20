@@ -1,62 +1,68 @@
+/* Spec 005 4.4 to 4.6, design 2: the groups panel. */
 .pane {
+  flex: 1 1 280px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 20px;
   background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: 20px 16px;
+  border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 .title {
   margin: 0;
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 22px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 }
 .search {
   position: relative;
 }
 .search :global(.search-icon) {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  left: 16px;
+  top: 50%;
+  margin-top: -8px;
+  pointer-events: none;
 }
 .searchInput {
   width: 100%;
-  height: 40px;
-  padding: 0 12px 0 36px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
+  height: 44px;
+  padding: 0 16px 0 42px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
   font: inherit;
   color: var(--color-text);
-  background: var(--color-surface);
 }
 .list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .item {
+  --pie-on: var(--color-primary);
+  --pie-off: var(--color-border);
+  width: 100%;
+  min-height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 0;
-  border-left: 3px solid transparent;
-  border-radius: var(--radius);
+  border-radius: 20px;
   background: transparent;
-  text-align: left;
-  font: inherit;
   color: var(--color-text);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 .item:hover {
@@ -64,10 +70,21 @@
 }
 .active,
 .active:hover {
-  background: var(--color-primary-soft);
-  border-left-color: var(--color-primary);
+  --pie-on: var(--color-sage);
+  --pie-off: var(--color-ink-line);
+  background: var(--color-ink);
+  color: #ffffff;
+}
+/* Spec 005 4.5: the pie shows the share of flags that are on (--share, AC-UI-4). */
+.pie {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: conic-gradient(var(--pie-on) 0 var(--share), var(--pie-off) 0);
 }
 .names {
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -83,18 +100,25 @@
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
-.badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-badge);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-soft);
+.active .key {
+  color: var(--color-ink-text-muted);
 }
-
+.badge {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+.active .badge {
+  background: var(--color-ink-raised);
+  color: #ffffff;
+}
 .error {
   margin: 0;
   padding: 16px;
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   font-size: 14px;
 }

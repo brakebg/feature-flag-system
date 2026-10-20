@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { GroupSummary } from '../../api/types';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { filterGroups } from './groupFilter';
+import { pieShare } from './pieShare';
 import styles from './GroupList.module.css';
 
-export function PlusIcon() {
+/** Decorative plus of New group (14 px) and New flag (16 px), spec 8.4. */
+export function PlusIcon({ size = 16 }: { size?: number }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth={size < 16 ? 2.6 : 2.4}
       strokeLinecap="round"
       aria-hidden="true"
     >
@@ -39,7 +41,7 @@ export function GroupList({ groups, error, selectedId, onSelect, onNew }: Props)
     <aside aria-label="Groups" className={styles.pane}>
       <div className={styles.header}>
         <h2 className={styles.title}>Groups</h2>
-        <Button variant="ghost" icon={<PlusIcon />} onClick={onNew}>
+        <Button variant="soft" icon={<PlusIcon size={14} />} onClick={onNew}>
           New group
         </Button>
       </div>
@@ -47,6 +49,7 @@ export function GroupList({ groups, error, selectedId, onSelect, onNew }: Props)
         <label htmlFor="group-search" className="visually-hidden">
           Search groups
         </label>
+        <SearchIcon />
         <input
           id="group-search"
           type="search"
@@ -55,7 +58,6 @@ export function GroupList({ groups, error, selectedId, onSelect, onNew }: Props)
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <SearchIcon />
       </div>
       {error ? (
         <p role="alert" className={styles.error}>
@@ -86,6 +88,11 @@ export function GroupList({ groups, error, selectedId, onSelect, onNew }: Props)
                 className={`${styles.item} ${active ? styles.active : ''}`}
                 onClick={() => onSelect(g.id)}
               >
+                <span
+                  className={styles.pie}
+                  aria-hidden="true"
+                  style={{ '--share': pieShare(g.enabledCount, g.flagCount) } as CSSProperties}
+                />
                 <span className={styles.names}>
                   <span className={styles.name}>{g.name}</span>
                   <span className={styles.key}>{g.key}</span>
@@ -107,7 +114,7 @@ export function SearchIcon() {
       height="16"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#59616C"
+      stroke="#5B6475"
       strokeWidth="2"
       strokeLinecap="round"
       aria-hidden="true"
