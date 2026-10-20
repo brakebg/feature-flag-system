@@ -11,6 +11,8 @@ interface Props {
   onCancel: () => void;
   busy?: boolean;
   confirmDisabled?: boolean;
+  /** The smaller look of the Delete flag dialog (design 6): 28 px title, no ink dot. */
+  small?: boolean;
   children?: ReactNode;
 }
 
@@ -23,6 +25,7 @@ export function ConfirmDialog({
   onCancel,
   busy = false,
   confirmDisabled = false,
+  small = false,
   children,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -42,21 +45,26 @@ export function ConfirmDialog({
         aria-describedby={textId}
         className={styles.dialog}
       >
-        <div className={styles.top}>
-          <span className={styles.icon} aria-hidden="true">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#A8231A"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
-            </svg>
-          </span>
+        <div className={`${styles.top} ${small ? styles.small : ''}`}>
+          <div className={styles.cluster} aria-hidden="true">
+            <span className={styles.square}>
+              <svg
+                aria-hidden="true"
+                width={small ? 22 : 24}
+                height={small ? 22 : 24}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+              </svg>
+            </span>
+            <span className={styles.half} />
+            {!small && <span className={styles.dot} />}
+          </div>
           <div className={styles.heading}>
             <h2 id={titleId} className={styles.title}>
               {title}
@@ -68,11 +76,12 @@ export function ConfirmDialog({
         </div>
         {children && <div className={styles.body}>{children}</div>}
         <div className={styles.footer}>
-          <Button onClick={onCancel} disabled={busy} data-autofocus>
+          <Button large onClick={onCancel} disabled={busy} data-autofocus>
             Cancel
           </Button>
           <Button
             variant="danger"
+            large
             onClick={onConfirm}
             disabled={confirmDisabled || busy}
             busy={busy}

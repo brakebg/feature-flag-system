@@ -1,8 +1,8 @@
+/* Spec 005 4.4 modal, design 3. */
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 20;
-  box-sizing: border-box;
   padding: 24px;
   background: var(--color-overlay);
   display: flex;
@@ -10,52 +10,65 @@
   justify-content: center;
 }
 .dialog {
+  position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   max-height: calc(100vh - 48px);
   overflow: auto;
   background: var(--color-surface);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog);
   display: flex;
   flex-direction: column;
 }
+/* Decorative sage quarter circle behind the Close button. */
+.corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 0 0 0 112px;
+  background: var(--color-sage);
+}
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 32px 140px 8px 32px;
 }
 .title {
   margin: 0;
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 32px;
   font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 .close {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius);
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
   cursor: pointer;
 }
 .body {
-  padding: 24px;
+  padding: 20px 32px 8px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface-muted);
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  gap: 10px;
+  padding: 20px 32px 28px;
 }

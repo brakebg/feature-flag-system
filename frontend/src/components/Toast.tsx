@@ -47,6 +47,7 @@ function Toast({ item, onDone }: { item: ToastItem; onDone: (id: number) => void
       role={item.kind === 'success' ? 'status' : 'alert'}
       className={`${styles.toast} ${styles[item.kind]}`}
     >
+      <span className={styles.glyph} aria-hidden="true" />
       {item.text}
     </div>
   );

@@ -2,22 +2,23 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Spinner } from './Spinner';
 import styles from './Button.module.css';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'danger-outline' | 'ghost';
+type Variant = 'primary' | 'soft' | 'secondary' | 'danger' | 'danger-outline' | 'dark';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   busy?: boolean;
+  /** Decorative icon in a circle after the text (spec 005 4.4); outside the accessible name. */
   icon?: ReactNode;
-  /** Font weight 500, for the buttons the design draws in medium weight (D-030). */
-  medium?: boolean;
+  /** 48 px high, as the dialog footers of designs 3, 4 and 6. */
+  large?: boolean;
 }
 
-/** Spec 8.7: every action control is a button. */
+/** Spec 8.7: every action control is a button. Spec 005 4.4: pills. */
 export function Button({
   variant = 'secondary',
   busy = false,
   icon,
-  medium = false,
+  large = false,
   children,
   className,
   ...rest
@@ -27,12 +28,23 @@ export function Button({
       type="button"
       {...rest}
       aria-busy={busy || undefined}
-      className={[styles.button, styles[variant], medium ? styles.medium : null, className]
+      className={[
+        styles.button,
+        styles[variant],
+        large ? styles.large : null,
+        icon ? styles.withIcon : null,
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
     >
-      {busy ? <Spinner /> : icon}
+      {busy && <Spinner />}
       {children}
+      {icon && (
+        <span className={styles.icon} aria-hidden="true">
+          {icon}
+        </span>
+      )}
     </button>
   );
 }

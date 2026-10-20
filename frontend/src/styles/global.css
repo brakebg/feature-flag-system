@@ -14,11 +14,20 @@ body {
 *::after {
   box-sizing: border-box;
 }
+h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
 a {
   color: var(--color-primary);
 }
 a:hover {
   color: var(--color-primary-dark);
+}
+/* Spec 005 4.4: every interactive element shows the same focus ring (AC-UI-9). */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 .visually-hidden {
   position: absolute;

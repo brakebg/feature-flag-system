@@ -1,52 +1,98 @@
+/* Spec 005 4.4 and designs 2 to 6: every button is a pill. */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 40px;
-  box-sizing: border-box;
-  padding: 0 16px;
-  border-radius: var(--radius);
+  gap: 10px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
   font: inherit;
-  cursor: pointer;
-}
-/* D-030: weights as the design renders them (400 unless the design sets one after `font`). */
-.medium {
   font-weight: 500;
+  cursor: pointer;
+  overflow-wrap: anywhere;
 }
 .button:disabled {
   cursor: not-allowed;
 }
+.large {
+  height: 48px;
+  padding: 0 22px;
+}
 .primary {
+  height: 48px;
+  padding: 0 26px;
   border: 0;
   background: var(--color-primary);
   color: #ffffff;
+  font-weight: 600;
+}
+.primary.withIcon {
+  gap: 12px;
+  padding: 0 8px 0 22px;
+}
+.primary .icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  color: var(--color-primary);
+}
+.soft {
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+}
+.soft.withIcon {
+  gap: 8px;
+  padding: 0 6px 0 14px;
+}
+.soft .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
 }
 .secondary {
-  border: 1px solid var(--color-border-strong);
+  border: 1.5px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
 }
+.danger-outline {
+  border: 1.5px solid var(--color-danger-border);
+  background: var(--color-surface);
+  color: var(--color-danger);
+}
 .danger {
+  padding: 0 24px;
   border: 0;
   background: var(--color-danger);
   color: #ffffff;
   font-weight: 600;
 }
 .danger:disabled {
-  background: var(--color-danger-disabled);
+  background: var(--color-danger-border);
 }
-.danger-outline {
-  border: 1px solid var(--color-danger-border);
-  background: var(--color-surface);
-  color: var(--color-danger);
-}
-.ghost {
+.dark {
+  height: 48px;
+  padding: 0 28px;
   border: 0;
-  background: transparent;
-  color: var(--color-primary);
+  background: var(--color-ink);
+  color: #ffffff;
   font-weight: 600;
-  min-height: 36px;
-  height: auto;
-  padding: 0 10px;
+}
+.primary:disabled,
+.dark:disabled {
+  opacity: 0.75;
+  cursor: progress;
 }
