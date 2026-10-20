@@ -40,7 +40,7 @@ HTML
     design=$(printf '%s' "$title.png" | sed 's/ /%20/g; s/·/%C2%B7/g')
     printf '<section>\n<h2>%s</h2>\n<div class="pair">\n' "$title"
     printf '<figure><figcaption>Built</figcaption><img src="%s-built.png" alt="Built: %s"></figure>\n' "$file" "$title"
-    printf '<figure><figcaption>Design</figcaption><img src="../design/%s" alt="Design: %s"></figure>\n' "$design" "$title"
+    printf '<figure><figcaption>Design</figcaption><img src="../product/design/%s" alt="Design: %s"></figure>\n' "$design" "$title"
     printf '</div>\n</section>\n'
   done
   printf '</body>\n</html>\n'

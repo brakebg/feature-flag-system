@@ -17,17 +17,17 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 2. AC-UI-6 ARIA snapshots (`frontend/e2e/ui/aria.spec.ts`), no `frontend/src/` change.
 3. Font package, tokens, global styles, components; AC-STYLE-1 v2; tests AC-UI-1, 2, 3, 9 (d95afcd).
 4. Screens (shell, sign-in, workspace, dialogs, audit); pie; tests AC-UI-4, 5, 6 (4a662ee).
-5. Layout and long data: tests AC-UI-7, AC-UI-8; header shapes clipped in a layer.
+5. Layout and long data: tests AC-UI-7, AC-UI-8; header shapes clipped in a layer (39b0c99).
+6. Screenshot baselines re-recorded (D-005); design-compare regenerated (D-006).
 
 ## Next 3 steps
 
-1. Check the states of design 6 (toasts, sign-in error, field error, switch in flight, Edit
-   flag, Delete flag, 404) against the built UI.
-2. Re-record the five screenshot baselines (`FF_UPDATE_BASELINES=1`; one DECISIONS entry per screen),
-   regenerate `docs/design-compare/` (`scripts/design-compare.sh`, fix its path to
-   `docs/product/design/`).
-3. Release: next free minor on main (VERSION, CHANGELOG); milestone audit; merge origin/main;
-   verify-all; PR ready.
+1. Release: merge origin/main, read VERSION there, next free minor (VERSION, CHANGELOG.md,
+   frontend/package.json version if it follows VERSION); MILESTONE = `12 complete`.
+2. Milestone audit (spec 8): spec-auditor, test-auditor, design-checker (six designs, include
+   `6 · States`), final-reviewer (frontend). Fix BLOCKER and CRITICAL.
+3. `make verify-all` (CI is authoritative for gates 11-13, D-004); copy the report; `M12: complete`;
+   PR summary comment; tick definition of done; mark PR ready.
 
 ## Open escalations and blockers
 

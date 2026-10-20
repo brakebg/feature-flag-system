@@ -162,6 +162,7 @@
   left: 16px;
   top: 50%;
   margin-top: -8px;
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 .searchInput {

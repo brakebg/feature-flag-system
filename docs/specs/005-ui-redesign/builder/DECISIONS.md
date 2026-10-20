@@ -40,3 +40,26 @@ host and packages them in images that copy the runtime stages of the repo Docker
 OS package upgrade (dev helper outside the repo). So locally gates 11, 12, 13 and the image scan
 of gate 10 cannot run through `make verify`; CI (`make verify-all` in `.github/workflows/ci.yml`)
 runs them on every push. No repository file changes for this.
+
+## D-005 · 2026-10-20 · 4.1, testing.md 11.6 item 2 · Screenshot baselines re-recorded for the redesign
+
+Reason for all five: spec 005 replaces the look of every screen (designs 1 to 5 of
+`docs/product/design/`). Recorded with `--update-snapshots` on `chromium-desktop` in the official
+Playwright image (`mcr.microsoft.com/playwright:v1.63.0-noble`) against a fresh stack seeded by
+`scripts/lib/seed-shots.sh`, UI built from the redesign code; then checked with `--repeat-each=2`.
+
+- Screen 1, sign in: `1-sign-in-chromium-desktop-linux.png` (art panel, dark Sign in button).
+- Screen 2, flags workspace: `2-flags-workspace-chromium-desktop-linux.png` (pill top bar, pie,
+  header card, row cards).
+- Screen 3, new flag dialog: `3-new-flag-dialog-chromium-desktop-linux.png` (dialog shapes,
+  52 px fields, initial state shape).
+- Screen 4, delete group confirmation: `4-delete-group-confirmation-chromium-desktop-linux.png`
+  (shape cluster, flag list marks).
+- Screen 5, audit log: `5-audit-log-chromium-desktop-linux.png` (ink header card, row cards,
+  labels with shapes).
+
+## D-006 · 2026-10-20 · 4.8 · `scripts/design-compare.sh` reads `docs/product/design/`
+
+The gallery linked the design PNGs at `../design/`, the folder before the docs split. It now links
+`../product/design/` (spec 005 section 4.8 names this fix). `docs/design-compare/` regenerated
+from the new baselines.
