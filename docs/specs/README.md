@@ -84,8 +84,8 @@ Builder files are created by the session in its first commit, only inside `build
    (`scripts/lib/active-spec.mjs`). On `main` no spec is active and the highest `builder/MILESTONE`
    of all specs applies. A spec's criteria count on a branch when it is the active spec or
    when its `builder/MILESTONE` file exists there (its work is merged).
-7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/project-acceptance-criteria.md`)
-   can change in parallel specs. Before a session marks its PR ready it merges `origin/main`
+7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/project-acceptance-criteria.md`,
+   the API contract `docs/architecture/openapi.json`) can change in parallel specs. Before a session marks its PR ready it merges `origin/main`
    into its branch, resolves conflicts and runs `make verify-all` again.
 8. Parallel sessions need separate machines (cloud sessions are). On one machine the gate
    stacks use fixed ports and would collide.

@@ -15,7 +15,9 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
 1. **Spec (owner).** `/write-spec` creates `feature/<name>` from `main` and commits the spec:
    `docs/specs/NNN-name/` (`spec.json`, `SPEC.md`, `test-changes.md`, `design/` if any), the new
    and changed lines in `docs/project-acceptance-criteria.md`, and the changes to
-   `docs/product/` and `docs/architecture/` that describe the system after this spec. Every
+   `docs/product/` and `docs/architecture/` that describe the system after this spec. A spec
+   that changes the API also updates the one project contract `docs/architecture/openapi.json`
+   (with `api.md`); specs never have their own copy. The builder builds to it (gate 8). Every
    section 10 item is decided; `spec.json` says `"status": "ready"`.
 2. **Handover check (owner).** `/handover-check <issue or folder>` checks the head of
    `feature/<name>` before any tag: spec files, no open decision, the spec check, criteria, CI
@@ -27,9 +29,9 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
    after a READY check, so it always marks a checked spec.
 4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
    Input is only a snapshot the acceptance repo's intake workflow copies to `input/spec-NNN/`:
-   the criteria file, `backend/openapi.json` and `docs/product/design/`, all at the tag. Each
-   `spec-NNN-amend-<k>` refreshes the criteria file and the design; `backend/openapi.json` stays
-   from the ready tag, because the builder changes it after the tag. Each snapshot opens an
+   the criteria file, the contract `docs/architecture/openapi.json` and `docs/product/design/`,
+   all at the tag. Each `spec-NNN-amend-<k>` refreshes all three. Never `backend/openapi.json`:
+   the builder's code generates it. Each snapshot opens an
    issue "Write tests for spec NNN" in the acceptance repo; the owner starts the tester session.
    The acceptance repo pulls from this public repo; this repo never pushes to it and holds no
    token for it. The tester never sees this repo; the builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
@@ -49,7 +51,8 @@ Only the owner changes the spec, and only like this:
 
 1. The builder raises an escalation (`docs/process/escalation.md`).
 2. The owner answers on the PR (`ESC-NNN: …`) and, when the answer changes the spec, makes one
-   commit on `feature/<name>`: the spec change, criteria lines with their version raised,
+   commit on `feature/<name>`: the spec change, criteria lines with their version raised, the
+   contract change in `docs/architecture/openapi.json` if the API changes,
    `builder/escalations/ESC-NNN.md` set to `Status: resolved` with the answer. Commit message
    `ESC-NNN: <answer>`.
 3. The owner tags exactly that commit: `spec-NNN-amend-<k>` (k = 1, 2, …).

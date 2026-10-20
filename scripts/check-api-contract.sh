@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Gate 8 (spec 11.3): springdoc writes backend/openapi.json, openapi-typescript generates
 # frontend/src/api/schema.d.ts; both must be committed and up to date, and the UI must
-# compile against them.
+# compile against them. The built API must also match the owner's contract
+# docs/architecture/openapi.json (scripts/check-openapi-contract.mjs, issue #54).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 (cd backend && ./mvnw -B -ntp -q verify -Dit.test=OpenApiExportIT -Dtest=NoUnitTests \
@@ -12,5 +13,7 @@ git diff --exit-code HEAD -- backend/openapi.json frontend/src/api/schema.d.ts |
 untracked=$(git ls-files --others --exclude-standard -- backend/openapi.json frontend/src/api/schema.d.ts)
 if [ -n "$untracked" ]; then echo "not committed: $untracked"; status=1; fi
 (cd frontend && npm run typecheck) || status=1
+node --test scripts/test/check-openapi-contract.test.mjs >/dev/null || { echo "contract check self-test failed"; status=1; }
+node scripts/check-openapi-contract.mjs || status=1
 if [ "$status" != 0 ]; then echo "API contract out of date: commit backend/openapi.json and frontend/src/api/schema.d.ts"; fi
 exit "$status"

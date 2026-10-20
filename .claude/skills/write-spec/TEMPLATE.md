@@ -71,7 +71,7 @@ this spec does not change still applies.
 
 <!-- One row per changed file; check fails when a file changes on the branch but is not named. -->
 
-Not changed: <for example gate 4 banned dependencies, `backend/openapi.json`, tech stack>.
+Not changed: <for example gate 4 banned dependencies, the API contract `docs/architecture/openapi.json`, tech stack>.
 
 The builder never edits these files, the criteria or this spec. A spec change during the build
 is an owner amendment (`docs/process/spec-flow.md` section 2).
@@ -88,7 +88,7 @@ Not in scope: <list>.
    version, with the changes of section 5.
 2. <HTTP behaviour for clients: status codes, headers, problem details, JSON — or say what changes.>
 3. Security rules of spec 001 section 5.
-4. <`backend/openapi.json` unchanged — or name the exact change.>
+4. <The API contract `docs/architecture/openapi.json` unchanged — or name the exact change.>
 5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. <Existing Flyway migrations unchanged (same checksums).>
 
@@ -243,3 +243,8 @@ Change the files that describe what this spec changes, so that on the branch the
 system after the spec (product behaviour in `docs/product/`, how it is built in
 `docs/architecture/`). Keep their section numbers. Name every changed file in SPEC.md section 1;
 `check` fails on a changed file that section 1 does not name.
+
+API change: edit the one project contract `docs/architecture/openapi.json` together with
+`docs/architecture/api.md`, so that it describes the whole API after this spec. Keep the format
+of the file (springdoc style, sorted keys, 2-space indent). Gate 8 checks the build against it
+and `node scripts/check-openapi-contract.mjs --validate` checks it is valid OpenAPI 3.
