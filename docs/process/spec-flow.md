@@ -28,9 +28,11 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
 4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
    Input is only a snapshot the acceptance repo's intake workflow copies to `input/spec-NNN/`:
    the criteria file, `backend/openapi.json` and `docs/product/design/`, all at the tag. Each
-   `spec-NNN-amend-<k>` refreshes it. The acceptance repo pulls from this public repo; this repo
-   never pushes to it and holds no token for it. The tester never sees this repo; the builder
-   never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
+   `spec-NNN-amend-<k>` refreshes the criteria file and the design; `backend/openapi.json` stays
+   from the ready tag, because the builder changes it after the tag. Each snapshot opens an
+   issue "Write tests for spec NNN" in the acceptance repo; the owner starts the tester session.
+   The acceptance repo pulls from this public repo; this repo never pushes to it and holds no
+   token for it. The tester never sees this repo; the builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
 5. **Build (builder).** The owner starts a cloud session with the kickoff prompt
    (`docs/process/builder-prompt.md` section 5). The builder checks out `feature/<name>`,
    confirms `spec-NNN-ready` is in it, builds in green chunks, and opens one draft PR
