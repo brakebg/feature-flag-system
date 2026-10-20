@@ -75,7 +75,7 @@ export function ConfirmDialog({
           </div>
         </div>
         {children && <div className={styles.body}>{children}</div>}
-        <div className={styles.footer}>
+        <div className={`${styles.footer} ${small ? styles.smallFooter : ''}`}>
           <Button large onClick={onCancel} disabled={busy} data-autofocus>
             Cancel
           </Button>

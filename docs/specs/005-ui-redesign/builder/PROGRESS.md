@@ -14,4 +14,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-20 | 15497d2 | M12 | merge origin/main (owner contract, flow changes) | verify-fast: as baseline |
 | 2026-10-20 | cb7c7e9 | M12 | CHANGELOG Unreleased entry; ESC-001 raised (release version vs "no backend file changes") | verify-fast: as baseline |
 | 2026-10-20 | 88e014a | M12 | milestone audit report (before fixes) | docs only |
-| 2026-10-20 | (this) | M12 | ARIA snapshots of the other screens recorded from spec-005-ready, strict compare (D-007) | verify-fast: as baseline; aria.spec 48/48 on the spec-005-ready UI |
+| 2026-10-20 | 5a829fa | M12 | ARIA snapshots of the other screens recorded from spec-005-ready, strict compare (D-007) | verify-fast: as baseline; aria.spec 48/48 on the spec-005-ready UI |
+| 2026-10-20 | (this) | M12 | audit fixes: 11 screens in the tests, exact long data, fonts loaded, cells below 860 px, null boxes, every switch; Key field 52 px, busy Sign in, Button dark, tokens for white fills; baseline 3 (D-008) | verify-fast: as baseline; local e2e chromium-desktop + narrow repeat-each 2 all green; planted bugs TA-2, TA-3 caught |

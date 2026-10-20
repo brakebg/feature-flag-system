@@ -165,6 +165,7 @@
   flex-shrink: 0;
   border-radius: var(--radius-pill);
   background: var(--color-primary);
+  color: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -204,39 +205,12 @@
   border-radius: 3px;
   background: var(--color-danger);
 }
-.submit {
+/* The shared dark Button (spec 005 4.4), 56 px high and 600 as in design 1; the element
+   selector wins over the Button module whatever the CSS order. */
+button.submit {
   height: 56px;
   margin-top: 4px;
-  padding: 0 8px 0 24px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--color-ink);
-  color: #ffffff;
-  font: inherit;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-}
-.submit:disabled {
-  opacity: 0.75;
-  cursor: progress;
-}
-.submitText {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.submitIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-pill);
-  background: var(--color-apricot);
-  color: var(--color-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 @media (max-width: 860px) {
   .art {

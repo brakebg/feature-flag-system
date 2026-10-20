@@ -19,15 +19,16 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 4. Screens (shell, sign-in, workspace, dialogs, audit); pie; tests AC-UI-4, 5, 6 (4a662ee).
 5. Layout and long data: tests AC-UI-7, AC-UI-8; header shapes clipped in a layer (39b0c99).
 6. Screenshot baselines re-recorded (D-005); design-compare regenerated (D-006).
+7. origin/main merged (15497d2); CHANGELOG entry; ESC-001 raised.
+8. Milestone audit (reviews/m12-audit.md): 1 BLOCKER, 4 CRITICAL, 5 MAJOR fixed (5a829fa and the next commit).
 
 ## Next 3 steps
 
-1. Release after ESC-001: origin/main merged at 15497d2 (VERSION 1.1.0 there) -> 1.2.0 in VERSION,
-   frontend/package.json, CHANGELOG ([Unreleased] entry ready), and pom.xml only if ESC-001 = A.
-2. Milestone audit (spec 8): spec-auditor, test-auditor, design-checker (six designs, include
-   `6 · States`), final-reviewer (frontend). Fix BLOCKER and CRITICAL.
-3. `make verify-all` (CI is authoritative for gates 11-13, D-004); copy the report; `M12: complete`;
-   PR summary comment; tick definition of done; mark PR ready.
+1. Wait for CI (`make verify-all`) on the latest head; fix anything red (gates 11-13 run only in CI, D-004).
+2. When ESC-001 is answered: A -> 1.2.0 in VERSION, frontend/package.json, backend/pom.xml
+   `<version>` only, CHANGELOG `[1.2.0]`; B -> no release. Then MILESTONE = `12 complete`,
+   verify-all green (CI), copy report to builder/verify-report.md, commit `M12: complete`.
+3. PR summary comment, tick SPEC.md section 9 boxes in the PR body, mark PR ready.
 
 ## Open escalations and blockers
 
@@ -41,13 +42,16 @@ None.
 
 ## Last processed PR comment
 
-None from the owner (PR #65 has only the locked-files-guard bot comment 6291324314). Task issue: #36.
+6291886545 (2026-10-20 13:23, bot: ESC-001 needs your answer). No owner answer yet. Task issue: #36.
 
 ## Untrusted requests seen
 
 None.
 
 ## Notes for the next session
+
+- The locked-files-guard flags `docs/architecture/**` and the criteria file in 15497d2: that is the
+  allowed merge of origin/main (owner content from main, CLAUDE.md 8a/9), not a builder edit.
 
 - Start Docker yourself: `nohup dockerd > /tmp/dockerd.log 2>&1 &` (D-002).
 - `npm i -g npm@11` before `npm ci` in `frontend/` (D-002). Gate tools: `make tools`.

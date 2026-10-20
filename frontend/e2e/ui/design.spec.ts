@@ -12,6 +12,17 @@ const DANGER = 'rgb(181, 71, 58)';
 const SWITCH_OFF = 'rgb(205, 210, 219)';
 const WHITE = 'rgb(255, 255, 255)';
 
+/** The screens that show the flags table of the screen data group. */
+const WITH_FLAGS = new Set<string>([
+  'flags workspace',
+  'new flag dialog',
+  'delete group confirmation',
+  'new group dialog',
+  'edit group dialog',
+  'edit flag dialog',
+  'delete flag dialog',
+]);
+
 /** Every request of the page, by origin. */
 function origins(page: Page): Set<string> {
   const seen = new Set<string>();
@@ -30,13 +41,11 @@ test.describe('[AC-UI-1] ground, text colour, the three Plex fonts, no other ori
       await expect(body).toHaveCSS('background-color', 'rgb(241, 242, 244)');
       await expect(body).toHaveCSS('color', INK);
       await expect(body).toHaveCSS('font-family', /^"IBM Plex Sans"/);
-      const h1s = page.locator('h1');
-      expect(await h1s.count()).toBeGreaterThan(0);
-      for (const h1 of await h1s.all()) {
+      for (const h1 of await page.locator('h1').all()) {
         await expect(h1).toHaveCSS('font-family', /^"IBM Plex Sans Condensed"/);
         await expect(h1).toHaveCSS('font-weight', '600');
       }
-      if (screen !== 'sign in' && screen !== 'audit log') {
+      if (WITH_FLAGS.has(screen)) {
         for (const key of ['first-flag', 'second-flag']) {
           const table = page.getByRole('table', { name: 'Flags' });
           await expect(table.getByText(key, { exact: true })).toHaveCSS(
@@ -57,14 +66,43 @@ test.describe('[AC-UI-1] ground, text colour, the three Plex fonts, no other ori
           '500 15px "IBM Plex Mono"',
         ];
         for (const f of faces) await document.fonts.load(f);
-        return faces.map((f) => document.fonts.check(f));
+        // fonts.check is also true when no face of that family exists, so the loaded faces are
+        // read from document.fonts as well (TA-2).
+        const list: FontFace[] = [];
+        document.fonts.forEach((f) => list.push(f));
+        const faceLoaded = (family: string, weight: string) =>
+          list.some(
+            (f) =>
+              f.family.replace(/["']/g, '') === family &&
+              f.weight === weight &&
+              f.status === 'loaded',
+          );
+        return {
+          check: faces.map((f) => document.fonts.check(f)),
+          faces: [
+            faceLoaded('IBM Plex Sans Condensed', '600'),
+            faceLoaded('IBM Plex Sans', '400'),
+            faceLoaded('IBM Plex Mono', '500'),
+          ],
+        };
       });
-      expect(loaded).toEqual([true, true, true]);
+      expect(loaded).toEqual({ check: [true, true, true], faces: [true, true, true] });
       const ui = new URL(page.url()).origin;
       expect([...seen].filter((o) => o !== ui)).toEqual([]);
     });
   }
 });
+
+/** Every switch on the page: primary when aria-checked is true, the off colour when false. */
+async function expectSwitchColours(page: Page, count: number) {
+  const switches = page.getByRole('switch', { includeHidden: true });
+  await expect(switches).toHaveCount(count);
+  for (const sw of await switches.all()) {
+    const checked = await sw.getAttribute('aria-checked');
+    expect(['true', 'false']).toContain(checked);
+    await expect(sw).toHaveCSS('background-color', checked === 'true' ? PRIMARY : SWITCH_OFF);
+  }
+}
 
 test('[AC-UI-2] primary, dark and danger buttons and the switch colours', async ({
   page,
@@ -72,7 +110,6 @@ test('[AC-UI-2] primary, dark and danger buttons and the switch colours', async 
 }, info) => {
   const key = keyFor(info, 'ui2');
   const data = await screenData(api, key);
-  const empty = await api.createGroup(`${key}-e`.slice(0, 50), 'Empty group');
 
   await openScreen(page, 'sign in', data);
   await expect(page.getByRole('button', { name: 'Sign in' })).toHaveCSS('background-color', INK);
@@ -82,24 +119,15 @@ test('[AC-UI-2] primary, dark and danger buttons and the switch colours', async 
     'background-color',
     PRIMARY,
   );
-  await expect(page.getByRole('switch', { name: `Toggle ${key}.first-flag` })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
-  await expect(page.getByRole('switch', { name: `Toggle ${key}.first-flag` })).toHaveCSS(
-    'background-color',
-    PRIMARY,
-  );
-  await expect(page.getByRole('switch', { name: `Toggle ${key}.second-flag` })).toHaveCSS(
-    'background-color',
-    SWITCH_OFF,
-  );
-
+  await expectSwitchColours(page, 2);
   await page.getByRole('button', { name: 'New flag' }).click();
   await expect(page.getByRole('button', { name: 'Create flag' })).toHaveCSS(
     'background-color',
     PRIMARY,
   );
+  await expectSwitchColours(page, 3);
+  await page.getByRole('switch', { name: 'Initial state' }).click();
+  await expectSwitchColours(page, 3);
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await page.getByRole('button', { name: 'New group' }).click();
@@ -110,6 +138,14 @@ test('[AC-UI-2] primary, dark and danger buttons and the switch colours', async 
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await page.getByRole('button', { name: 'Edit group' }).click();
+  await expect(page.getByRole('button', { name: 'Save changes' })).toHaveCSS(
+    'background-color',
+    PRIMARY,
+  );
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByRole('button', { name: `Edit ${key}.first-flag` }).click();
+  await expect(page.getByRole('dialog', { name: 'Edit flag' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save changes' })).toHaveCSS(
     'background-color',
     PRIMARY,
@@ -130,7 +166,7 @@ test('[AC-UI-2] primary, dark and danger buttons and the switch colours', async 
   );
   await page.getByRole('button', { name: 'Cancel' }).click();
 
-  await page.goto(`/groups/${empty.id}`);
+  await page.goto(`/groups/${data.emptyGroupId}`);
   await expect(page.getByRole('button', { name: 'Add flag' })).toHaveCSS(
     'background-color',
     PRIMARY,
@@ -191,7 +227,13 @@ test.describe('[AC-UI-3] buttons and search fields are pills or circles', () => 
         return { problems, inputs: inputs.length };
       });
       expect(bad.problems).toEqual([]);
-      const expected = { 'flags workspace': 2, 'audit log': 1 } as Record<string, number>;
+      const expected: Record<string, number> = {
+        'flags workspace': 2,
+        'audit log': 1,
+        'no groups': 1,
+        'group without flags': 2,
+        'page not found': 0,
+      };
       if (screen in expected) expect(bad.inputs).toBe(expected[screen]);
     });
   }
@@ -245,7 +287,7 @@ test.describe('[AC-UI-9] visible 2 px focus ring, white inside the audit header 
           color: focus.onInk ? WHITE : PRIMARY,
         });
       }
-      expect(seen.length).toBeGreaterThan(1);
+      expect(seen.length).toBeGreaterThan(screen === 'page not found' ? 0 : 1);
       if (screen === 'audit log') {
         await page.getByLabel('Filter by target key').focus();
         await expect(page.getByLabel('Filter by target key')).toHaveCSS('outline-color', WHITE);

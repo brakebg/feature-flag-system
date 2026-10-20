@@ -35,7 +35,7 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radius-pill);
-  background: #ffffff;
+  background: var(--color-surface);
   color: var(--color-primary);
 }
 .soft {
@@ -89,7 +89,18 @@
   border: 0;
   background: var(--color-ink);
   color: #ffffff;
-  font-weight: 600;
+}
+/* Sign in (design 1): text left, an apricot arrow circle right. */
+.dark.withIcon {
+  justify-content: space-between;
+  padding: 0 8px 0 24px;
+}
+.dark .icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--color-apricot);
+  color: var(--color-ink);
 }
 .primary:disabled,
 .dark:disabled {

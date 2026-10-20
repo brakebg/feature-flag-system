@@ -188,6 +188,7 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
       <TextField
         label={<OptionalLabel text="Description" />}
         multiline
+        rows={2}
         {...register('description')}
         error={formState.errors.description?.message}
       />

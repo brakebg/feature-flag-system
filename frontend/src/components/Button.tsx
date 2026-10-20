@@ -32,7 +32,7 @@ export function Button({
         styles.button,
         styles[variant],
         large ? styles.large : null,
-        icon ? styles.withIcon : null,
+        icon && !busy ? styles.withIcon : null,
         className,
       ]
         .filter(Boolean)
@@ -40,7 +40,8 @@ export function Button({
     >
       {busy && <Spinner />}
       {children}
-      {icon && (
+      {/* Design 6: while busy the spinner and text are centred and the icon is not shown. */}
+      {icon && !busy && (
         <span className={styles.icon} aria-hidden="true">
           {icon}
         </span>

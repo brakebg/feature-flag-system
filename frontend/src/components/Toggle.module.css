@@ -24,7 +24,7 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-pill);
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-knob);
   transition: transform 0.15s;
 }

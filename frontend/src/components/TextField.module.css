@@ -65,7 +65,7 @@ textarea.input {
   flex-grow: 1;
   align-self: stretch;
   min-width: 0;
-  min-height: 40px;
+  height: auto;
   padding: 0 8px;
   border: 0;
   border-radius: 0;

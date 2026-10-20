@@ -37,7 +37,7 @@
   height: 56px;
   border-radius: 16px;
   background: var(--color-danger);
-  color: #ffffff;
+  color: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +75,7 @@
   line-height: 1.5;
 }
 .small {
-  padding-top: 28px;
+  padding: 28px 28px 0;
   gap: 14px;
 }
 .small .square {
@@ -103,4 +103,7 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 26px 32px 30px;
+}
+.footer.smallFooter {
+  padding: 20px 28px 26px;
 }

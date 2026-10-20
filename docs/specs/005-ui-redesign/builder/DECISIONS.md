@@ -88,3 +88,23 @@ spec-005-ready build" (touches no `frontend/src/` file):
   All 12 screens passed twice in both chromium projects against the `spec-005-ready` build.
 - Screenshot baselines are re-recorded only with `--update-snapshots` limited to
   `screenshots.spec.ts` (TA-7). These snapshot files never change after this commit.
+
+## D-008 · 2026-10-20 · 4.4, testing.md 11.6 item 2, audit DC-1 · Baseline of screen 3 re-recorded
+
+Screen 3, new flag dialog: `3-new-flag-dialog-chromium-desktop-linux.png`. Reason: the prefixed
+Key field was about 63 px high instead of the 52 px of design 3 (DC-1); the fix changes the
+dialog height. Recorded with `--update-snapshots` limited to `screenshots.spec.ts -g "screen 3"`
+(TA-7), checked with `--repeat-each=2`. `docs/design-compare/` regenerated.
+
+## D-009 · 2026-10-20 · 4.3, 4.4, audit DC-5, SA-5 · Dark buttons 500, Sign in 600
+
+The spec gives no weight for the `dark` button. Design 5 draws `Load more` at 500 and design 1
+draws `Sign in` at 600. The shared `dark` variant is 500; the sign-in page sets 600 on its
+`Sign in` button, which now is the shared `Button` (SA-5). While busy the button centres the
+spinner and the text and hides the arrow circle (design 6, DC-2).
+
+## D-010 · 2026-10-20 · 3.6, audit SA-6 · Lock file
+
+Besides the new package, `package-lock.json` changes three entries from `devOptional` to `dev`.
+`npm install` with npm 11.19.1 (the version CI uses) on main's lock file gives the same lines, so
+they are npm's own result for the new tree, not a second package. Kept.

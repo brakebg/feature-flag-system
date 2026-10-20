@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { login } from '../../api/auth';
 import { getToken, isExpired, setToken } from '../../auth/token';
 import { FlagLogo } from '../../components/FlagLogo';
-import { Spinner } from '../../components/Spinner';
+import { Button } from '../../components/Button';
 import { loginErrorMessage } from './loginMessages';
 import styles from './LoginPage.module.css';
 
@@ -63,8 +63,8 @@ export function LoginPage() {
               <div role="status" className={styles.info}>
                 <span className={styles.infoDot} aria-hidden="true">
                   <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                    <rect x="6" y="2" width="2" height="2" rx="1" fill="#ffffff" />
-                    <rect x="6" y="5.5" width="2" height="6.5" rx="1" fill="#ffffff" />
+                    <rect x="6" y="2" width="2" height="2" rx="1" fill="currentColor" />
+                    <rect x="6" y="5.5" width="2" height="6.5" rx="1" fill="currentColor" />
                   </svg>
                 </span>
                 <span>Your session expired. Please sign in again.</span>
@@ -102,12 +102,13 @@ export function LoginPage() {
                 {error}
               </div>
             )}
-            <button type="submit" className={styles.submit} disabled={busy} aria-busy={busy}>
-              <span className={styles.submitText}>
-                {busy && <Spinner />}
-                Sign in
-              </span>
-              <span className={styles.submitIcon} aria-hidden="true">
+            <Button
+              type="submit"
+              variant="dark"
+              className={styles.submit}
+              disabled={busy}
+              busy={busy}
+              icon={
                 <svg
                   aria-hidden="true"
                   width="18"
@@ -121,8 +122,10 @@ export function LoginPage() {
                 >
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
-              </span>
-            </button>
+              }
+            >
+              Sign in
+            </Button>
           </form>
         </div>
       </div>

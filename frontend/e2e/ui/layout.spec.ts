@@ -27,6 +27,17 @@ async function sideways(page: Page) {
 
 const WIDTHS = [768, 800, 1024, 1440];
 
+/** Screens that show the Edit and Delete buttons of the screen data flags. */
+const ROW_BUTTONS = new Set<string>([
+  'flags workspace',
+  'new flag dialog',
+  'delete group confirmation',
+  'new group dialog',
+  'edit group dialog',
+  'edit flag dialog',
+  'delete flag dialog',
+]);
+
 test.describe('[AC-UI-7] 768 to 1440 px: no sideways scroll, row actions visible', () => {
   for (const width of WIDTHS) {
     for (const screen of SCREENS) {
@@ -64,6 +75,15 @@ test.describe('[AC-UI-7] 768 to 1440 px: no sideways scroll, row actions visible
           }
           return;
         }
+        if (screen === 'flags workspace' || screen === 'group without flags') {
+          const panel = await page.getByRole('complementary', { name: 'Groups' }).boundingBox();
+          const right = await page.getByRole('main').boundingBox();
+          expect(panel, 'Groups panel').not.toBeNull();
+          expect(right, 'main area').not.toBeNull();
+          if (panel && right && width <= 1024) {
+            expect(panel.y + panel.height).toBeLessThanOrEqual(right.y);
+          }
+        }
         if (screen === 'flags workspace') {
           const table = page.getByRole('table', { name: 'Flags' });
           for (const name of ['Key', 'Description', 'Status', 'Actions'])
@@ -73,20 +93,39 @@ test.describe('[AC-UI-7] 768 to 1440 px: no sideways scroll, row actions visible
             if (width < 860) await expect(head).toBeHidden();
             else await expect(head).toBeVisible();
           }
+          // Cells 3 and 4 of each row are Created by and Updated (TA-3); hidden cells leave the
+          // accessibility tree, so they are found by their role attribute.
+          const rows = table.locator('[role="row"]');
+          await expect(rows).toHaveCount(3);
+          for (const r of [1, 2]) {
+            const cells = rows.nth(r).locator('[role="cell"]');
+            await expect(cells).toHaveCount(6);
+            for (const i of [0, 1, 2, 5]) await expect(cells.nth(i)).toBeVisible();
+            for (const i of [3, 4]) {
+              if (width < 860) await expect(cells.nth(i)).toBeHidden();
+              else await expect(cells.nth(i)).toBeVisible();
+            }
+          }
+          const tableBox = await table.boundingBox();
+          const panel = await page.getByRole('complementary', { name: 'Groups' }).boundingBox();
+          expect(tableBox, 'flags table').not.toBeNull();
+          if (panel && tableBox && width <= 1024) {
+            expect(panel.y + panel.height).toBeLessThanOrEqual(tableBox.y);
+          }
+        }
+        // Every Edit and Delete row button lies inside the viewport, also behind a dialog.
+        if (ROW_BUTTONS.has(screen)) {
           for (const flag of ['first-flag', 'second-flag']) {
             for (const action of ['Edit', 'Delete']) {
               const box = await page
-                .getByRole('button', { name: `${action} ${key}.${flag}` })
+                .locator(`button[aria-label="${action} ${key}.${flag}"]`)
                 .boundingBox();
               expect(box, `${action} ${flag}`).not.toBeNull();
-              expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
-              expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+              if (box) {
+                expect(box.x).toBeGreaterThanOrEqual(0);
+                expect(box.x + box.width).toBeLessThanOrEqual(width);
+              }
             }
-          }
-          const panel = await page.getByRole('complementary', { name: 'Groups' }).boundingBox();
-          const tableBox = await table.boundingBox();
-          if (width <= 1024) {
-            expect((panel?.y ?? 0) + (panel?.height ?? 0)).toBeLessThanOrEqual(tableBox?.y ?? 0);
           }
         }
       });
@@ -94,15 +133,17 @@ test.describe('[AC-UI-7] 768 to 1440 px: no sideways scroll, row actions visible
   }
 });
 
-/** Long data: 100-character names, 50-character keys, long descriptions without spaces. */
+/** Long data of docs/project-acceptance-criteria.md ("UI redesign"). */
 async function longData(api: import('../support/api').AdminApi, base: string) {
   const key = (base + 'k'.repeat(50)).slice(0, 50);
-  const name = `Long ${'n'.repeat(95)}`;
-  const description = `Long-${'d'.repeat(300)} and some words after it`;
+  // The criteria's "long data": name 100 characters without spaces, descriptions 500 characters,
+  // flag key 50 characters without hyphens (full key 101 characters).
+  const name = `Long${'n'.repeat(96)}`;
+  const description = 'd'.repeat(500);
   const group = await api.createGroup(key, name, description);
   const flagKey = `f${'l'.repeat(49)}`;
-  const flag = await api.createFlag(group.id, flagKey, true, description);
-  return { group, key, name, description, flagKey, flag };
+  const flag = await api.createFlag(group.id, flagKey, true, `F${'e'.repeat(499)}`);
+  return { group, key, name, description, flagKey, flag, flagDescription: `F${'e'.repeat(499)}` };
 }
 
 /** Elements (and their block ancestors) showing one of the texts that are wider than their box. */
@@ -172,7 +213,11 @@ test.describe('[AC-UI-8] long data wraps, header text never meets a shape', () =
       await page.goto(`/groups/${d.group.id}`);
       await expect(page.getByRole('heading', { name: d.name })).toBeVisible();
       await expect(page.getByRole('switch')).toHaveCount(1);
-      const texts = [d.name, d.key, d.description, d.flagKey, d.flag.fullKey];
+      expect([d.name.length, d.key.length, d.description.length, d.flagKey.length]).toEqual([
+        100, 50, 500, 50,
+      ]);
+      expect([d.flag.fullKey.length, d.flagDescription.length]).toEqual([101, 500]);
+      const texts = [d.name, d.key, d.description, d.flagKey, d.flag.fullKey, d.flagDescription];
       expect(await clipped(page, texts)).toEqual([]);
       const group = await textMeetsShape(page);
       expect(group).toEqual({ found: true, shapes: group.shapes, out: [] });
@@ -191,6 +236,7 @@ test.describe('[AC-UI-8] long data wraps, header text never meets a shape', () =
       await page.goto('/audit');
       await page.getByLabel('Filter by target key').fill(d.key);
       await expect(page.getByRole('row').nth(1)).toBeVisible();
+      expect(await clipped(page, [d.flag.fullKey, d.key])).toEqual([]);
       const audit = await textMeetsShape(page);
       expect(audit).toEqual({ found: true, shapes: audit.shapes, out: [] });
       if (width > 1100) expect(audit.shapes).toBeGreaterThanOrEqual(3);
