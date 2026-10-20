@@ -19,7 +19,13 @@ export function AuditPage() {
 
   return (
     <main className={styles.main}>
-      <div className={styles.header}>
+      <div className={styles.hero}>
+        {/* Clips the shapes, so they never widen the card (AC-UI-8). */}
+        <span className={styles.shapes}>
+          <span className={`${styles.shape} ${styles.circle}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.half}`} aria-hidden="true" />
+          <span className={`${styles.shape} ${styles.square}`} aria-hidden="true" />
+        </span>
         <div className={styles.heading}>
           <h1 className={styles.title}>Audit log</h1>
           <p className={styles.subtitle}>Every change to groups and flags, newest first.</p>
@@ -28,6 +34,7 @@ export function AuditPage() {
           <label htmlFor="target-filter" className="visually-hidden">
             Filter by target key
           </label>
+          <SearchIcon />
           <input
             id="target-filter"
             type="search"
@@ -36,11 +43,15 @@ export function AuditPage() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <SearchIcon />
         </div>
       </div>
       <section className={styles.card}>
-        <div role="table" aria-label="Audit events" aria-busy={audit.isPending}>
+        <div
+          role="table"
+          aria-label="Audit events"
+          aria-busy={audit.isPending}
+          className={styles.table}
+        >
           <div role="rowgroup">
             <div role="row" className={`${styles.row} ${styles.head}`}>
               <div role="columnheader" className={styles.hideSm}>
@@ -54,18 +65,19 @@ export function AuditPage() {
               <div role="columnheader">Details</div>
             </div>
           </div>
-          <div role="rowgroup">
+          <div role="rowgroup" className={styles.body}>
             {events.map((e) => (
               <div role="row" key={e.id} className={styles.row}>
                 <div role="cell" className={`${styles.time} ${styles.hideSm}`}>
-                  <span>{localTime(e.occurredAt)}</span>
+                  <span className={styles.absolute}>{localTime(e.occurredAt)}</span>
                   <span className={styles.ago}>{relativeTime(e.occurredAt)}</span>
                 </div>
-                <div role="cell" className={styles.hideSm}>
+                <div role="cell" className={`${styles.soft} ${styles.hideSm}`}>
                   {e.actor}
                 </div>
                 <div role="cell">
                   <span className={`${styles.label} ${styles[actionTone(e.action)]}`}>
+                    <span className={styles.glyph} aria-hidden="true" />
                     {ACTION_LABELS[e.action] ?? e.action}
                   </span>
                 </div>
@@ -87,8 +99,7 @@ export function AuditPage() {
         {audit.hasNextPage && (
           <div className={styles.more}>
             <Button
-              medium
-              className={styles.moreButton}
+              variant="dark"
               busy={audit.isFetchingNextPage}
               disabled={audit.isFetchingNextPage}
               onClick={() => void audit.fetchNextPage()}

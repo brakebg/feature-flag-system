@@ -58,7 +58,7 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose} disabled={create.isPending}>
+          <Button large onClick={onClose} disabled={create.isPending}>
             Cancel
           </Button>
           <Button
@@ -95,15 +95,21 @@ export function NewFlagDialog({ group, onClose }: { group: GroupDetail; onClose:
         <span className={styles.counter}>{Array.from(description).length} / 500</span>
       </div>
       <div className={styles.initial}>
-        <div className={styles.initialText}>
-          <span id={stateId} className={styles.initialLabel}>
-            Initial state
-          </span>
-          <span className={styles.initialHelp}>
-            {enabled
-              ? 'On: services read true as soon as the flag is created.'
-              : 'Off: services read false until you turn it on.'}
-          </span>
+        <div className={styles.initialTextRow}>
+          <span
+            className={`${styles.stateShape} ${enabled ? styles.stateShapeOn : ''}`}
+            aria-hidden="true"
+          />
+          <div className={styles.initialText}>
+            <span id={stateId} className={styles.initialLabel}>
+              Initial state
+            </span>
+            <span className={styles.initialHelp}>
+              {enabled
+                ? 'On: services read true as soon as the flag is created.'
+                : 'Off: services read false until you turn it on.'}
+            </span>
+          </div>
         </div>
         <Controller
           control={control}
@@ -164,7 +170,7 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose} disabled={update.isPending}>
+          <Button large onClick={onClose} disabled={update.isPending}>
             Cancel
           </Button>
           <Button
@@ -182,6 +188,7 @@ export function EditFlagDialog({ flag, onClose }: { flag: Flag; onClose: () => v
       <TextField
         label={<OptionalLabel text="Description" />}
         multiline
+        rows={2}
         {...register('description')}
         error={formState.errors.description?.message}
       />

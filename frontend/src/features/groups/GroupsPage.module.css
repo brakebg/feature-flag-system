@@ -1,23 +1,26 @@
+/* Spec 005 4.6: groups panel (basis 280 px) and main area (basis 720 px) in one wrapping row;
+   below about 1068 px the panel moves above the main area. */
 .grid {
-  display: grid;
-  grid-template-columns: 288px minmax(0, 1fr);
   flex-grow: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 24px;
 }
 .placeholder {
+  flex: 999 1 720px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 28px 32px;
+  border-radius: var(--radius-hero);
+  background: var(--color-surface);
 }
-@media (max-width: 860px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
 .error {
   margin: 0;
   padding: 16px;
-  color: var(--color-danger);
+  color: var(--color-danger-text);
   font-size: 14px;
 }

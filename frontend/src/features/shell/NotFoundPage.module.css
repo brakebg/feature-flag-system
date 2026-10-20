@@ -1,18 +1,59 @@
+/* Spec 005 4.5, design 6: the 404 card with a ring and a quarter circle. */
 .page {
   min-height: 100vh;
+  padding: 24px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   background: var(--color-bg);
   color: var(--color-text);
 }
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 480px;
+  min-height: 240px;
+  padding: 32px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.ring {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 160px;
+  height: 160px;
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--color-border);
+}
+.quarter {
+  position: absolute;
+  right: 40px;
+  top: 40px;
+  width: 70px;
+  height: 70px;
+  border-radius: 0 70px 0 0;
+  background: var(--color-apricot);
+}
 .title {
+  position: relative;
   margin: 0;
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-size: 56px;
   font-weight: 600;
+  line-height: 1;
 }
 .link {
+  position: relative;
+  align-self: flex-start;
   color: var(--color-primary);
+  font-weight: 600;
+}
+.link:hover {
+  color: var(--color-primary-dark);
 }

@@ -1,0 +1,4 @@
+- main:
+    - heading "Page not found" [level=1]
+    - link "Back to flags":
+        - /url: /groups

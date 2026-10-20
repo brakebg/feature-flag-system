@@ -54,7 +54,10 @@ export function DeleteGroupDialog({
       {n > 0 && (
         <ul aria-label="Flags that will be deleted" className={styles.list}>
           {group.flags.map((f) => (
-            <li key={f.id}>{f.fullKey}</li>
+            <li key={f.id}>
+              <span className={styles.mark} aria-hidden="true" />
+              {f.fullKey}
+            </li>
           ))}
         </ul>
       )}

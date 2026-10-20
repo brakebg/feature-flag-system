@@ -1,24 +1,28 @@
+/* Spec 005 4.4 text field, design 3 and 6. */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 .label {
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 .input {
-  height: 44px;
-  box-sizing: border-box;
-  padding: 0 12px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  font: inherit;
-  color: var(--color-text);
+  height: 52px;
+  min-width: 0;
+  padding: 0 18px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-field);
   background: var(--color-surface);
+  font: inherit;
+  font-size: 15px;
+  color: var(--color-text);
 }
 textarea.input {
   height: auto;
-  padding: 10px 12px;
+  padding: 14px 16px;
   resize: vertical;
 }
 .input[aria-invalid='true'] {
@@ -30,38 +34,47 @@ textarea.input {
 }
 .mono {
   font-family: var(--font-mono);
-  font-size: 14px;
 }
 .prefixed {
   display: flex;
-  height: 44px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 4px 6px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-field);
+  background: var(--color-surface);
 }
 .prefixed.invalid {
   border-color: var(--color-danger);
 }
 .prefix {
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 60%;
+  padding: 7px 12px;
+  border-radius: var(--radius-chip);
   background: var(--color-bg);
-  border-right: 1px solid var(--color-border-strong);
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 .joined {
   flex-grow: 1;
+  align-self: stretch;
   min-width: 0;
-  height: 100%;
+  height: auto;
+  padding: 0 8px;
   border: 0;
   border-radius: 0;
+  background: transparent;
 }
 .error {
   font-size: 13px;
-  color: var(--color-danger);
+  color: var(--color-danger-text);
+  overflow-wrap: anywhere;
 }
 .help {
   font-size: 13px;

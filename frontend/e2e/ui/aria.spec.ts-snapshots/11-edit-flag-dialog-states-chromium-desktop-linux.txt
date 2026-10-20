@@ -1,0 +1,9 @@
+a "Flags" aria-current=page
+button "Ordersorders2/4" aria-current=true
+button "All" aria-pressed=true
+button "On" aria-pressed=false
+button "Off" aria-pressed=false
+switch "Toggle orders.guest-reorder" aria-checked=false
+switch "Toggle orders.new-checkout" aria-checked=true
+switch "Toggle orders.order-tracking-v2" aria-checked=true
+switch "Toggle orders.split-payments" aria-checked=false

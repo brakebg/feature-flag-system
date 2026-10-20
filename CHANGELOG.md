@@ -5,6 +5,16 @@ versions: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-20
+
+### Changed
+
+- Admin UI redesign "Redesign C · balanced colours" (spec 005): new colours and tokens, IBM Plex
+  Sans Condensed for page and dialog titles (`@fontsource/ibm-plex-sans-condensed` 5.3.0,
+  self-hosted), pill buttons and fields, a white pill top bar, a sign-in art panel, group pies,
+  header cards and row cards, dialogs, toasts and audit labels with decorative shapes, a 2 px
+  focus ring on every control. Routes, texts, roles, accessible names and behaviour are the same.
+
 ## [1.1.0] - 2026-10-10
 
 ### Changed

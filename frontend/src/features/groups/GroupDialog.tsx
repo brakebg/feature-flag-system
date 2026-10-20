@@ -72,7 +72,7 @@ export function NewGroupDialog({
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose} disabled={create.isPending}>
+          <Button large onClick={onClose} disabled={create.isPending}>
             Cancel
           </Button>
           <Button
@@ -147,7 +147,7 @@ export function EditGroupDialog({ group, onClose }: { group: GroupDetail; onClos
       onSubmit={() => void submit()}
       footer={
         <>
-          <Button onClick={onClose} disabled={update.isPending}>
+          <Button large onClick={onClose} disabled={update.isPending}>
             Cancel
           </Button>
           <Button

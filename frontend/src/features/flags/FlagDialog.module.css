@@ -1,33 +1,54 @@
+/* Spec 005 4.4, 4.5 and design 3: New flag dialog. */
 .descriptionField {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .optional {
   font-weight: 400;
   color: var(--color-text-muted);
 }
 .counter {
+  align-self: flex-end;
   font-size: 13px;
   color: var(--color-text-muted);
-  text-align: right;
 }
 .initial {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  border-radius: var(--radius-row);
+  background: var(--color-bg);
+}
+.initialTextRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+/* Decorative state shape: ring when off, filled primary circle when on. */
+.stateShape {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--color-ink);
+}
+.stateShapeOn {
+  border: 0;
+  background: var(--color-primary);
 }
 .initialText {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 .initialLabel {
-  font-weight: 500;
+  font-weight: 600;
 }
 .initialHelp {
   font-size: 13px;
@@ -40,7 +61,6 @@
 }
 .on {
   font-weight: 600;
-  color: var(--color-text);
 }
 .off {
   font-weight: 600;

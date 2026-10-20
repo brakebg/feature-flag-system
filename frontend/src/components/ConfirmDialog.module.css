@@ -1,37 +1,59 @@
+/* Spec 005 4.4 confirm dialog, designs 4 and 6. */
 .overlay {
   position: fixed;
   inset: 0;
   z-index: 20;
-  box-sizing: border-box;
   padding: 24px;
   background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+/* max-height + overflow: on a short window the dialog scrolls (AC-UI-8). */
 .dialog {
   width: 100%;
-  max-width: 500px;
+  max-width: 540px;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
   background: var(--color-surface);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-dialog);
+  box-shadow: var(--shadow-dialog);
   display: flex;
   flex-direction: column;
 }
 .top {
-  padding: 24px 24px 0;
+  padding: 32px 32px 0;
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 18px;
 }
-.icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--color-danger-soft);
+.cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.square {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--color-danger);
+  color: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.half {
+  width: 28px;
+  height: 56px;
+  border-radius: 0 56px 56px 0;
+  background: var(--color-apricot);
+}
+.dot {
+  align-self: flex-end;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
 }
 .heading {
   display: flex;
@@ -40,27 +62,48 @@
 }
 .title {
   margin: 0;
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: 32px;
   font-weight: 600;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 .text {
   margin: 0;
   color: var(--color-text-soft);
+  font-size: 15px;
   line-height: 1.5;
 }
+.small {
+  padding: 28px 28px 0;
+  gap: 14px;
+}
+.small .square {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+.small .half {
+  width: 24px;
+  height: 48px;
+  border-radius: 0 48px 48px 0;
+}
+.small .title {
+  font-size: 28px;
+}
 .body {
-  padding: 20px 24px 0;
+  padding: 22px 32px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface-muted);
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  gap: 10px;
+  padding: 26px 32px 30px;
+}
+.footer.smallFooter {
+  padding: 20px 28px 26px;
 }

@@ -7,7 +7,7 @@ such as "spec 9.1" still point here. Map of all sections: `docs/README.md`.
 
 The UI is a three-route SPA: a login page, a two-pane flags workspace (groups on the left, the selected group's flags on the right), and an audit log. Simple, clean, keyboard accessible, desktop-first but usable down to 768 px wide.
 
-**Visual reference.** The approved screen designs are committed in `docs/product/design/`, one HTML file and one PNG per screen: sign in, flags workspace, new flag dialog, delete group confirmation, audit log. The UI MUST match them in layout, colours, typography (IBM Plex Sans and IBM Plex Mono), spacing and component states. Where a design and this section disagree, this section decides behaviour and the design decides appearance. Roles, accessible names and ARIA states are behaviour: where the design markup differs from 8.7, 8.7 decides. Names and values shown in the designs are sample data only.
+**Visual reference.** The approved screen designs are committed in `docs/product/design/`, one HTML file and one PNG per screen: sign in, flags workspace, new flag dialog, delete group confirmation, audit log, and `6 · States`, a reference sheet of empty states, toasts, errors, busy and focus states, Edit flag, Delete flag and the 404 page (spec 005, "Redesign C · balanced colours"). The UI MUST match them in layout, colours, typography (IBM Plex Sans, IBM Plex Sans Condensed 600 for page and dialog titles, IBM Plex Mono), spacing, shapes and component states. Every shape is decorative (`aria-hidden="true"`, never focusable) and changes no behaviour. Where a design and this section disagree, this section decides behaviour and the design decides appearance. Roles, accessible names and ARIA states are behaviour: where the design markup differs from 8.7, 8.7 decides. Names and values shown in the designs are sample data only.
 
 ### 8.1 Routes
 
@@ -25,7 +25,7 @@ The 404 page has the heading `Page not found` and a link `Back to flags` that go
 
 ### 8.2 Login page
 
-- Centered card: app title "Feature Flags", Username, Password, "Sign in" button.
+- Form next to a decorative art panel (design 1; the panel is hidden below 860 px): app title "Feature Flags", Username, Password, "Sign in" button.
 - Button disabled and shows a spinner while the request runs; Enter submits.
 - Errors: 401 → "Invalid username or password"; 429 (returned by the edge, section 5.3; N from its `Retry-After` header) → "Too many attempts, try again in N seconds"; network → "Cannot reach server". `N seconds` is `1 second` when N is 1. If `Retry-After` is missing or not a whole number of seconds, the text is `Too many attempts, try again later`.
 - `?expired=1` shows an info banner "Your session expired. Please sign in again." (`role="status"`).
@@ -33,7 +33,7 @@ The 404 page has the heading `Page not found` and a link `Back to flags` that go
 
 ### 8.3 App shell
 
-Top bar: app name, nav links (Flags, Audit log), signed-in username, "Sign out" button. Content area below.
+Top bar (a floating white pill, designs 2 and 5): app name, nav links (Flags, Audit log), signed-in username, "Sign out" button. Content area below.
 
 `Sign out` removes the token and goes to `/login` (no banner). Going Back afterwards shows the login page again; no Admin API request is sent without a token.
 
@@ -94,7 +94,7 @@ Validation in dialogs: a field that fails validation gets `aria-invalid="true"` 
 
 ### 8.6 Audit log page
 
-Table: Time (local, absolute + relative), Actor, Action (coloured label), Target, Details. Filter input on target key, "Load more" pagination (50 per page).
+Table: Time (local, absolute + relative), Actor, Action (coloured label that starts with a decorative shape: circle created, ring updated, half circle toggled, square deleted), Target, Details. Filter input on target key, "Load more" pagination (50 per page).
 
 - The target filter applies while the user types and is sent as `targetKey`; the results replace the list. `Load more` is shown only while `page.number + 1 < page.totalPages` and appends the next 50 events.
 - Below 860 px the `Time` and `Actor` columns are hidden; `Action`, `Target` and `Details` stay visible.

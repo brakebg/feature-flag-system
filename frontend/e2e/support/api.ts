@@ -17,6 +17,8 @@ export interface AdminApi {
     description?: string,
   ): Promise<{ id: string; fullKey: string }>;
   toggle(flagId: string, enabled: boolean): Promise<void>;
+  patchFlag(flagId: string, body: object): Promise<void>;
+  deleteFlag(flagId: string): Promise<void>;
   patchGroup(groupId: string, body: object): Promise<void>;
   group(groupId: string): Promise<{
     id: string;
@@ -66,6 +68,14 @@ export async function adminApi(request: APIRequestContext, base = API_URL): Prom
           data: { enabled },
         }),
       );
+    },
+    async patchFlag(flagId, body) {
+      await ok(
+        await request.patch(`${base}/api/v1/admin/flags/${flagId}`, { headers, data: body }),
+      );
+    },
+    async deleteFlag(flagId) {
+      await ok(await request.delete(`${base}/api/v1/admin/flags/${flagId}`, { headers }));
     },
     async patchGroup(groupId, body) {
       await ok(

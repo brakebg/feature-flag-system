@@ -1,0 +1,18 @@
+- main:
+    - heading "Empty group" [level=1]
+    - text: /e2e-[a-z0-9-]+/
+    - button "Copy group key"
+    - paragraph: No flags yet · 0 of 0 flags on
+    - paragraph: /Created by admin · Updated by admin, (?:just now|\d+ (?:second|minute|hour|day|month|year)s? ago)/
+    - button "Edit group"
+    - button "Delete group"
+    - region "Flags":
+        - text: Search flags
+        - searchbox "Search flags"
+        - group "Filter by status":
+            - button "All" [pressed]
+            - button "On"
+            - button "Off"
+        - button "New flag"
+        - paragraph: No flags in this group
+        - button "Add flag"
