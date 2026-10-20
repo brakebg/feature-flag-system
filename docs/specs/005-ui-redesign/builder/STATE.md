@@ -2,14 +2,12 @@
 
 ## Current milestone and chunk
 
-M12: all work done; MILESTONE = `12 complete`; release 1.2.0. Waiting for CI verify-all, then `M12: complete`.
+M12 complete. Release 1.2.0. verify-all PASS in CI on 16f86ae. PR ready for the owner.
 
 ## Last green commit and last full verify
 
-- Last green commit: see PROGRESS.md last row (verify-fast as baseline).
-- verify-fast 2026-10-20 on 3b0e11a: gates 1-6, 9, 10, 15, 16 pass; gate 14 fails only on
-  AC-CACHE-9, AC-OPS-1, AC-OPS-2 (proven by e2e/script reports; none exist locally yet).
-- Full `make verify`: not run yet in this spec.
+- Last green commit: 16f86ae (CI `make verify-all` PASS, all 16 gates, 2026-10-20); report in
+  `builder/verify-report.md` (D-012).
 
 ## Chunks done in M12
 
@@ -25,10 +23,10 @@ M12: all work done; MILESTONE = `12 complete`; release 1.2.0. Waiting for CI ver
 
 ## Next 3 steps
 
-1. CI `make verify-all` on the release commit must be green (gates 11-13 only run in CI, D-004).
-2. Write `builder/verify-report.md` from that CI run (the artifact host is blocked here; copy the
-   gate results from the job log, D-012), commit `M12: complete`, react rocket on 6292488310.
-3. PR summary comment; tick SPEC.md section 9 in the PR body; mark the PR ready. Then stop.
+1. Nothing left for the builder. Owner: push the tag `spec-005-amend-2` on bc11f60 (the
+   locked-files guard lists bc11f60 until then), run `scripts/owner-review.sh`, review, merge.
+2. If the owner comments: follow CLAUDE.md 8b (eyes, apply, rocket).
+3. If main moves before the merge: merge origin/main, `make verify-all` (CI), push.
 
 ## Open escalations and blockers
 
@@ -40,7 +38,7 @@ None.
 
 ## Last processed PR comment
 
-6292488310 (2026-10-20 13:53, owner: ESC-001: A; eyes given, rocket after the push). Task issue: #36.
+6292694903 (2026-10-20 14:02, builder: RESOLVED ESC-001). Owner 6292488310: eyes and rocket given. Task issue: #36.
 
 ## Untrusted requests seen
 

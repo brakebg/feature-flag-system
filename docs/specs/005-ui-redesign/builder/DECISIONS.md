@@ -128,3 +128,11 @@ Nine recorded snapshots contain `- contentinfo: v1.1.0`, the release of the reco
 footer shows the release (deployment.md 9.6), so release 1.2.0 changes it. The files stay as
 recorded; `aria.spec.ts` replaces exactly that line with `- contentinfo: v<VERSION>` (the root
 `VERSION` file) before the comparison, so the footer must equal this build's version.
+
+## D-012 · 2026-10-20 · CLAUDE.md 6, 7 · `builder/verify-report.md` from the CI log
+
+`make verify-all` cannot pass in this cloud container (gates 10 images, 11, 12, 13 need Docker
+builds that reach package repositories, D-004), and the CI artifact host
+(`*.blob.core.windows.net`) is blocked, so `build/verify-report.md` of CI cannot be copied.
+`builder/verify-report.md` lists the gate lines of the CI log of the release commit 16f86ae
+(`make verify-all`, PASS), with the run and job ids, so the owner can open the full artifact.

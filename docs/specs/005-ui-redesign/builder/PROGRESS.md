@@ -17,4 +17,5 @@ The SHA of a row is filled in by the next commit (a commit cannot contain its ow
 | 2026-10-20 | 5a829fa | M12 | ARIA snapshots of the other screens recorded from spec-005-ready, strict compare (D-007) | verify-fast: as baseline; aria.spec 48/48 on the spec-005-ready UI |
 | 2026-10-20 | bd38324 | M12 | audit fixes: 11 screens in the tests, exact long data, fonts loaded, cells below 860 px, null boxes, every switch; Key field 52 px, busy Sign in, Button dark, tokens for white fills; baseline 3 (D-008) | verify-fast: as baseline; local e2e chromium-desktop + narrow repeat-each 2 all green; planted bugs TA-2, TA-3 caught |
 | 2026-10-20 | bc11f60 | M12 | owner amendment: ESC-001 answered A | (owner) |
-| 2026-10-20 | (this) | M12 | release 1.2.0 (ESC-001 A), footer version in the ARIA compare (D-011), MILESTONE = 12 complete | verify-fast see below; local e2e 562/566 in one run, the 4 fails were reused-stack audit counts, 36/36 on a fresh stack |
+| 2026-10-20 | 16f86ae | M12 | release 1.2.0 (ESC-001 A), footer version in the ARIA compare (D-011), MILESTONE = 12 complete | verify-fast see below; local e2e 562/566 in one run, the 4 fails were reused-stack audit counts, 36/36 on a fresh stack |
+| 2026-10-20 | (this) | M12 | M12: complete (verify-report from CI) | verify-all PASS in CI on 16f86ae, all 16 gates |
