@@ -8,6 +8,19 @@ Approved screen designs. Spec decides behaviour; the design decides appearance
 | `N · <screen>.html` + `N · <screen>.png` (5 screens and the reference sheet `6 · States`, which shows empty states, toasts, errors, busy and focus states, Edit flag, Delete flag and the 404 page) | **Current design: spec 005 "Redesign C · balanced colours"**. Plain HTML and CSS: read exact values (colours, sizes, fonts, texts) from the `.html`. The `.png` shows how it looks (1440 px wide at 2×) |
 | `Feature Flags Admin UI.html` | Original bundle of the first version, in the old look. Kept for history. Do not use it |
 
+## The screens
+
+"The screens" in the acceptance criteria (for example AC-UI-1, AC-UI-3, AC-UI-6) are exactly
+these five. `6 · States` is a reference sheet, not a screen.
+
+| Design file | Screen |
+| --- | --- |
+| `1 · Sign in` | `/login?expired=1` |
+| `2 · Flags workspace` | `/groups/<id>`, group selected |
+| `3 · New flag dialog` | New flag modal; New group, Edit group and Edit flag use the same styles |
+| `4 · Delete group confirmation` | Delete group confirm dialog |
+| `5 · Audit log` | `/audit` |
+
 The `.html` files use the token names and values of spec 005 section 4
 (`docs/specs/005-ui-redesign/SPEC.md`). `frontend/src/styles/tokens.css` matches them from
 milestone M12 (spec 005).
