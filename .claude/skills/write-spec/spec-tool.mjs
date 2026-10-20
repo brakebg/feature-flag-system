@@ -14,6 +14,7 @@
 //        Warns on an ID with no test.
 // check  Validates a spec folder on its branch against the template, the criteria file and the
 //        scope rules of docs/process/spec-flow.md (compared with the merge base of --base).
+//        New and changed criteria lines may name docs/product/ sections only (issue #58).
 //        Exit 0 = pass. Exit 1 = problems (listed). Exit 2 = only open owner questions left
 //        (pass --allow-open for a draft). Exit 3 = usage error (all subcommands).
 // list   The table of all specs, read from their spec.json files (docs/specs/README.md has no
@@ -89,6 +90,47 @@ export function idsIn(text) {
 
 /** ERR-<METHOD>-<path>-<status> IDs in a text (gate 14 pattern). */
 const errsIn = (text) => uniq((text.match(ID_RE) ?? []).filter((x) => x.startsWith('ERR-')));
+
+// A criterion stands alone: it may name sections of docs/product/ only (the tester gets them;
+// rule at the top of the criteria file, issue #57).
+const PRODUCT_FILE = /^docs\/product\/[\w./-]*\w$/;
+/** A number with a unit after it is a value, not a section: "1.5 s", "99.5 %". */
+const UNIT_AFTER = /^\s?(?:%|‰|×|x\b|s\b|ms\b|min\b|h\b|px\b|r?em\b|[kKMG]i?B\b|B\b|seconds?\b|minutes?\b|hours?\b|days?\b|times\b)/;
+
+/** Section numbers of a "##"..."######" heading: "### 8.4 Flags workspace" → "8.4". */
+export function headingNumbers(markdown) {
+  return new Set([...markdown.matchAll(/^#{1,6}\s+(\d+(?:\.\d+)*)\.?\s/gm)].map((m) => m[1]));
+}
+
+/**
+ * Problems with the sections a criterion text names. A section is a number after "section(s)"
+ * or "§", or a bare "N.N" that is not a value with a unit. It passes only right after a
+ * `docs/product/<file>` path and when that file has the heading. Code spans are values, except a
+ * span that is a docs/product/ path. `sectionsOf(file)` returns the file's heading numbers, or
+ * null when the file does not exist.
+ */
+export function foreignSections(text, sectionsOf) {
+  const t = text.replace(/`([^`]*)`/g, (_, c) => (PRODUCT_FILE.test(c.trim()) ? c.trim() : ' '));
+  const out = [];
+  for (const m of t.matchAll(/(?<![\w./])\d+(?:\.\d+)*(?:\.x)?(?![\w]|\.\w)/g)) {
+    const num = m[0];
+    // The words right before the number: an optional docs/product/ file, an optional
+    // "section(s)" or "§", and the numbers before it in the same list ("8.4 and ").
+    const lead = /(docs\/product\/[\w./-]*\w\s+)?((?:\bsections?|§)\s*)?((?:\d+(?:\.\d+)*\s*(?:,|\band\b|\bor\b|\bto\b|–)\s*)*)$/i.exec(t.slice(0, m.index));
+    const file = lead[1]?.trim();
+    const keyword = Boolean(lead[2]);
+    const bare = /^[1-9]\d?\.\d{1,2}$/.test(num) && !UNIT_AFTER.test(t.slice(m.index + num.length));
+    if (!keyword && !bare && !file) continue;
+    if (!file) {
+      out.push(`names section ${num} outside docs/product/; put the value into the line, or name the docs/product/ file before the number (a value that only looks like a section number goes in backticks)`);
+      continue;
+    }
+    const have = sectionsOf(file);
+    if (!have) out.push(`names ${file}, which is not a markdown file of docs/product/`);
+    else if (!have.has(num.replace(/\.x$/, ''))) out.push(`names section ${num} of ${file}, which has no such heading`);
+  }
+  return out;
+}
 
 /** Text without fenced code blocks and inline code spans. */
 function prose(text) {
@@ -367,6 +409,11 @@ function cmdCheck(args) {
     }
   }
   for (const id of was.keys()) if (!seen.has(id)) err(`${REGISTRY}: ${id} was removed; retire it instead ("· retired by spec ${meta.id}")`);
+  // 3a. A new or changed line stands alone: it names docs/product/ sections only. Old lines are not checked.
+  const sectionsOf = (f) => (f.endsWith('.md') && exists(f) ? headingNumbers(read(f)) : null);
+  for (const a of now.acs.filter((x) => newIds.includes(x.id) || changedIds.includes(x.id))) {
+    for (const p of foreignSections(a.text, sectionsOf)) err(`${REGISTRY}:${a.n}: ${a.id} ${p}`);
+  }
 
   // 4. SPEC.md: header and sections
   let sec = {};
@@ -505,7 +552,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   else if (cmd === 'check') cmdCheck(rest);
   else if (cmd === 'list') cmdList();
   else {
-    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 20).join('\n'));
+    console.error(readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 21).join('\n'));
     process.exit(USAGE);
   }
 }

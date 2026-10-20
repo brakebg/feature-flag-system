@@ -22,8 +22,9 @@ The whole flow is in `docs/process/spec-flow.md`. In short: the owner runs `/wri
 (`.claude/skills/write-spec/`). It creates the branch `feature/<name>` from `main`, takes the next
 free spec and milestone numbers, and commits the spec folder, the new and changed criteria
 lines, and the changes to `docs/product/` and `docs/architecture/`. When every section 10 item is
-decided and `spec.json` says `"status": "ready"`, the owner tags that commit `spec-NNN-ready`. The
-builder continues on the same branch.
+decided and `spec.json` says `"status": "ready"`, the owner runs `/handover-check`; when it says
+READY, the owner tags the checked commit `spec-NNN-ready`. The builder continues on the same
+branch.
 
 Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
 `test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs
@@ -83,8 +84,8 @@ Builder files are created by the session in its first commit, only inside `build
    (`scripts/lib/active-spec.mjs`). On `main` no spec is active and the highest `builder/MILESTONE`
    of all specs applies. A spec's criteria count on a branch when it is the active spec or
    when its `builder/MILESTONE` file exists there (its work is merged).
-7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/project-acceptance-criteria.md`)
-   can change in parallel specs. Before a session marks its PR ready it merges `origin/main`
+7. Shared files (code, `VERSION`, `CHANGELOG.md`, `backend/openapi.json`, `docs/project-acceptance-criteria.md`,
+   the API contract `docs/architecture/openapi.json`) can change in parallel specs. Before a session marks its PR ready it merges `origin/main`
    into its branch, resolves conflicts and runs `make verify-all` again.
 8. Parallel sessions need separate machines (cloud sessions are). On one machine the gate
    stacks use fixed ports and would collide.

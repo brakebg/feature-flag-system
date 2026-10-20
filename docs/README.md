@@ -23,7 +23,7 @@ change them.
 | 3 Architecture | `docs/architecture/overview.md` |
 | 4 Data model | `docs/architecture/data-model.md` |
 | 5 Authentication | `docs/architecture/security.md` |
-| 6 Admin API, 7 Evaluation API | `docs/architecture/api.md` |
+| 6 Admin API, 7 Evaluation API | `docs/architecture/api.md`; the contract: `docs/architecture/openapi.json` (owner, gate 8) |
 | 8–8.6 Frontend UI (routes, screens, rules) | `docs/product/ui.md` (designs: `docs/product/design/`) |
 | 8.7 UI code structure | `docs/architecture/frontend.md` |
 | 9–9.4 Errors, limits, observability, configuration | `docs/architecture/non-functional.md` |

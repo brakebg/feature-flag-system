@@ -15,19 +15,32 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
 1. **Spec (owner).** `/write-spec` creates `feature/<name>` from `main` and commits the spec:
    `docs/specs/NNN-name/` (`spec.json`, `SPEC.md`, `test-changes.md`, `design/` if any), the new
    and changed lines in `docs/project-acceptance-criteria.md`, and the changes to
-   `docs/product/` and `docs/architecture/` that describe the system after this spec. Every
+   `docs/product/` and `docs/architecture/` that describe the system after this spec. A spec
+   that changes the API also updates the one project contract `docs/architecture/openapi.json`
+   (with `api.md`); specs never have their own copy. The builder builds to it (gate 8). Every
    section 10 item is decided; `spec.json` says `"status": "ready"`.
-2. **Tag (owner).** The owner tags the commit that sets `ready`: `spec-NNN-ready`. Everything
-   before the tag is the approved spec; everything after it is the builder's.
-3. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
-   Input is only a snapshot the owner copies to `input/spec-NNN/`: the criteria file at the tag,
-   `backend/openapi.json` and `docs/product/design/`. The tester never sees this repo; the
-   builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
-4. **Handover (owner).** `/handover-check <issue or folder>` checks the tagged spec. Then the
-   owner starts a cloud session with the kickoff prompt (`docs/process/builder-prompt.md`
-   section 5).
-5. **Build (builder).** The builder checks out `feature/<name>`, confirms `spec-NNN-ready` is in
-   it, builds in green chunks, and opens one draft PR `feature/<name>` → `main`.
+2. **Handover check (owner).** `/handover-check <issue or folder>` checks the head of
+   `feature/<name>` before any tag: spec files, no open decision, the spec check, criteria, CI
+   and the gate baseline. READY prints the tag commands for exactly the commit it checked. NOT
+   READY: fix the spec in a new commit and run the check again. No tag exists yet, so nothing
+   has to move.
+3. **Tag (owner).** The owner tags the commit the check passed: `spec-NNN-ready`. Everything
+   before the tag is the approved spec; everything after it is the builder's. A tag is set only
+   after a READY check, so it always marks a checked spec.
+4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
+   Input is only a snapshot the acceptance repo's intake workflow copies to `input/spec-NNN/`:
+   the criteria file, the contract `docs/architecture/openapi.json` and all of `docs/product/`
+   (`ui.md`, `overview.md`, `design/`), all at the tag. Each `spec-NNN-amend-<k>` refreshes all
+   three. Criteria may name `docs/product/` sections, so the tester needs them; product docs are
+   owner-written and hold no implementation detail. The rest of `docs/architecture/` stays out.
+   Never `backend/openapi.json`: the builder's code generates it. Each snapshot opens an
+   issue "Write tests for spec NNN" in the acceptance repo; the owner starts the tester session.
+   The acceptance repo pulls from this public repo; this repo never pushes to it and holds no
+   token for it. The tester never sees this repo; the builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
+5. **Build (builder).** The owner starts a cloud session with the kickoff prompt
+   (`docs/process/builder-prompt.md` section 5). The builder checks out `feature/<name>`,
+   confirms `spec-NNN-ready` is in it, builds in green chunks, and opens one draft PR
+   `feature/<name>` → `main`.
 6. **Acceptance (owner).** `scripts/owner-review.sh docs/specs/NNN-name` runs the acceptance
    branch against the feature branch. It refuses to run while a criterion has no test at its
    current version.
@@ -40,7 +53,8 @@ Only the owner changes the spec, and only like this:
 
 1. The builder raises an escalation (`docs/process/escalation.md`).
 2. The owner answers on the PR (`ESC-NNN: …`) and, when the answer changes the spec, makes one
-   commit on `feature/<name>`: the spec change, criteria lines with their version raised,
+   commit on `feature/<name>`: the spec change, criteria lines with their version raised, the
+   contract change in `docs/architecture/openapi.json` if the API changes,
    `builder/escalations/ESC-NNN.md` set to `Status: resolved` with the answer. Commit message
    `ESC-NNN: <answer>`.
 3. The owner tags exactly that commit: `spec-NNN-amend-<k>` (k = 1, 2, …).

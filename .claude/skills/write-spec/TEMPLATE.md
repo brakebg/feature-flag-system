@@ -40,7 +40,8 @@ Write in plain, short English (`CLAUDE.md` section 10): the owner is not a nativ
 ```
 
 The only place for the spec's facts. `status`: `draft` while section 10 has an open item,
-`ready` when every item is decided (the owner then tags that commit `spec-<NNN>-ready`), `done`
+`ready` when every item is decided (after `/handover-check` says READY, the owner tags that
+commit `spec-<NNN>-ready`), `done`
 after the merge. `release` is filled at the merge (the next free minor version). Optional
 `"scope": ["frontend/**", ...]`: the paths the build is expected to change;
 `scripts/owner-review.sh` warns on any change outside them.
@@ -70,7 +71,7 @@ this spec does not change still applies.
 
 <!-- One row per changed file; check fails when a file changes on the branch but is not named. -->
 
-Not changed: <for example gate 4 banned dependencies, `backend/openapi.json`, tech stack>.
+Not changed: <for example gate 4 banned dependencies, the API contract `docs/architecture/openapi.json`, tech stack>.
 
 The builder never edits these files, the criteria or this spec. A spec change during the build
 is an owner amendment (`docs/process/spec-flow.md` section 2).
@@ -87,7 +88,7 @@ Not in scope: <list>.
    version, with the changes of section 5.
 2. <HTTP behaviour for clients: status codes, headers, problem details, JSON — or say what changes.>
 3. Security rules of spec 001 section 5.
-4. <`backend/openapi.json` unchanged — or name the exact change.>
+4. <The API contract `docs/architecture/openapi.json` unchanged — or name the exact change.>
 5. All 16 gates, thresholds, banned lists and test-integrity rules unchanged.
 6. <Existing Flyway migrations unchanged (same checksums).>
 
@@ -231,6 +232,9 @@ Line format (gates 14 to 16 parse it; `docs/process/traceability.md`):
   text, `spec <its creator>`, `· changed by spec <NNN>`, `due M<M>`.
 - **Retired criterion:** keep the line, end it with `· retired by spec <NNN>` instead of the due
   part. Never delete a line.
+- **Stands alone:** a new or changed line names sections of `docs/product/` only, with the file
+  (`` `docs/product/ui.md` 8.4 ``); values from architecture or a SPEC.md go into the line itself
+  (rule at the top of the criteria file). `check` fails a line that names another section.
 - Never touch another spec's line for any other reason. `check` compares the file with the
   branch base.
 
@@ -242,3 +246,8 @@ Change the files that describe what this spec changes, so that on the branch the
 system after the spec (product behaviour in `docs/product/`, how it is built in
 `docs/architecture/`). Keep their section numbers. Name every changed file in SPEC.md section 1;
 `check` fails on a changed file that section 1 does not name.
+
+API change: edit the one project contract `docs/architecture/openapi.json` together with
+`docs/architecture/api.md`, so that it describes the whole API after this spec. Keep the format
+of the file (springdoc style, sorted keys, 2-space indent). Gate 8 checks the build against it
+and `node scripts/check-openapi-contract.mjs --validate` checks it is valid OpenAPI 3.
