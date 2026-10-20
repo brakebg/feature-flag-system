@@ -26,9 +26,11 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
    before the tag is the approved spec; everything after it is the builder's. A tag is set only
    after a READY check, so it always marks a checked spec.
 4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
-   Input is only a snapshot the owner copies to `input/spec-NNN/`: the criteria file at the tag,
-   `backend/openapi.json` and `docs/product/design/`. The tester never sees this repo; the
-   builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
+   Input is only a snapshot the acceptance repo's intake workflow copies to `input/spec-NNN/`:
+   the criteria file, `backend/openapi.json` and `docs/product/design/`, all at the tag. Each
+   `spec-NNN-amend-<k>` refreshes it. The acceptance repo pulls from this public repo; this repo
+   never pushes to it and holds no token for it. The tester never sees this repo; the builder
+   never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
 5. **Build (builder).** The owner starts a cloud session with the kickoff prompt
    (`docs/process/builder-prompt.md` section 5). The builder checks out `feature/<name>`,
    confirms `spec-NNN-ready` is in it, builds in green chunks, and opens one draft PR
