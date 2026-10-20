@@ -22,8 +22,8 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 
 ## Next 3 steps
 
-1. Release: merge origin/main, read VERSION there, next free minor (VERSION, CHANGELOG.md,
-   frontend/package.json version if it follows VERSION); MILESTONE = `12 complete`.
+1. Release after ESC-001: origin/main merged at 15497d2 (VERSION 1.1.0 there) -> 1.2.0 in VERSION,
+   frontend/package.json, CHANGELOG ([Unreleased] entry ready), and pom.xml only if ESC-001 = A.
 2. Milestone audit (spec 8): spec-auditor, test-auditor, design-checker (six designs, include
    `6 · States`), final-reviewer (frontend). Fix BLOCKER and CRITICAL.
 3. `make verify-all` (CI is authoritative for gates 11-13, D-004); copy the report; `M12: complete`;
@@ -31,7 +31,9 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 
 ## Open escalations and blockers
 
-None.
+- ESC-001 open: release 1.2.0 needs `<version>` in `backend/pom.xml` (gate 15) vs spec 005 3.4
+  "No backend file changes". Recommended A (change that one line). Blocks the version bump and
+  `M12: complete`.
 
 ## wip/ branches
 
