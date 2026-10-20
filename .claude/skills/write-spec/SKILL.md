@@ -149,8 +149,8 @@ changed since the branch left `main`). The last line lists the new, changed and 
 4. When the owner answers a question: mark it `~~question~~ **Decided: …**`, apply the answer in
    the sections it touches, re-run step 7, push.
 5. When no item is Open and `check` exits 0: set `"status": "ready"`, commit
-   `Spec <NNN>: ready`, push. Tell the owner the exact commands to tag it, and run them only when
-   the owner says so in this session:
-   `git tag spec-<NNN>-ready <commit> && git push origin spec-<NNN>-ready`.
+   `Spec <NNN>: ready`, push. Do not tag: the owner runs `/handover-check` on this commit
+   first, and tags only the commit it says READY for (`docs/process/spec-flow.md` section 1,
+   steps 2 and 3).
 6. Never tag on your own, never move a tag, never merge. Next owner steps:
-   `docs/process/spec-flow.md` section 1 (acceptance tests, `/handover-check`, kickoff).
+   `docs/process/spec-flow.md` section 1 (`/handover-check`, tag, acceptance tests, kickoff).

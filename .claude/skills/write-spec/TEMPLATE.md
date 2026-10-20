@@ -40,7 +40,8 @@ Write in plain, short English (`CLAUDE.md` section 10): the owner is not a nativ
 ```
 
 The only place for the spec's facts. `status`: `draft` while section 10 has an open item,
-`ready` when every item is decided (the owner then tags that commit `spec-<NNN>-ready`), `done`
+`ready` when every item is decided (after `/handover-check` says READY, the owner tags that
+commit `spec-<NNN>-ready`), `done`
 after the merge. `release` is filled at the merge (the next free minor version). Optional
 `"scope": ["frontend/**", ...]`: the paths the build is expected to change;
 `scripts/owner-review.sh` warns on any change outside them.

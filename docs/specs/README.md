@@ -22,8 +22,9 @@ The whole flow is in `docs/process/spec-flow.md`. In short: the owner runs `/wri
 (`.claude/skills/write-spec/`). It creates the branch `feature/<name>` from `main`, takes the next
 free spec and milestone numbers, and commits the spec folder, the new and changed criteria
 lines, and the changes to `docs/product/` and `docs/architecture/`. When every section 10 item is
-decided and `spec.json` says `"status": "ready"`, the owner tags that commit `spec-NNN-ready`. The
-builder continues on the same branch.
+decided and `spec.json` says `"status": "ready"`, the owner runs `/handover-check`; when it says
+READY, the owner tags the checked commit `spec-NNN-ready`. The builder continues on the same
+branch.
 
 Every change spec has the sections "Test changes" (the AC IDs whose tests may change, in
 `test-changes.md`; all other tests only by the plumbing clause) and "Acceptance delta" (AC IDs

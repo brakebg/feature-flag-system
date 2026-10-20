@@ -17,17 +17,22 @@ feature/<name>  ○──○──○──[spec-NNN-ready]──●──●─
    and changed lines in `docs/project-acceptance-criteria.md`, and the changes to
    `docs/product/` and `docs/architecture/` that describe the system after this spec. Every
    section 10 item is decided; `spec.json` says `"status": "ready"`.
-2. **Tag (owner).** The owner tags the commit that sets `ready`: `spec-NNN-ready`. Everything
-   before the tag is the approved spec; everything after it is the builder's.
-3. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
+2. **Handover check (owner).** `/handover-check <issue or folder>` checks the head of
+   `feature/<name>` before any tag: spec files, no open decision, the spec check, criteria, CI
+   and the gate baseline. READY prints the tag commands for exactly the commit it checked. NOT
+   READY: fix the spec in a new commit and run the check again. No tag exists yet, so nothing
+   has to move.
+3. **Tag (owner).** The owner tags the commit the check passed: `spec-NNN-ready`. Everything
+   before the tag is the approved spec; everything after it is the builder's. A tag is set only
+   after a READY check, so it always marks a checked spec.
+4. **Tests (tester session, in parallel).** In the private acceptance repo, branch `spec-NNN`.
    Input is only a snapshot the owner copies to `input/spec-NNN/`: the criteria file at the tag,
    `backend/openapi.json` and `docs/product/design/`. The tester never sees this repo; the
    builder never sees the acceptance repo. Tests name criterion and version: `[AC-UI-1 v1]`.
-4. **Handover (owner).** `/handover-check <issue or folder>` checks the tagged spec. Then the
-   owner starts a cloud session with the kickoff prompt (`docs/process/builder-prompt.md`
-   section 5).
-5. **Build (builder).** The builder checks out `feature/<name>`, confirms `spec-NNN-ready` is in
-   it, builds in green chunks, and opens one draft PR `feature/<name>` → `main`.
+5. **Build (builder).** The owner starts a cloud session with the kickoff prompt
+   (`docs/process/builder-prompt.md` section 5). The builder checks out `feature/<name>`,
+   confirms `spec-NNN-ready` is in it, builds in green chunks, and opens one draft PR
+   `feature/<name>` → `main`.
 6. **Acceptance (owner).** `scripts/owner-review.sh docs/specs/NNN-name` runs the acceptance
    branch against the feature branch. It refuses to run while a criterion has no test at its
    current version.
