@@ -43,9 +43,17 @@ async function expectAria(locator: Locator, name: string, info: TestInfo) {
     await expect(locator).toMatchAriaSnapshot({ name });
     return;
   }
-  await expect(locator).toMatchAriaSnapshot(
-    `- /children: deep-equal\n${readFileSync(file, 'utf8')}`,
+  // The footer shows the release (deployment.md 9.6). The snapshots were recorded from the 1.1.0
+  // build; the footer must show this build's VERSION exactly (D-011).
+  const version = readFileSync(
+    path.join(info.project.testDir, '..', '..', 'VERSION'),
+    'utf8',
+  ).trim();
+  const template = readFileSync(file, 'utf8').replace(
+    /^- contentinfo: v1\.1\.0$/m,
+    `- contentinfo: v${version}`,
   );
+  await expect(locator).toMatchAriaSnapshot(`- /children: deep-equal\n${template}`);
 }
 
 /**

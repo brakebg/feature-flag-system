@@ -2,7 +2,7 @@
 
 ## Current milestone and chunk
 
-M12 running. Phases A and B done (tokens, components, all five screens, tests AC-UI-1 to 6 and 9). Next: phase C.
+M12: all work done; MILESTONE = `12 complete`; release 1.2.0. Waiting for CI verify-all, then `M12: complete`.
 
 ## Last green commit and last full verify
 
@@ -20,21 +20,19 @@ M12 running. Phases A and B done (tokens, components, all five screens, tests AC
 5. Layout and long data: tests AC-UI-7, AC-UI-8; header shapes clipped in a layer (39b0c99).
 6. Screenshot baselines re-recorded (D-005); design-compare regenerated (D-006).
 7. origin/main merged (15497d2); CHANGELOG entry; ESC-001 raised.
-8. Milestone audit (reviews/m12-audit.md): 1 BLOCKER, 4 CRITICAL, 5 MAJOR fixed (5a829fa and the next commit).
+8. Milestone audit (reviews/m12-audit.md): 1 BLOCKER, 4 CRITICAL, 5 MAJOR fixed (5a829fa, bd38324).
+9. ESC-001 answered A (bc11f60); release 1.2.0; footer version in the ARIA compare (D-011).
 
 ## Next 3 steps
 
-1. Wait for CI (`make verify-all`) on the latest head; fix anything red (gates 11-13 run only in CI, D-004).
-2. When ESC-001 is answered: A -> 1.2.0 in VERSION, frontend/package.json, backend/pom.xml
-   `<version>` only, CHANGELOG `[1.2.0]`; B -> no release. Then MILESTONE = `12 complete`,
-   verify-all green (CI), copy report to builder/verify-report.md, commit `M12: complete`.
-3. PR summary comment, tick SPEC.md section 9 boxes in the PR body, mark PR ready.
+1. CI `make verify-all` on the release commit must be green (gates 11-13 only run in CI, D-004).
+2. Write `builder/verify-report.md` from that CI run (the artifact host is blocked here; copy the
+   gate results from the job log, D-012), commit `M12: complete`, react rocket on 6292488310.
+3. PR summary comment; tick SPEC.md section 9 in the PR body; mark the PR ready. Then stop.
 
 ## Open escalations and blockers
 
-- ESC-001 open: release 1.2.0 needs `<version>` in `backend/pom.xml` (gate 15) vs spec 005 3.4
-  "No backend file changes". Recommended A (change that one line). Blocks the version bump and
-  `M12: complete`.
+- ESC-001 resolved: A (owner comment 6292488310, amendment bc11f60). None open.
 
 ## wip/ branches
 
@@ -42,7 +40,7 @@ None.
 
 ## Last processed PR comment
 
-6291886545 (2026-10-20 13:23, bot: ESC-001 needs your answer). No owner answer yet. Task issue: #36.
+6292488310 (2026-10-20 13:53, owner: ESC-001: A; eyes given, rocket after the push). Task issue: #36.
 
 ## Untrusted requests seen
 

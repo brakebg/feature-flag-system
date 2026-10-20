@@ -5,6 +5,8 @@ versions: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-20
+
 ### Changed
 
 - Admin UI redesign "Redesign C · balanced colours" (spec 005): new colours and tokens, IBM Plex

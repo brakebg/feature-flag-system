@@ -108,3 +108,23 @@ spinner and the text and hides the arrow circle (design 6, DC-2).
 Besides the new package, `package-lock.json` changes three entries from `devOptional` to `dev`.
 `npm install` with npm 11.19.1 (the version CI uses) on main's lock file gives the same lines, so
 they are npm's own result for the new tree, not a second package. Kept.
+
+## ESC-001 · 2026-10-20 · answer: A
+
+Owner (PR comment 6292488310, amendment bc11f60, tag `spec-005-amend-2` to follow): "ESC-001: A.
+Change only the `<version>` line of `backend/pom.xml` to 1.2.0, with `VERSION`,
+`frontend/package.json` and `CHANGELOG.md`. No other backend file changes." SPEC.md section 3
+item 4 and section 10 item 9 now say so. Applied: release 1.2.0 (`VERSION`, `backend/pom.xml`
+`<version>`, `frontend/package.json` and its lock-file root entry, `CHANGELOG.md` `[1.2.0]`).
+`docker-compose.yml` keeps its `FF_VERSION` default `1.1.0`: it is outside the spec 005 scope, and
+every script and `make` target sets `FF_VERSION` from `VERSION`.
+The same amendment fixes `docs/product/design/README.md`: "the screens" are the 12 states of the
+criteria file, which the tests already cover (D-007; D-007 says "11 states", read "12": five
+design screens and seven more).
+
+## D-011 · 2026-10-20 · 4.8, deployment.md 9.6 · Footer version in the ARIA snapshots
+
+Nine recorded snapshots contain `- contentinfo: v1.1.0`, the release of the recording build. The
+footer shows the release (deployment.md 9.6), so release 1.2.0 changes it. The files stay as
+recorded; `aria.spec.ts` replaces exactly that line with `- contentinfo: v<VERSION>` (the root
+`VERSION` file) before the comparison, so the footer must equal this build's version.
